@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Uimakurssikone · esimerkkiajo</title>
+  <style>
+    :root{--paper:#f5f5ef;--white:#fff;--ink:#173445;--muted:#657681;--line:#dce3df;--teal:#087f7a;--teal-dark:#075d5c;--teal-pale:#e4f3ed;--blue:#175b8b;--blue-pale:#eaf1f8;--amber:#9b5819;--amber-pale:#fff2db;--red:#ab4f47;--terminal:#142b37;--terminal-ink:#e4efed;--mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;--sans:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 var(--sans)}button,input,select{font:inherit}button,select{cursor:pointer}button{touch-action:manipulation}button:disabled{cursor:default}a{color:var(--teal-dark)}:focus-visible{outline:3px solid #efa948;outline-offset:4px}button,input,select{border-radius:9px}button{transition:background .15s,color .15s,transform .15s}button:not(:disabled):active{transform:translateY(1px)}[hidden]{display:none!important}.wrap{width:min(1320px,calc(100% - 72px));margin:auto}.example-banner{background:#e1ebe5;border-bottom:1px solid #cedbd3;text-align:center;color:#35584b;font-size:12px;font-weight:600;padding:9px 18px;letter-spacing:.02em}.site-header{display:flex;justify-content:space-between;align-items:center;padding:28px 0 24px;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:12px;font-size:17px;font-weight:730;letter-spacing:-.5px}.brand-symbol{width:39px;height:39px;background:var(--teal);border-radius:13px;display:grid;place-items:center;color:#fff}.header-label{font:11px var(--mono);letter-spacing:.13em;color:var(--muted);text-transform:uppercase}.hero{padding:41px 0 27px;display:flex;justify-content:space-between;align-items:end;gap:35px}.eyebrow{font-size:11px;font-weight:750;letter-spacing:.15em;text-transform:uppercase;color:var(--teal);margin:0 0 11px}h1{font-size:clamp(30px,4.5vw,53px);line-height:1.13;font-weight:650;letter-spacing:-2px;margin:0 0 15px}.intro{max-width:690px;font-size:16px;color:var(--muted);margin:0}.preference{min-width:248px;max-width:300px;border-left:2px solid #aacac0;padding:0 0 0 18px;font-size:12px;color:var(--muted)}.preference strong{display:block;color:var(--ink);font-size:13px;margin-bottom:4px}.preference span{display:block}.control-panel{border:1px solid var(--line);background:var(--white);border-radius:15px;padding:20px 22px;margin:0 0 21px;box-shadow:0 3px 0 #e7ebe466}.configuration{display:grid;grid-template-columns:1.35fr 1fr .6fr;gap:16px}.field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:750;color:var(--muted);margin-bottom:6px}.field select{width:100%;border:1px solid #cfd9d5;background:#fcfdfa;color:var(--ink);padding:10px 32px 10px 12px;min-height:43px;font-size:13px}.control-bottom{display:flex;gap:16px;justify-content:space-between;align-items:center;margin-top:17px}.buttons{display:flex;flex-wrap:wrap;gap:8px}.button{padding:10px 16px;min-height:41px;border:1px solid #d4ded9;background:#fff;color:var(--ink);font-size:13px;font-weight:650;display:inline-flex;align-items:center;justify-content:center;gap:8px}.button.primary{background:var(--teal);border-color:var(--teal);color:#fff}.button.primary:hover:not(:disabled){background:var(--teal-dark)}.button:hover:not(:disabled){background:#eff4ef}.button:disabled{opacity:.45}.button.small{padding:8px 13px;min-height:36px}.button.danger{border-color:#e4cbc6;color:var(--red)}.control-hint{font-size:11px;color:var(--muted);text-align:right;max-width:244px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:21px}.metric{border:1px solid var(--line);border-radius:12px;background:#fafbf7;padding:15px 18px}.metric-top{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted)}.metric-mark{font-size:14px;color:#89a99d}.metric-number{font-size:25px;letter-spacing:-1px;line-height:1.3;font-weight:650;margin-top:6px}.metric-number small{font-size:13px;letter-spacing:0;color:var(--muted);font-weight:400}.metric-help{font-size:10px;color:var(--muted);margin-top:3px}.workspace{display:grid;grid-template-columns:1.15fr 1fr;gap:21px;align-items:start}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 11px;font-size:14px;font-weight:700;letter-spacing:-.15px}.section-heading span{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}.terminal{border-radius:14px;overflow:hidden;background:var(--terminal);box-shadow:0 8px 30px #17344510;border:1px solid #193747}.terminal-header{padding:14px 17px;background:#1e3845;border-bottom:1px solid #35505a;display:flex;justify-content:space-between;align-items:center;color:#b9d0d2;font-size:11px}.terminal-dots{display:flex;gap:5px;align-items:center}.terminal-dots i{display:block;width:7px;height:7px;background:#86a49b;border-radius:50%}.terminal-title{margin-left:9px}.terminal-header-left{display:flex;align-items:center}.terminal-body{height:379px;padding:17px 16px 12px;overflow-y:auto;scrollbar-color:#4b666c transparent;scrollbar-width:thin;font:11px/1.8 var(--mono);color:var(--terminal-ink)}.terminal-command{color:#c5e3cd;margin:0 0 13px;white-space:pre-wrap}.terminal-command span{color:#6faf9d}.log-line{display:grid;grid-template-columns:55px 46px minmax(0,1fr);gap:8px;margin:0 0 9px;overflow-wrap:anywhere}.log-time{color:#7d9ba4}.log-tag{font-size:9px;letter-spacing:.06em;padding-top:2px;color:#8db6c4}.log-line.ok .log-tag{color:#8bd7b8}.log-line.action .log-tag{color:#e5cb8b}.log-line.warn .log-tag{color:#efb98d}.log-line.control .log-tag{color:#b7b0e5}.log-message{color:#dbe8e5}.log-line.ok .log-message{color:#c2eed5}.log-line.warn .log-message{color:#f2d3ad}.terminal-input{display:flex;align-items:center;gap:10px;padding:13px 17px;border-top:1px solid #35505a;background:#18313e}.terminal-input label{font:12px var(--mono);color:#8dc2ad}.terminal-input input{width:100%;min-width:0;background:transparent;color:#ecf4ef;border:0;border-radius:3px;font:11px var(--mono);padding:4px}.terminal-input input::placeholder{color:#8aa0a8}.terminal-input button{background:#294954;color:#c4d8d4;border:1px solid #40616a;padding:5px 10px;font:10px var(--mono);border-radius:5px}.terminal-help{font-size:10px;color:var(--muted);margin:8px 2px 0}.approval{margin-top:13px;padding:16px 17px;border:1px solid #d9bc83;background:#fff7e8;border-radius:12px}.approval h3{font-size:13px;margin:0 0 5px}.approval p{font-size:12px;color:#765325;margin:0 0 12px}.approval .buttons{gap:8px}.browser{border:1px solid var(--line);background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 5px 18px #17344505}.browser-header{background:#edf1ed;padding:11px 15px;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted);border-bottom:1px solid var(--line)}.address{display:flex;gap:6px;align-items:center}.local-dot{width:5px;height:5px;background:var(--teal);border-radius:50%}.test-person{font:9px var(--mono);border:1px solid #d1dcd6;background:#f9fbf7;padding:2px 6px;border-radius:4px;color:#6b7f75}.course-list{padding:13px 14px 3px;display:grid;gap:9px}.course{border:1px solid #e0e7e2;border-radius:10px;padding:12px 13px;background:#fdfefa;position:relative;transition:border .2s,background .2s}.course.winner{border-color:#65ab92;background:#f0faf4}.course.pending{border-color:#dbbb76;background:#fffaf0}.course-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:9px;color:var(--muted)}.course-label{font:9px var(--mono);letter-spacing:.04em}.badge{display:inline-block;white-space:nowrap;font-size:9px;line-height:1.5;padding:2px 7px;border-radius:4px;background:#edf0ee;color:#6c7b73;font-weight:650}.badge.queue{background:var(--amber-pale);color:var(--amber)}.badge.success{background:#daeee2;color:#27734f}.badge.blue{background:var(--blue-pale);color:var(--blue)}.course h3{font-size:14px;margin:7px 0 3px;letter-spacing:-.2px}.course-name{font-size:10px;color:#6b7f7a;margin:0 0 7px}.course-bottom{display:flex;align-items:center;justify-content:space-between;font-size:11px;gap:10px}.course-meta{color:var(--muted);font-size:10px}.course-price{white-space:nowrap;font-size:12px;font-weight:650}.course-substatus{border-top:1px solid #e7ece5;padding-top:7px;margin-top:8px;font-size:10px;color:#687f73}.course-substatus:empty{display:none}.cart{margin:10px 14px 14px;background:#f0f5f1;border-radius:9px;padding:11px 12px;display:flex;align-items:center;justify-content:space-between;gap:12px}.cart-label{font-size:10px;color:var(--muted)}.cart-strong{font-size:11px;font-weight:650;margin-top:3px}.cart-state{font:10px var(--mono);color:var(--teal);white-space:nowrap}.queue-notice{margin:11px 0 0;background:#edf3eb;border:1px solid #dbe5d8;border-radius:10px;padding:11px 13px;color:#556d55;font-size:11px}.run-status{display:flex;justify-content:space-between;gap:14px;align-items:center;margin:24px 0 9px}.run-status-title{font-size:14px;font-weight:650;letter-spacing:-.2px}.run-status-step{font:10px var(--mono);color:var(--muted);white-space:nowrap}.progress-track{height:4px;border-radius:4px;background:#dce7df;overflow:hidden}.progress-fill{height:100%;width:0%;background:var(--teal);border-radius:4px;transition:width .3s}.milestones{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin:19px 0 0;padding:0;list-style:none}.milestone{position:relative;border-top:1px solid #d6e0d8;padding:13px 0 0}.milestone-number{width:21px;height:21px;border-radius:50%;display:grid;place-items:center;position:absolute;top:-11px;left:0;background:var(--paper);border:1px solid #cad7ce;font:9px var(--mono);color:#86978b}.milestone.current .milestone-number{border-color:var(--teal);background:var(--teal);color:#fff}.milestone.done .milestone-number{border-color:#9fc7ad;background:#e1efe3;color:#327557}.milestone h3{font-size:12px;margin:4px 0}.milestone p{font-size:10px;color:var(--muted);margin:0;max-width:230px}.explainer{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;border-top:1px solid var(--line);margin-top:35px;padding:23px 0 25px}.explanation-number{font:10px var(--mono);color:var(--teal);margin-bottom:5px}.explainer h3{font-size:12px;margin:0 0 6px}.explainer p{font-size:11px;color:var(--muted);margin:0}.footer{border-top:1px solid var(--line);padding:18px 0 27px;color:#819087;font-size:10px;display:flex;justify-content:space-between;gap:20px}.footer span:last-child{white-space:nowrap}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(max-width:1000px){.wrap{width:calc(100% - 40px)}.hero{align-items:start}.preference{min-width:220px}.workspace{grid-template-columns:1.05fr 1fr;gap:15px}.log-line{grid-template-columns:49px 36px minmax(0,1fr);gap:5px}.terminal-body{font-size:10px;padding:16px 12px}.metric{padding:13px}.control-hint{display:none}.configuration{gap:10px}.button{padding:10px 13px}.course{padding:11px}.browser-header{padding:11px}.test-person{font-size:8px}.course-list{padding:11px 10px 3px}.cart{margin:9px 10px 11px}}
+    @media(max-width:760px){.hero{display:block;padding-top:29px}.preference{margin-top:20px;max-width:none;display:grid;grid-template-columns:1fr 1fr;gap:2px 12px}.preference strong{grid-column:1/-1}.workspace{grid-template-columns:1fr}.browser-column{grid-row:1}.course-list{grid-template-columns:1fr}.course{padding:12px 14px}.course h3{margin-top:5px}.course-bottom{font-size:12px}.course-name{margin-bottom:5px}.terminal-body{height:300px;font-size:11px}.log-line{grid-template-columns:55px 43px minmax(0,1fr);gap:6px}.section-heading{margin-top:5px}.terminal-column .section-heading{margin-top:7px}.configuration{grid-template-columns:1fr 1fr}.field.scenario{grid-column:1/-1}.control-panel{padding:16px}.buttons{gap:7px}.button{font-size:12px;padding:10px 12px}.metrics{gap:8px}.metric{padding:11px 10px}.metric-top{font-size:10px}.metric-mark{display:none}.metric-number{font-size:22px}.metric-help{font-size:9px}.milestones{grid-template-columns:1fr 1fr;gap:25px 18px}.explainer{gap:20px;grid-template-columns:1fr;margin-top:28px}.explainer p{max-width:580px}.explanation-number{float:left;margin:2px 12px 20px 0}.footer{display:block}.footer span{display:block}.footer span:last-child{margin-top:6px}.site-header{padding:21px 0 18px}.header-label{font-size:9px}.brand{font-size:15px}.brand-symbol{width:33px;height:33px;border-radius:11px}h1{letter-spacing:-1.3px}.intro{font-size:14px}}
+    @media(max-width:420px){.wrap{width:calc(100% - 28px)}.example-banner{font-size:10px}.configuration{grid-template-columns:1fr}.field.scenario{grid-column:auto}.metrics{grid-template-columns:1fr 1fr}.metric-help{font-size:10px}.metric-number{font-size:25px}.preference{display:block}.header-label{max-width:90px;text-align:right;line-height:1.7}.button{padding:9px 10px}.control-bottom{margin-top:13px}.buttons{gap:6px}.log-line{grid-template-columns:49px 36px minmax(0,1fr);gap:5px}.terminal-body{font-size:10px}.run-status-title{font-size:12px}.run-status-step{font-size:9px}.course-meta{font-size:9px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+  </style>
+</head>
+<body>
+  <div class="example-banner">Esimerkkiajo · kuvitteelliset kurssit ja testihenkilö · ei yhteyttä kauppaan</div>
+  <div class="wrap">
+    <header class="site-header">
+      <div class="brand"><span class="brand-symbol" aria-hidden="true"><svg width="25" height="20" viewBox="0 0 25 20" fill="none"><path d="M2 7c3-4 5 4 8 0s5 4 8 0 4 0 5 0M2 14c3-4 5 4 8 0s5 4 8 0 4 0 5 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>Uimakurssikone</div>
+      <span class="header-label">Komentorivi + näkyvä selain</span>
+    </header>
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div><p class="eyebrow">Kokeile toimintaa</p><h1 id="page-title">Kolme polkua.<br>Yksi kurssipaikka.</h1><p class="intro">Työkalu seuraa hyväksymiäsi kursseja, hakee jonopaikat varalle ja vie yhden varsinaisen varauksen maksuun. Näet koko ajan, missä mennään — ja voit pysäyttää ajon.</p></div>
+        <aside class="preference" aria-label="Esimerkin hakuehdot"><strong>Tässä esimerkissä</strong><span>Mäkelänrinne → Kallio</span><span>Arkisin klo 17.30 alkaen</span><span>Viikonloppuisin klo 9.30 alkaen</span><span>Jatkouimakoulu · enintään 76 €</span></aside>
+      </section>
+      <section class="control-panel" aria-label="Esimerkin ohjaus">
+        <div class="configuration">
+          <div class="field scenario"><label for="scenario">Mitä tapahtuu?</label><select id="scenario"><option value="normal">Jonopaikat ensin, sitten kurssipaikka</option><option value="queues">Vain jonopaikkoja saatavilla</option><option value="lost">Maksuvastaus katoaa</option></select></div>
+          <div class="field"><label for="mode">Ihminen mukana</label><select id="mode"><option value="auto">Etene hyväksytyillä ehdoilla</option><option value="ask">Kysy ennen jokaista toimintoa</option></select></div>
+          <div class="field"><label for="speed">Toiston nopeus</label><select id="speed"><option value="1500">Rauhallinen</option><option value="650">Nopea</option></select></div>
+        </div>
+        <div class="control-bottom"><div class="buttons"><button class="button primary" id="play" type="button"><span aria-hidden="true">▶</span> Toista</button><button class="button" id="next" type="button">Seuraava vaihe <span aria-hidden="true">→</span></button><button class="button" id="pause" type="button" aria-pressed="false">Tauko</button><button class="button" id="reset" type="button">Alusta</button></div><div class="control-hint">Kaikki toimii tässä tiedostossa.<br>Oikeita varauksia tai maksuja ei tehdä.</div></div>
+      </section>
+      <section class="metrics" aria-label="Esimerkin tulokset">
+        <div class="metric"><div class="metric-top">Kurssipaikkoja <span class="metric-mark" aria-hidden="true">◎</span></div><div class="metric-number"><span id="actual-count">0</span> <small>/ 1 tavoite</small></div><div class="metric-help">Vain vahvistettu paikka lasketaan</div></div>
+        <div class="metric"><div class="metric-top">Jonopaikkoja <span class="metric-mark" aria-hidden="true">≋</span></div><div class="metric-number"><span id="queue-count">0</span> <small>/ 2 mahdollista</small></div><div class="metric-help">Haku jatkuu jonopaikkojen jälkeen</div></div>
+        <div class="metric"><div class="metric-top">Maksupyyntöjä <span class="metric-mark" aria-hidden="true">↗</span></div><div class="metric-number"><span id="payment-count">0</span> <small>/ enintään 1</small></div><div class="metric-help">Vastauskatko ei toista maksua</div></div>
+        <div class="metric"><div class="metric-top">Vahvistettu maksu <span class="metric-mark" aria-hidden="true">✓</span></div><div class="metric-number" id="payment-total">0 <small>€</small></div><div class="metric-help">Esimerkissä keksitty FastPay-maksu</div></div>
+      </section>
+      <div class="workspace">
+        <section class="terminal-column" aria-labelledby="terminal-heading"><h2 class="section-heading" id="terminal-heading">Komentorivi kertoo <span>Ohjaus ihmisen käsissä</span></h2>
+          <div class="terminal"><div class="terminal-header"><div class="terminal-header-left"><span class="terminal-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="terminal-title">uhkone ohjattu</span></div><span>SIMULOITU AJO</span></div><div class="terminal-body" id="terminal" role="log" aria-label="Esimerkkiajon tapahtumat" aria-live="off" tabindex="0"><p class="terminal-command"><span>$</span> uhkone ohjattu</p><div id="terminal-lines"></div></div><form class="terminal-input" id="command-form"><label for="command" aria-label="Ohjauskomento">›</label><input id="command" type="text" autocomplete="off" spellcheck="false" maxlength="80" placeholder="tila / tauko / jatka / lopeta / apu" aria-label="Anna esimerkkiajolle ohjauskomento"><button type="submit" aria-label="Suorita paikallinen ohjauskomento">Enter ↵</button></form></div>
+          <p class="terminal-help">Voit kirjoittaa komennon tai käyttää yllä olevia painikkeita. Aikamerkinnät ovat kuvitteellisia.</p>
+          <section class="approval" id="approval" aria-labelledby="approval-heading" aria-live="polite" hidden><h3 id="approval-heading">Odotan hyväksyntääsi</h3><p id="approval-description"></p><div class="buttons"><button type="button" class="button primary small" id="approve">Hyväksy toiminto</button><button type="button" class="button danger small" id="reject">Lopeta ajo</button></div></section>
+        </section>
+        <section class="browser-column" aria-labelledby="browser-heading"><h2 class="section-heading" id="browser-heading">Näkyvän selaimen kurssipolut <span>3 hyväksyttyä vaihtoehtoa</span></h2>
+          <div class="browser"><div class="browser-header"><span class="address"><span class="local-dot" aria-hidden="true"></span>Paikallinen havainnollistus</span><span class="test-person">Testilapsi · testitili</span></div><div class="course-list">
+            <article class="course" id="course-a"><div class="course-top"><span class="course-label">POLKU 01 · #900101</span><span class="badge" id="badge-a">Odottaa avausta</span></div><h3>Mäkelänrinne <span style="color:#83978d;font-size:10px;font-weight:400">1. toive</span></h3><p class="course-name">Leikki-ikäisten jatkouimakoulu</p><div class="course-bottom"><span class="course-meta">Tiistai · klo 18.00–18.30</span><span class="course-price">76,00 €</span></div><div class="course-substatus" id="substatus-a"></div></article>
+            <article class="course" id="course-b"><div class="course-top"><span class="course-label">POLKU 02 · #900102</span><span class="badge" id="badge-b">Odottaa avausta</span></div><h3>Mäkelänrinne <span style="color:#83978d;font-size:10px;font-weight:400">1. toive</span></h3><p class="course-name">Leikki-ikäisten jatkouimakoulu</p><div class="course-bottom"><span class="course-meta">Lauantai · klo 10.00–10.30</span><span class="course-price">76,00 €</span></div><div class="course-substatus" id="substatus-b"></div></article>
+            <article class="course" id="course-c"><div class="course-top"><span class="course-label">POLKU 03 · #900103</span><span class="badge" id="badge-c">Odottaa avausta</span></div><h3>Kallio <span style="color:#83978d;font-size:10px;font-weight:400">2. toive</span></h3><p class="course-name">Leikki-ikäisten jatkouimakoulu</p><div class="course-bottom"><span class="course-meta">Sunnuntai · klo 10.30–11.00</span><span class="course-price">76,00 €</span></div><div class="course-substatus" id="substatus-c"></div></article>
+          </div><div class="cart"><div><div class="cart-label" id="cart-label">Yhteinen varausvuoro</div><div class="cart-strong" id="cart-description">Vapaana — mitään ei ole ostoskorissa</div></div><div class="cart-state" id="cart-count">0 tuotetta</div></div></div>
+          <p class="queue-notice" id="queue-notice">Jonopaikka ei ole kurssipaikka. Varsinaisen paikan haku jatkuu, vaikka jonopaikka saadaan.</p>
+        </section>
+      </div>
+      <section aria-label="Ajon eteneminen"><div class="run-status"><div class="run-status-title" id="run-status" role="status" aria-live="polite">Valmis kokeiltavaksi. Paina Toista tai Seuraava vaihe.</div><div class="run-status-step" id="step-count">VAIHE 0 / 12</div></div><div class="progress-track" role="progressbar" aria-label="Esimerkkiajon eteneminen" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress"><div class="progress-fill" id="progress-fill"></div></div><ol class="milestones"><li class="milestone" id="milestone-0"><span class="milestone-number">1</span><h3>Hyväksy ehdot</h3><p>Kurssit, osallistuja, hintaraja ja tapa edetä tarkistetaan ennen ajoa.</p></li><li class="milestone" id="milestone-1"><span class="milestone-number">2</span><h3>Jonopaikat varalle</h3><p>Sopiviin jonoihin haetaan ajoissa. Muut kurssipolut jatkavat hakua.</p></li><li class="milestone" id="milestone-2"><span class="milestone-number">3</span><h3>Yksi varsinainen paikka</h3><p>Ensimmäinen valmis polku saa varausvuoron. Muut eivät aloita ostoa.</p></li><li class="milestone" id="milestone-3"><span class="milestone-number">4</span><h3>Varmista maksu</h3><p>Vasta vahvistettu varaus ja maksukuitti päättävät onnistuneen ajon.</p></li></ol></section>
+      <section class="explainer" aria-label="Miksi näin toimitaan"><div><div class="explanation-number">01 / JONOT</div><h3>Varavaihtoehtoja saa olla useita</h3><p>Esimerkissä saadaan kaksi jonopaikkaa. Niitä ei peruta automaattisesti myöhemmän kurssipaikan vuoksi.</p></div><div><div class="explanation-number">02 / VARAUS</div><h3>Vain yksi polku saa ostaa</h3><p>Kurssien tiloja seurataan rinnakkain. Varsinainen varaus ja maksu kulkevat yhteisen varausvuoron kautta.</p></div><div><div class="explanation-number">03 / MAKSU</div><h3>Epäselvä tulos tarkistetaan</h3><p>Maksupyynnön aikakatkaisu ei todista epäonnistumista. Työkalu tarkistaa varauksen ja kuitin lähettämättä uutta maksua.</p></div></section>
+    </main>
+    <footer class="footer"><span>Tämä esittää toimintalogiikkaa. Kurssit, paikkatilanteet, vasteajat ja maksu ovat kuvitteellisia. FastPayn oikea toiminta varmistetaan kaupan selaimessa.</span><span>Itsenäinen HTML · ei verkkopyyntöjä</span></footer>
+  </div>
+  <script>
+  (function () {
+    'use strict';
+    const byId = (id) => document.getElementById(id);
+    const elements = {
+      scenario:byId('scenario'),mode:byId('mode'),speed:byId('speed'),play:byId('play'),next:byId('next'),pause:byId('pause'),reset:byId('reset'),
+      terminal:byId('terminal'),lines:byId('terminal-lines'),status:byId('run-status'),steps:byId('step-count'),progress:byId('progress'),fill:byId('progress-fill'),
+      approval:byId('approval'),approvalText:byId('approval-description'),approve:byId('approve'),reject:byId('reject'),form:byId('command-form'),input:byId('command')
+    };
+    let model, steps, timer = null, running = false, paused = false, stopped = false, pending = null, index = -1, logTick = 0;
+
+    function log(tag, message, kind) {
+      const row = document.createElement('div');
+      row.className = 'log-line ' + (kind || 'read');
+      const stamp = document.createElement('span');
+      stamp.className = 'log-time';
+      const seconds = logTick++ * 2;
+      stamp.textContent = '09:' + String(Math.floor(seconds / 60)).padStart(2,'0') + ':' + String(seconds % 60).padStart(2,'0');
+      const type = document.createElement('span');
+      type.className = 'log-tag'; type.textContent = tag;
+      const text = document.createElement('span');
+      text.className = 'log-message'; text.textContent = message;
+      row.append(stamp,type,text); elements.lines.appendChild(row);
+      elements.terminal.scrollTop = elements.terminal.scrollHeight;
+    }
+    function stopTimer() { if(timer !== null){clearTimeout(timer);timer=null;} }
+    function queueCount() { return ['a','b'].filter((id) => model.courses[id].queued).length; }
+    function step(title, stage, tag, message, change, action) { return {title,stage,tag,message,change,action}; }
+
+    function buildSteps() {
+      const list = [
+        step('Hyväksytyt ehdot tarkistettu',0,'VALMIS','Kolme kurssia hyväksytty. Osallistuja: Testilapsi. Enimmäishinta 76 €. Tavoite yksi varsinainen paikka.',() => {}),
+        step('Ilmoittautuminen avautui',0,'LUKU','Kurssisivut avattu. Mäkelänrinteen kursseilla on kummallakin yksi jonopaikka. Varsinaisia paikkoja ei vielä ole.',() => {
+          model.courses.a.status='Täynnä · jono avoin';model.courses.b.status='Täynnä · jono avoin';model.courses.c.status='Täynnä';
+        }),
+        step('Ensimmäinen jonopyyntö',1,'JONO','Lähetän yhden jonopyynnön: Mäkelänrinne, tiistai 18.00. Varsinaisen paikan haku jatkuu.',() => {
+          model.courses.a.status='Jonopyyntö lähetetty';model.courses.a.pending=true;
+        },{label:'Varaa jonopaikka: Mäkelänrinne, tiistai klo 18.00.',kind:'queue'}),
+        step('Ensimmäinen jonopaikka vahvistui',1,'OK','Jonopaikka vahvistettu: Mäkelänrinne, tiistai 18.00. Tämä ei ole vahvistettu kurssipaikka.',() => {
+          model.courses.a.queued=true;model.courses.a.pending=false;model.courses.a.status='Jonopaikka vahvistettu';
+        }),
+        step('Toinen jonopyyntö',1,'JONO','Lähetän jonopyynnön myös hyväksytylle lauantain kurssille. Tiistain jonopaikka jää voimaan.',() => {
+          model.courses.b.status='Jonopyyntö lähetetty';model.courses.b.pending=true;
+        },{label:'Varaa jonopaikka: Mäkelänrinne, lauantai klo 10.00.',kind:'queue'}),
+        step('Kaksi jonopaikkaa varalla',1,'OK','Myös lauantain jonopaikka vahvistui. Jonopaikkoja 2, varsinaisia paikkoja 0. Jatkan kaikkien kolmen kurssin tarkistamista.',() => {
+          model.courses.b.queued=true;model.courses.b.pending=false;model.courses.b.status='Jonopaikka vahvistettu';
+        })
+      ];
+      if(elements.scenario.value === 'queues') {
+        list.push(
+          step('Varsinaisten paikkojen haku jatkuu',2,'LUKU','Tarkistan kolme kurssia uudelleen. Kaikki ovat edelleen täynnä. Jonopaikat eivät päätä varsinaisen paikan hakua.',() => {}),
+          step('Uusi tarkistus — ei vapaita paikkoja',2,'ODOTA','Mäkelänrinne täynnä, Kallio täynnä. Uusia jonopyyntöjä ei lähetetä jo vahvistettuihin jonoihin.',() => {}),
+          step('Yritysaika päättyi: kaksi jonopaikkaa',3,'VALMIS','Yritysaika päättyi. Kaksi jonopaikkaa jää voimaan. Varsinaista paikkaa ei saatu, maksua ei aloitettu.',() => {model.finished=true;})
+        );
+        return list;
+      }
+      list.push(
+        step('Kalliossa vapautui varsinainen paikka',2,'LUKU','Kallion sunnuntaikurssilla on nyt yksi paikka. Mäkelänrinne on edelleen täynnä. Kallio saa varausvuoron ensimmäisenä valmiina polkuna.',() => {
+          model.courses.c.status='1 varsinainen paikka';model.courses.c.free=true;model.locked=true;
+        }),
+        step('Varaan yhden varsinaisen paikan',2,'VARAA','Varauspyyntö lähetetty: vain Kallio, sunnuntai 10.30. Muut polut eivät saa aloittaa varsinaista varausta.',() => {
+          model.adds=1;model.courses.c.pending=true;model.courses.c.free=false;model.courses.c.status='Varauspyyntö lähetetty';
+        },{label:'Varaa yksi varsinainen paikka: Kallio, sunnuntai klo 10.30, enintään 76 €.',kind:'add'}),
+        step('Keskeneräinen varaus löytyi',2,'KORI','Ostoskorissa on yksi oikean kurssin tuote oikealle osallistujalle. Hinta 76 €. Kurssipaikkaa ei vielä lasketa vahvistetuksi.',() => {
+          model.cart=1;model.courses.c.pending=false;model.courses.c.status='Ei vahvistettu · ostoskorissa';model.courses.c.held=true;
+        }),
+        step('Yksi FastPay-maksupyyntö',3,'MAKSA','Lähetän yhden simuloidun FastPay-maksupyynnön 76 eurosta. Tarkistan tuloksen ennen onnistumisilmoitusta.',() => {
+          model.payments=1;model.courses.c.status='Maksun vahvistus odottaa';
+        },{label:'Maksa vain Kallion varaus: simuloitu FastPay-maksu 76 €. Oikeaa veloitusta ei tehdä.',kind:'checkout'})
+      );
+      if(elements.scenario.value === 'lost') {
+        list.push(
+          step('Maksuvastaus katosi',3,'KATKO','Maksupyynnön vastaus katkesi. Maksu on voinut mennä perille. En lähetä uutta maksupyyntöä enkä aloita toista varausta.',() => {model.uncertain=true;model.courses.c.status='Maksun tulos epäselvä';}),
+          step('Tarkistan maksua lukemalla',3,'LUKU','Luen omat varaukset ja kuittitiedot uudelleen. Maksupyyntöjä on edelleen täsmälleen yksi. Odotan vahvistusta.',() => {}),
+          step('Vahvistettu varaus ja kuitti löytyivät',3,'OK','Kallion varaus on vahvistettu ja testikuitti suljettu: 76 €. Maksupyyntöjä 1. Kaksi aiempaa jonopaikkaa jää voimaan.',() => finishPayment())
+        );
+      } else {
+        list.push(
+          step('Varmistan varauksen ja maksukuitin',3,'LUKU','Tarkistan, että sama varaus on vahvistettu, ostoskori tyhjä ja uusi maksukuitti suljettu oikealla summalla.',() => {}),
+          step('Yksi kurssipaikka vahvistettu',3,'OK','VALMIS: Kallio, sunnuntai 10.30. Yksi kurssipaikka ja yksi testimaksu 76 €. Kaksi jonopaikkaa jää voimaan.',() => finishPayment())
+        );
+      }
+      return list;
+    }
+    function finishPayment() {
+      model.confirmed=1;model.total=76;model.cart=0;model.uncertain=false;model.finished=true;
+      model.courses.c.status='Kurssipaikka vahvistettu';model.courses.c.confirmed=true;model.courses.c.held=false;
+    }
+    function renderCourse(id) {
+      const course=model.courses[id],card=byId('course-'+id),badge=byId('badge-'+id),sub=byId('substatus-'+id);
+      card.className='course'+(course.confirmed?' winner':'')+(course.pending?' pending':'');
+      badge.className='badge'+(course.queued?' queue':course.confirmed?' success':course.free||course.held?' blue':'');
+      badge.textContent=course.status;
+      sub.textContent=course.queued?'Oma jonopaikka voimassa · varsinaisen paikan haku jatkuu.':course.confirmed?'Varaus + testikuitti tarkistettu. Tämä on ajon yksi varsinainen paikka.':course.held?'Maksua ei vielä ole vahvistettu. Muiden varsinaisten varausten aloitus estetty.':'';
+      if((model.finished||stopped)&&course.queued) sub.textContent='Jonopaikka jää voimaan. Työkalu ei peru sitä automaattisesti.';
+    }
+    function render() {
+      ['a','b','c'].forEach(renderCourse);
+      byId('actual-count').textContent=String(model.confirmed);
+      byId('queue-count').textContent=String(queueCount());
+      byId('payment-count').textContent=String(model.payments);
+      const total=byId('payment-total');total.replaceChildren(document.createTextNode(String(model.total)+' '));
+      const euro=document.createElement('small');euro.textContent='€';total.appendChild(euro);
+      byId('cart-label').textContent=model.confirmed?'Varaus ja maksu vahvistettu':model.locked?'Yhteinen varausvuoro lukittu':'Yhteinen varausvuoro';
+      byId('cart-description').textContent=model.confirmed?'Kallio · testikuitti 76 €':model.uncertain?'Kallio · tarkistetaan maksun tulosta':model.cart?'Kallio · yksi tuote · 76 €':model.locked?'Vain Kallion polku saa tehdä varsinaisen varauksen':'Vapaana — mitään ei ole ostoskorissa';
+      byId('cart-count').textContent=String(model.cart)+' '+(model.cart===1?'tuote':'tuotetta');
+      byId('queue-notice').textContent=stopped?'Ajo on lopetettu. Aiemmat jonopaikat jäävät voimaan. Mahdollisesti lähetettyä varausta tai maksua ei peruta automaattisesti.':model.finished?(model.confirmed?'Kaksi jonopaikkaa jää voimaan myös kurssipaikan saamisen jälkeen. Niitä ei peruta automaattisesti.':'Ajo päättyi jonopaikkoihin. Kaksi jonopaikkaa on voimassa, mutta varsinaista kurssipaikkaa tai maksua ei vahvistettu.'):'Jonopaikka ei ole kurssipaikka. Varsinaisen paikan haku jatkuu, vaikka jonopaikka saadaan.';
+      const done=index===steps.length-1;
+      elements.play.disabled=running||!!pending||paused;
+      elements.play.textContent=done||stopped?'↻ Toista uudelleen':'▶ Toista';
+      elements.next.disabled=done||stopped||paused||!!pending;
+      elements.pause.disabled=done||stopped||(index<0&&!running&&!pending);
+      elements.pause.textContent=paused?'Jatka':'Tauko';
+      elements.pause.setAttribute('aria-pressed',String(paused));
+      elements.approval.hidden=!pending;
+      elements.approve.disabled=paused;
+      if(pending) elements.approvalText.textContent=pending.action.label+(paused?' Ajo on tauolla; jatka ennen hyväksymistä.':' Voit hyväksyä tämän toiminnon tai lopettaa ajon.');
+      const title=stopped?'Ajo lopetettu. Tilanne säilyy näkyvissä.':paused?'Tauolla — selainpolkujen tila säilyy.':pending?'Odotan hyväksyntääsi ennen seuraavaa toimintoa.':index<0?'Valmis kokeiltavaksi. Paina Toista tai Seuraava vaihe.':steps[index].title;
+      elements.status.textContent=title;
+      elements.steps.textContent='VAIHE '+String(index+1)+' / '+String(steps.length);
+      const percent=Math.round((index+1)/steps.length*100);
+      elements.fill.style.width=percent+'%';elements.progress.setAttribute('aria-valuenow',String(percent));
+      const stage=index<0?-1:steps[index].stage;
+      const milestoneTitles=['Hyväksy ehdot','Jonopaikat varalle','Yksi varsinainen paikka','Varmista maksu'];
+      const queuesOnlyEnd=done&&elements.scenario.value==='queues';
+      for(let number=0;number<4;number++){
+        const milestone=byId('milestone-'+number);
+        const skipped=queuesOnlyEnd&&number>=2;
+        const completed=!skipped&&(number<stage||done);
+        milestone.className='milestone'+(completed?' done':!skipped&&number===stage?' current':'');
+        milestone.querySelector('.milestone-number').textContent=skipped?'–':completed?'✓':String(number+1);
+        milestone.querySelector('h3').textContent=skipped?(number===2?'Ei varsinaista paikkaa':'Maksua ei tehty'):milestoneTitles[number];
+      }
+    }
+    function execute(next) {
+      index++;next.change();
+      const kind=next.tag==='OK'?'ok':next.tag==='KATKO'?'warn':next.action?'action':'read';
+      log(next.tag,next.message,kind);
+      if(index===steps.length-1) running=false;
+      render();
+    }
+    function schedule() {
+      stopTimer();
+      if(!running||paused||stopped||pending||index===steps.length-1)return;
+      timer=setTimeout(() => {timer=null;advance();},Number(elements.speed.value));
+    }
+    function advance() {
+      if(paused||stopped||pending||index===steps.length-1)return;
+      const next=steps[index+1];
+      if(next.action&&elements.mode.value==='ask'){
+        pending=next;
+        log('KYSYMYS',next.action.label+' Odotan hyväksyntää.','control');
+        render();return;
+      }
+      execute(next);schedule();
+    }
+    function start() {
+      if(stopped||index===steps.length-1) reset(false);
+      if(paused){paused=false;log('OHJAUS','Ajo jatkuu.','control');}
+      running=true;render();
+      if(!pending) advance();
+    }
+    function pauseRun() {
+      if(stopped||index===steps.length-1)return;
+      paused=true;running=false;stopTimer();
+      log('OHJAUS','Tauko. Uusia varaus-, jono- tai maksupyyntöjä ei aloiteta.','control');render();
+    }
+    function resumeRun() {
+      if(stopped){log('OHJAUS','Ajo on lopetettu. Aloita uusi esimerkkiajo painamalla Alusta tai Toista uudelleen.','control');return;}
+      if(index===steps.length-1){log('OHJAUS','Esimerkkiajo on valmis. Voit vaihtaa skenaariota tai toistaa ajon.','control');return;}
+      paused=false;running=true;log('OHJAUS','Jatkan hyväksytyillä ehdoilla.','control');render();schedule();
+    }
+    function stopRun() {
+      if(stopped)return;
+      stopped=true;running=false;paused=false;pending=null;stopTimer();
+      log('OHJAUS','Ajo lopetettu. Aiemmat jonopaikat ja mahdollisesti lähetetty varaus tai maksu säilyvät. Mitään ei peruta automaattisesti.','control');render();
+    }
+    function reset(announce) {
+      stopTimer();running=false;paused=false;stopped=false;pending=null;index=-1;logTick=0;
+      model={courses:{a:{status:'Odottaa avausta'},b:{status:'Odottaa avausta'},c:{status:'Odottaa avausta'}},confirmed:0,payments:0,total:0,cart:0,adds:0,locked:false,uncertain:false,finished:false};
+      steps=buildSteps();elements.lines.replaceChildren();
+      log('VALMIS','Tämä on paikallinen esimerkkiajo. Ei yhteyttä kauppaan. Kaikki kurssit ja maksut ovat kuvitteellisia.','control');
+      log('OHJAUS',elements.mode.value==='ask'?'Kysyn ennen jokaista jonopyyntöä, varsinaista varausta ja maksua.':'Etenen hyväksytyillä ehdoilla. Voit kysyä tilannetta, pitää tauon tai lopettaa.','control');
+      if(announce)log('OHJAUS','Esimerkki alustettu. Voit aloittaa uudelleen.','control');
+      render();
+    }
+    elements.play.addEventListener('click',start);
+    elements.next.addEventListener('click',() => {running=false;stopTimer();advance();});
+    elements.pause.addEventListener('click',() => {if(paused)resumeRun();else pauseRun();});
+    elements.reset.addEventListener('click',() => reset(true));
+    elements.scenario.addEventListener('change',() => reset(false));
+    elements.mode.addEventListener('change',() => reset(false));
+    elements.speed.addEventListener('change',schedule);
+    elements.approve.addEventListener('click',() => {
+      if(!pending||paused||stopped)return;
+      const approved=pending;pending=null;
+      log('OHJAUS','Hyväksyntä saatu vain seuraavalle toiminnolle.','control');execute(approved);schedule();
+    });
+    elements.reject.addEventListener('click',stopRun);
+    elements.form.addEventListener('submit',(event) => {
+      event.preventDefault();const command=elements.input.value.trim().toLocaleLowerCase('fi-FI');elements.input.value='';
+      if(!command)return;
+      if(command==='tila'||command==='t'){
+        log('TILA','Jonopaikkoja '+String(queueCount())+', vahvistettuja kurssipaikkoja '+String(model.confirmed)+', maksupyyntöjä '+String(model.payments)+'. '+(paused?'Ajo tauolla.':stopped?'Ajo lopetettu.':pending?'Hyväksyntä odottaa.':index===steps.length-1?'Esimerkkiajo valmis.':'Ajo kesken.'),'control');
+      }else if(command==='tauko'||command==='p'){pauseRun();
+      }else if(command==='jatka'||command==='j'){resumeRun();
+      }else if(command==='lopeta'||command==='q'||command==='l'){stopRun();
+      }else if(command==='apu'||command==='?'||command==='a'){
+        log('APU','tila = nykytilanne, tauko = pysäytä eteneminen, jatka = jatka ajoa, lopeta = lopeta tämä ajo. Hyväksynnät annetaan erillisellä painikkeella.','control');
+      }else{log('APU','Tuntematon komento. Käytössä: tila, tauko, jatka, lopeta ja apu. Syötettä ei toisteta lokiin.','control');}
+    });
+    reset(false);
+  }());
+  </script>
+</body>
+</html>

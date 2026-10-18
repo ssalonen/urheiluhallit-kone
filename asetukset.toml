@@ -1,0 +1,22 @@
+# Hallien järjestys on samalla toivejärjestys.
+[haku]
+kurssi = "Leikki-ikäisten jatkouimakoulu"
+hallit = ["Mäkelänrinne", "Kallio"]
+# Tyhjä lista: kaikki viikonpäivät. Numerot: ma=1 ... su=7.
+viikonpaivat = []
+arki_aikaisintaan = "17:30"
+viikonloppu_aikaisintaan = "09:30"
+# Voit lisätä rajoitukset myöhemmin:
+# aikaisintaan = "15:00"
+# viimeistaan = "19:00"
+# alkaen = "2027-01-01"
+# asti = "2027-03-31"
+# enintaan_euroa = 100
+
+[vahti]
+# Paikallisen prosessin on oltava käynnissä. Ei tee varauksia.
+vali_sekuntia = 300
+
+[varaus]
+# Sopiviin jonoihin voi liittyä haun aikana. Varsinaisia kursseja maksetaan yksi.
+jono_varavaihtoehtona = true

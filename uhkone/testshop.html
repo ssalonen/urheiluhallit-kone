@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="fi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paikallinen testikauppa — simuloitu maksu</title>
+<style>
+  body{font:17px system-ui,sans-serif;background:#f4f5f7;color:#152738;margin:0;line-height:1.5}
+  header{background:#f9d769;padding:22px max(24px,calc((100vw - 1000px)/2))}
+  header strong{display:block;font-size:24px}main{max-width:1000px;margin:auto;padding:24px}
+  .eventgroup{background:white;border:1px solid #ccd5de;border-radius:12px;padding:22px;margin:16px 0}
+  .title{font-size:21px;margin:0 0 10px}button,.ok,.buyWithBalance,.buyCart{display:inline-block;background:#125a7e;color:white;
+    border:0;border-radius:7px;padding:11px 18px;cursor:pointer;text-decoration:none;font:inherit}
+  button:disabled{opacity:.45;cursor:default}a{color:#125a7e}label{display:block;margin:14px 0}
+  #modal:not([hidden]){position:fixed;inset:12% max(24px,calc((100vw - 620px)/2)) auto;background:white;
+    box-shadow:0 0 0 100vmax #11223399;border-radius:14px;padding:26px;max-height:75vh;overflow:auto}
+  #message{white-space:pre-wrap;color:#923f19}.small{font-size:14px}.modal-footer{margin-top:22px}
+</style>
+<header><strong>TESTIKAUPPA · SIMULOITU MAKSU</strong>
+  Paikallinen prototyyppi. Tämä ei ole Urheiluhallien eikä Enkoran kauppa.</header>
+<main><p>Kurssitiedot ovat julkisesta aineistosta. Paikkamäärät, ilmoittautumisajat, tilit ja maksut ovat testidataa.</p>
+  <p class="small">Kuvitteelliset tilit: Testihuoltaja ja Testilapsi. Testisaldo alussa 1 000 €.
+    FastPay käyttää kuvitteellista tallennettua testikorttia. Oikeaa rahaa ei siirretä eikä korttitietoja käsitellä.</p>
+  <p><a href="/webshop/reservations2/">Kaikki testikurssit</a> · <a href="/_test/status">Testin tila (JSON)</a></p>
+  <div id="message" role="status"></div><div id="courses">Ladataan testikursseja…</div>
+</main><div id="modal" hidden></div>
+<script>
+'use strict';
+const prefix='/webshop/reservations2/', modal=document.querySelector('#modal');
+let rows=[], cartRows=[];
+const message=text=>document.querySelector('#message').textContent=text;
+function plain(value){
+  const node=document.createElement('textarea');
+  node.innerHTML=String(value||'').replace(/<br\s*\/?\s*>/gi,' ').replace(/<[^>]*>/g,' ');
+  return node.value.replace(/\s+/g,' ').trim();
+}
+async function api(path, content, rpc=false){
+  const options={};
+  if(content!==undefined){
+    options.method='POST';
+    options.headers={'Content-Type':rpc?'application/x-www-form-urlencoded':'application/json'};
+    options.body=rpc?new URLSearchParams({input_format:'json',output_format:'json',content:JSON.stringify(content)}):JSON.stringify(content);
+  }
+  const response=await fetch(path,options), data=await response.json();
+  if(!response.ok||data.errors||data.user_errors)throw Error((data.errors||['Testipalvelu vastasi '+response.status]).join(', '));
+  return rpc?data.result:data;
+}
+const rpc=(path,content=null)=>api('/webshop/call/'+path,content,true);
+function price(row){
+  return row.bundle_price??row.price??row.fare_products[0].price;
+}
+function render(){
+  const selected=location.pathname.match(/\/reservations\/\d+\/[\d-]+\/[\d-]+\/-\/(\d+)\/?$/);
+  const visible=selected?rows.filter(row=>Number(row.reservation_event_group_id)===Number(selected[1])):rows;
+  const target=document.querySelector('#courses');target.replaceChildren();
+  for(const row of visible){
+    const card=document.createElement('article');card.className='eventgroup';
+    const title=document.createElement('h4');title.className='title';title.textContent=plain(row.name);card.append(title);
+    const facts=document.createElement('p');facts.textContent=plain(row.location)+' · '+String(row.start||'')+' · '+(price(row)/100).toFixed(2)+' €';card.append(facts);
+    const availability=document.createElement('p');availability.textContent='SIMULOITU: '+row.free+' paikkaa, '+row.free_queue+' jonopaikkaa, ilmoittautuminen '+row.public_reservation_start;card.append(availability);
+    const buy=document.createElement('button');buy.className='buy';buy.textContent='Valitse testiosallistuja';
+    buy.disabled=!row.is_reservable||Number(row.free)<=0;buy.onclick=()=>participants(row);card.append(buy);
+    if(row.is_reservable&&Number(row.free)<=0&&Number(row.free_queue)>0){
+      const queue=document.createElement('button');queue.className='queue';queue.textContent='Jono';
+      queue.onclick=()=>participants(row,true);card.append(queue);
+    }
+    if(!selected){const link=document.createElement('a');link.textContent=' Avaa kurssi';link.href=prefix+'reservations/9/'+(row.location_id||1)+'/'+(row.reservation_group_id||1)+'/-/'+row.reservation_event_group_id;card.append(link);}
+    target.append(card);
+  }
+  if(!visible.length)target.textContent='Testikurssia ei löytynyt.';
+}
+function participants(row,queue=false){
+  modal.hidden=false;
+  modal.className=queue?'queue':'';
+  modal.innerHTML='<div class="modal-header"><h3></h3></div><p>Vain kuvitteelliset osallistujat.</p>'+
+    '<label><input type="radio" name="participant" value="10" checked> Testihuoltaja</label>'+
+    '<label><input id="linked-accounts" type="radio" name="participant" value="children"> Lapsen tili</label>'+
+    '<div id="linkedAccount" style="display:none"><label><input type="radio" name="participant" value="20" data-name="Testilapsi"> Testilapsi</label></div>'+
+    '<div class="modal-footer"><a href="#" class="ok" role="button">Varaa testipaikka</a></div>';
+  modal.querySelector('h3').textContent=plain(row.name);
+  if(queue)modal.querySelector('.ok').textContent='Varaa paikka jonossa';
+  modal.querySelector('#linked-accounts').onclick=()=>modal.querySelector('#linkedAccount').style.display='block';
+  modal.querySelector('.ok').onclick=async event=>{
+    event.preventDefault();
+    const selected=modal.querySelector('input[name="participant"]:checked');
+    try{
+      const account={account_id:selected.value,name:selected.dataset.name||'Testihuoltaja'};
+      if(queue){
+        await api(prefix+'apiusereventgroups',{account,reservation_event_group_id:row.reservation_event_group_id,reservation_status_id:1});
+        modal.hidden=true;message('SIMULOITU JONOPAIKKA TALLENNETTU. Tämä ei ole maksettu kurssipaikka.');
+      }else{
+        await api(prefix+'apicart',{account,reservation_event_group_id:row.reservation_event_group_id,
+          fare_product_id:row.fare_products[0].fare_product_id,quantity:1,price:price(row),title:row.name,campaign_code:null});
+        modal.hidden=true;message('Testipaikka on ostoskorissa. Maksu on vielä tekemättä.');
+      }
+    }catch(error){message(error.message+' — tarkista palvelimen tila ennen uutta yritystä.');}
+  };
+}
+async function cartModal(){
+  let types;
+  try{types=await rpc('cart/getonlinepaymenttypes',[]);}catch(error){message(error.message);return;}
+  modal.hidden=false;
+  modal.className='';
+  modal.innerHTML='<div class="modal-header"><h3>Simuloitu testimaksu</h3></div><p>Oikeaa rahaa ei veloiteta.</p>'+
+    '<label><input id="usageTermsCheckbox" type="checkbox"> Hyväksyn simuloidun testivarauksen.</label>'+
+    '<label><input id="useBalanceCheckbox" type="checkbox"> Käytä kuvitteellista testisaldoa.</label>'+
+    '<div class="payment-methods"></div>';
+  for(const type of types.filter(item=>!item.is_disabled&&!item.is_pay_later)){
+    const action=document.createElement('a');action.href='#';action.setAttribute('role','button');
+    action.className=type.is_balance?'buyWithBalance':'buyCart';action.setAttribute('payment-type-id',type.payment_type_id);
+    action.textContent=type.is_balance?'Maksa testisaldolla':'FastPay: maksa tallennetulla testikortilla';
+    modal.querySelector('.payment-methods').append(action,document.createElement('br'));
+    action.onclick=async event=>{
+      event.preventDefault();
+      const useBalance=modal.querySelector('#useBalanceCheckbox').checked;
+      if(!modal.querySelector('#usageTermsCheckbox').checked||useBalance!==type.is_balance){message('Hyväksy testiehdot ja valitse testisaldo vain saldomaksuun.');return;}
+      try{
+        const total=cartRows.reduce((sum,row)=>sum+Number(row.price),0);
+        await rpc('cart/externalpaymentstart',[{return_url:location.origin+prefix+'?doPayment=success',
+          cancel_url:location.origin+prefix+'?doPayment=cancel',balance_amount:type.is_balance?total:null,
+          payment_type_id:String(type.payment_type_id),service_group_id:9}]);
+        modal.hidden=true;cartRows=[];message('SIMULOITU MAKSU VALMIS. Tarkista varaus ja kuitti testin tilasta.');
+      }catch(error){message(error.message+' — maksun tila tarkistetaan palvelimelta.');}
+    };
+  }
+}
+window.R2={session:{isAuthenticated:()=>true},user:{get:key=>key==='account_id'?10:null},service_group_id:9,
+  eventgroups:{length:0,get:id=>{const row=rows.find(item=>Number(item.reservation_event_group_id)===Number(id));
+    return row?{set:updated=>{Object.assign(row,updated);render();}}:null;}},
+  cart:{fetch:async()=>{cartRows=await api(prefix+'apicart');return cartRows;},toJSON:()=>cartRows},
+  vent:{trigger:name=>{if(name==='cart:open')cartModal();if(name==='login:open')message('Paikallinen kuvitteellinen tili on jo kirjautunut.');}}};
+async function refresh(){
+  try{
+    const latest=await api(prefix+'apieventgroups');
+    const changed=JSON.stringify(rows)!==JSON.stringify(latest);
+    rows=latest;R2.eventgroups.length=rows.length;
+    if(changed)render();
+  }
+  catch(error){message(error.message);}
+}
+refresh();setInterval(refresh,2000);
+</script></html>

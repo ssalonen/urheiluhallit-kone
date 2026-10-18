@@ -1,0 +1,5290 @@
+{
+  "version": 1,
+  "source_url": "https://kauppa.urheiluhallit.fi/webshop/reservations2/apieventgroups?service_id=9",
+  "fetched_at": "2026-10-18T05:26:36.280406+00:00",
+  "data_sha256": "bee3f277228ce06e2bbe0cb1767bbad2b6433cbcf2fd5eae13615d1047e330f8",
+  "courses": [
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 1<br>Swimming Technique 1 for School-Agers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "15:30-16:15"
+        }
+      ],
+      "end": "2026-12-07 16:15:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100543,
+      "start": "2026-10-19 15:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web MR KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4385
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 0,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 1<br>Swimming Technique 1 for School-Agers",
+      "free_queue": 5,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "16:00-16:45"
+        }
+      ],
+      "end": "2026-12-07 16:45:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100538,
+      "start": "2026-10-19 16:00:00",
+      "is_course": 1,
+      "free": 2,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Perheuimakoulut",
+      "name": " Perheuimakoulu <br>Family Swimming School, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "16:25-16:55"
+        }
+      ],
+      "end": "2026-12-07 16:55:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 8,
+      "reservation_event_group_id": 100537,
+      "start": "2026-10-19 16:25:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 9300,
+          "name": "#Web MR PERHEUIMAKOULUT",
+          "price": 9300,
+          "fare_product_id": 4388
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "16:30-17:00"
+        }
+      ],
+      "end": "2026-12-07 17:00:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100534,
+      "start": "2026-10-19 16:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 3,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeistekniikka<br>Elementary Swimming Technique Course for Preschoolers",
+      "free_queue": 2,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "16:50-17:20"
+        }
+      ],
+      "end": "2026-12-07 17:20:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100800,
+      "start": "2026-10-19 16:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten alkeisuimakoulu<br>Swimming School for School-Agers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "17:00-17:30"
+        }
+      ],
+      "end": "2026-12-07 17:30:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100544,
+      "start": "2026-10-19 17:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "17:10-17:40"
+        }
+      ],
+      "end": "2026-12-07 17:40:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100535,
+      "start": "2026-10-19 17:10:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "17:20-17:50"
+        }
+      ],
+      "end": "2026-12-07 17:50:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100536,
+      "start": "2026-10-19 17:20:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "17:30-18:00"
+        }
+      ],
+      "end": "2026-12-07 18:00:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100531,
+      "start": "2026-10-19 17:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten alkeisuimakoulu<br>Swimming School for Schoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "17:30-18:00"
+        }
+      ],
+      "end": "2026-12-07 18:00:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100539,
+      "start": "2026-10-19 17:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for School-Agers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "17:35-18:05"
+        }
+      ],
+      "end": "2026-12-07 18:05:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100545,
+      "start": "2026-10-19 17:35:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for Schoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "17:50-18:20"
+        }
+      ],
+      "end": "2026-12-07 18:20:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100541,
+      "start": "2026-10-19 17:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for School-Agers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "18:00-18:30"
+        }
+      ],
+      "end": "2026-12-07 18:30:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100542,
+      "start": "2026-10-19 18:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 10,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 0,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 2<br>Swimming Technique 2 for Adults",
+      "free_queue": 5,
+      "is_reservable": false,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "18:00-19:00"
+        }
+      ],
+      "end": "2026-12-07 19:00:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100551,
+      "start": "2026-10-19 18:00:00",
+      "is_course": 1,
+      "free": 4,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 11300,
+          "name": "#Web UH AIKUISTEN uimakoulut 8x60min.",
+          "price": 11300,
+          "fare_product_id": 4287
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "18:10-18:40"
+        }
+      ],
+      "end": "2026-12-07 18:40:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100533,
+      "start": "2026-10-19 18:10:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 6,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Perheuimakoulut",
+      "name": " Perheuimakoulu<br>Family Swimming School",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "18:15-18:45"
+        }
+      ],
+      "end": "2026-12-07 18:45:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 8,
+      "reservation_event_group_id": 100532,
+      "start": "2026-10-19 18:15:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 9300,
+          "name": "#Web UH PERHEUIMAKOULUT",
+          "price": 9300,
+          "fare_product_id": 4290
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 1<br>Swimming Technique 1 for Adults",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "18:30-19:30"
+        }
+      ],
+      "end": "2026-12-07 19:30:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100696,
+      "start": "2026-10-19 18:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 11300,
+          "name": "#Web MR AIKUISTEN uimakoulut 8x60min.",
+          "price": 11300,
+          "fare_product_id": 4387
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 10,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 2<br>Swimming Technique 2 for Adults",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "18:30-19:30"
+        }
+      ],
+      "end": "2026-12-07 19:30:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 101032,
+      "start": "2026-10-19 18:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 11300,
+          "name": "#Web UH AIKUISTEN uimakoulut 8x60min.",
+          "price": 11300,
+          "fare_product_id": 4287
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 7,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten alkeisuimakoulu<br>Swimming School for Adults, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "18:35-19:20"
+        }
+      ],
+      "end": "2026-12-07 19:20:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100553,
+      "start": "2026-10-19 18:35:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 10900,
+          "name": "#Web UH AIKUISTEN uimakoulut 8x45min.",
+          "price": 10900,
+          "fare_product_id": 4286
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for Schoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "18:50-19:20"
+        }
+      ],
+      "end": "2026-12-07 19:20:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100540,
+      "start": "2026-10-19 18:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 10,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 1<br>Swimming Technique 1 for Adults",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "19:00-20:00"
+        }
+      ],
+      "end": "2026-12-07 20:00:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100552,
+      "start": "2026-10-19 19:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 11300,
+          "name": "#Web UH AIKUISTEN uimakoulut 8x60min.",
+          "price": 11300,
+          "fare_product_id": 4287
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 7,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten jatkouimakoulu<br>Swimming School for Adults, beginner continued",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "19:20-20:05"
+        }
+      ],
+      "end": "2026-12-07 20:05:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100554,
+      "start": "2026-10-19 19:20:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 10900,
+          "name": "#Web UH AIKUISTEN uimakoulut 8x45min.",
+          "price": 10900,
+          "fare_product_id": 4286
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 10,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 1<br>Swimming Technique 1 for Adults",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            0
+          ],
+          "days": "Mon",
+          "times": "19:30-20:30"
+        }
+      ],
+      "end": "2026-12-07 20:30:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100549,
+      "start": "2026-10-19 19:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 11300,
+          "name": "#Web UH AIKUISTEN uimakoulut 8x60min.",
+          "price": 11300,
+          "fare_product_id": 4287
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 1<br>Swimming Technique 1 for Adults",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "08:05-09:05"
+        }
+      ],
+      "end": "2026-12-08 09:05:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100559,
+      "start": "2026-10-20 08:05:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 11300,
+          "name": "#Web MR AIKUISTEN uimakoulut 8x60min.",
+          "price": 11300,
+          "fare_product_id": 4387
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 0,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 2<br>Swimming Technique 2 for School-Agers",
+      "free_queue": 5,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "16:00-16:45"
+        }
+      ],
+      "end": "2026-12-08 16:45:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100571,
+      "start": "2026-10-20 16:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 6,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Perheuimakoulut",
+      "name": " Perheuimakoulu <br>Family Swimming School",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "16:20-16:50"
+        }
+      ],
+      "end": "2026-12-08 16:50:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 8,
+      "reservation_event_group_id": 100565,
+      "start": "2026-10-20 16:20:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 9300,
+          "name": "#Web UH PERHEUIMAKOULUT",
+          "price": 9300,
+          "fare_product_id": 4290
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "16:30-17:00"
+        }
+      ],
+      "end": "2026-12-08 17:00:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100562,
+      "start": "2026-10-20 16:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "16:35-17:05"
+        }
+      ],
+      "end": "2026-12-08 17:05:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100570,
+      "start": "2026-10-20 16:35:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for School-Agers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "16:40-17:10"
+        }
+      ],
+      "end": "2026-12-08 17:10:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100579,
+      "start": "2026-10-20 16:40:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 3,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 1<br>Swimming Technique 1 for School-Agers",
+      "free_queue": 2,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "16:50-17:35"
+        }
+      ],
+      "end": "2026-12-08 17:35:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100801,
+      "start": "2026-10-20 16:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "17:00-17:30"
+        }
+      ],
+      "end": "2026-12-08 17:30:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100566,
+      "start": "2026-10-20 17:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "17:10-17:40"
+        }
+      ],
+      "end": "2026-12-08 17:40:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100563,
+      "start": "2026-10-20 17:10:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten alkeisuimakoulu<br>Swimming School for School-Agers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "17:15-17:45"
+        }
+      ],
+      "end": "2026-12-08 17:45:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100577,
+      "start": "2026-10-20 17:15:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "17:20-17:50"
+        }
+      ],
+      "end": "2026-12-08 17:50:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100568,
+      "start": "2026-10-20 17:20:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten alkeisuimakoulu<br>Swimming School for School-Agers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "17:40-18:10"
+        }
+      ],
+      "end": "2026-12-08 18:10:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100575,
+      "start": "2026-10-20 17:40:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for Schoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "17:40-18:10"
+        }
+      ],
+      "end": "2026-12-08 18:10:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100802,
+      "start": "2026-10-20 17:40:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten uintikerho<br>Swimming Club for Preschoolers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "17:50-18:20"
+        }
+      ],
+      "end": "2026-12-08 18:20:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100564,
+      "start": "2026-10-20 17:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for School-Agers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "17:50-18:20"
+        }
+      ],
+      "end": "2026-12-08 18:20:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100578,
+      "start": "2026-10-20 17:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten uintikerho<br>Swimming Club for Preschoolers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "18:00-18:30"
+        }
+      ],
+      "end": "2026-12-08 18:30:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100569,
+      "start": "2026-10-20 18:00:00",
+      "is_course": 1,
+      "free": 1,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 2<br>Swimming Technique 2 for School-Agers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "18:15-19:00"
+        }
+      ],
+      "end": "2026-12-08 19:00:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100576,
+      "start": "2026-10-20 18:15:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "18:15-18:45"
+        }
+      ],
+      "end": "2026-12-08 18:45:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100811,
+      "start": "2026-10-20 18:15:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeistekniikka<br>Swimming Technique for Preschoolers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "18:30-19:00"
+        }
+      ],
+      "end": "2026-12-08 19:00:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100567,
+      "start": "2026-10-20 18:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten alkeisuimakoulu<br>Swimming School for School-Agers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "18:30-19:00"
+        }
+      ],
+      "end": "2026-12-08 19:00:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100574,
+      "start": "2026-10-20 18:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Koululaisten uintitekniikka 2<br>Swimming Technique 2 for School-Agers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "18:40-19:25"
+        }
+      ],
+      "end": "2026-12-08 19:25:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 102297,
+      "start": "2026-10-20 18:40:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web MR KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4385
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 10,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 2<br>Swimming Technique 2 for Adults",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "19:10-20:10"
+        }
+      ],
+      "end": "2026-12-08 20:10:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100558,
+      "start": "2026-10-20 19:10:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 11300,
+          "name": "#Web UH AIKUISTEN uimakoulut 8x60min.",
+          "price": 11300,
+          "fare_product_id": 4287
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 2<br>Swimming Technique 2 for Adults",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "19:30-20:30"
+        }
+      ],
+      "end": "2026-12-08 20:30:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100560,
+      "start": "2026-10-20 19:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 11300,
+          "name": "#Web MR AIKUISTEN uimakoulut 8x60min.",
+          "price": 11300,
+          "fare_product_id": 4387
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 8,
+      "location_address": "Vuosaarentie 5,\n00980 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten jatkouimakoulu<br>Swimming School for Adults, beginner continued",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "20:30-21:15"
+        }
+      ],
+      "end": "2026-12-08 21:15:00",
+      "location_id": 9,
+      "location": "Vuosaari",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100556,
+      "start": "2026-10-20 20:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 10900,
+          "name": "#Web VUO AIKUISTEN uimakoulut 8x45min.",
+          "price": 10900,
+          "fare_product_id": 4409
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 8,
+      "location_address": "Vuosaarentie 5,\n00980 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten alkeisuimakoulu<br>Swimming School for Adults, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            1
+          ],
+          "days": "Tue",
+          "times": "21:15-22:00"
+        }
+      ],
+      "end": "2026-12-08 22:00:00",
+      "location_id": 9,
+      "location": "Vuosaari",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100557,
+      "start": "2026-10-20 21:15:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 10900,
+          "name": "#Web VUO AIKUISTEN uimakoulut 8x45min.",
+          "price": 10900,
+          "fare_product_id": 4409
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 7,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Vapaauintikurssi (alkeet)<br>Freestyle Stroke, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "09:00-10:00"
+        }
+      ],
+      "end": "2026-11-11 10:00:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100609,
+      "start": "2026-10-21 09:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 4,
+      "fare_products": [
+        {
+          "original_price": 8700,
+          "name": "#WEB UH Teemakurssi uinti",
+          "price": 8700,
+          "fare_product_id": 4320
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 7,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Vapaauintikurssi (alkeet)",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "14:00-15:00"
+        }
+      ],
+      "end": "2026-11-11 15:00:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100607,
+      "start": "2026-10-21 14:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 4,
+      "fare_products": [
+        {
+          "original_price": 8700,
+          "name": "#WEB MR Teemakurssi uinti",
+          "price": 8700,
+          "fare_product_id": 4402
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 7,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 3,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Rintauintikurssi",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 3,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "15:00-16:00"
+        }
+      ],
+      "end": "2026-11-11 16:00:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100608,
+      "start": "2026-10-21 15:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 4,
+      "fare_products": [
+        {
+          "original_price": 8700,
+          "name": "#WEB MR Teemakurssi uinti",
+          "price": 8700,
+          "fare_product_id": 4402
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 6,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 1,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten jatkouimakoulu<br>Swimming School for Adults, beginner continued",
+      "free_queue": 3,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "16:00-16:45"
+        }
+      ],
+      "end": "2026-12-09 16:45:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100805,
+      "start": "2026-10-21 16:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 10900,
+          "name": "#Web UH AIKUISTEN uimakoulut 8x45min.",
+          "price": 10900,
+          "fare_product_id": 4286
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten alkeisuimakoulu<br>Swimming School for School-Agers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "16:30-17:00"
+        }
+      ],
+      "end": "2026-12-09 17:00:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100584,
+      "start": "2026-10-21 16:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "16:30-17:00"
+        }
+      ],
+      "end": "2026-12-09 17:00:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100596,
+      "start": "2026-10-21 16:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeistekniikka<br>Swimming Technique for Preschoolers",
+      "free_queue": 1,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "16:30-17:00"
+        }
+      ],
+      "end": "2026-12-09 17:00:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100600,
+      "start": "2026-10-21 16:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 2,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 1<br>Swimming Technique 1 for School-Agers",
+      "free_queue": 3,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "16:50-17:35"
+        }
+      ],
+      "end": "2026-12-09 17:35:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100581,
+      "start": "2026-10-21 16:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "17:00-17:30"
+        }
+      ],
+      "end": "2026-12-09 17:30:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100597,
+      "start": "2026-10-21 17:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for Schoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "17:10-17:40"
+        }
+      ],
+      "end": "2026-12-09 17:40:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100586,
+      "start": "2026-10-21 17:10:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 0,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten uintikerho<br>Swimming Club for Preschoolers",
+      "free_queue": 5,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "17:10-17:40"
+        }
+      ],
+      "end": "2026-12-09 17:40:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100593,
+      "start": "2026-10-21 17:10:00",
+      "is_course": 1,
+      "free": 1,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 13,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Perheuimakoulut",
+      "name": " Perheuimakoulu <br>Family Swimming School, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "17:10-17:40"
+        }
+      ],
+      "end": "2026-12-09 17:40:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 8,
+      "reservation_event_group_id": 100601,
+      "start": "2026-10-21 17:10:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 9300,
+          "name": "#Web MR PERHEUIMAKOULUT",
+          "price": 9300,
+          "fare_product_id": 4388
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "17:30-18:00"
+        }
+      ],
+      "end": "2026-12-09 18:00:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100591,
+      "start": "2026-10-21 17:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "17:40-18:10"
+        }
+      ],
+      "end": "2026-12-09 18:10:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100598,
+      "start": "2026-10-21 17:40:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 1<br>Swimming Technique 1 for School-Agers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "17:45-18:30"
+        }
+      ],
+      "end": "2026-12-09 18:30:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100587,
+      "start": "2026-10-21 17:45:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "17:45-18:15"
+        }
+      ],
+      "end": "2026-12-09 18:15:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100806,
+      "start": "2026-10-21 17:45:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "17:50-18:20"
+        }
+      ],
+      "end": "2026-12-09 18:20:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100594,
+      "start": "2026-10-21 17:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 15,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "17:50-18:20"
+        }
+      ],
+      "end": "2026-12-09 18:20:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100602,
+      "start": "2026-10-21 17:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "18:10-18:40"
+        }
+      ],
+      "end": "2026-12-09 18:40:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100592,
+      "start": "2026-10-21 18:10:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten uintikerho<br>Swimming Club for Preschoolers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "18:20-18:50"
+        }
+      ],
+      "end": "2026-12-09 18:50:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100599,
+      "start": "2026-10-21 18:20:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "18:30-19:00"
+        }
+      ],
+      "end": "2026-12-09 19:00:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100590,
+      "start": "2026-10-21 18:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "18:30-19:00"
+        }
+      ],
+      "end": "2026-12-09 19:00:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100595,
+      "start": "2026-10-21 18:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 15,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten uintikerho<br>Swimming Club for Preschoolers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "18:30-19:00"
+        }
+      ],
+      "end": "2026-12-09 19:00:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100603,
+      "start": "2026-10-21 18:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for Schoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "18:50-19:20"
+        }
+      ],
+      "end": "2026-12-09 19:20:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100583,
+      "start": "2026-10-21 18:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for School-Agers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "19:00-19:30"
+        }
+      ],
+      "end": "2026-12-09 19:30:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100588,
+      "start": "2026-10-21 19:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 2,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Koululaisten uintitekniikka 1<br>Swimming Technique 1 for School-Agers",
+      "free_queue": 3,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "19:10-19:55"
+        }
+      ],
+      "end": "2026-12-09 19:55:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100585,
+      "start": "2026-10-21 19:10:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 15,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for School-Agers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "19:10-19:40"
+        }
+      ],
+      "end": "2026-12-09 19:40:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100589,
+      "start": "2026-10-21 19:10:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 10,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 2<br>Swimming Technique 2 for Adults",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "19:30-20:30"
+        }
+      ],
+      "end": "2026-12-09 20:30:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100605,
+      "start": "2026-10-21 19:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 11300,
+          "name": "#Web UH AIKUISTEN uimakoulut 8x60min.",
+          "price": 11300,
+          "fare_product_id": 4287
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 1<br>Swimming Technique 1 for Adults",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "19:50-20:50"
+        }
+      ],
+      "end": "2026-12-09 20:50:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100606,
+      "start": "2026-10-21 19:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 11300,
+          "name": "#Web MR AIKUISTEN uimakoulut 8x60min.",
+          "price": 11300,
+          "fare_product_id": 4387
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 8,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten jatkouimakoulu<br>Swimming School for Adults, beginner continued",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "19:50-20:35"
+        }
+      ],
+      "end": "2026-12-09 20:35:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100697,
+      "start": "2026-10-21 19:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 10900,
+          "name": "#Web MR AIKUISTEN uimakoulut 8x45min.",
+          "price": 10900,
+          "fare_product_id": 4386
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 6,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Vapaauintikurssi (alkeet)",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "07:00-08:00"
+        }
+      ],
+      "end": "2026-11-12 08:00:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100643,
+      "start": "2026-10-22 07:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 4,
+      "fare_products": [
+        {
+          "original_price": 8700,
+          "name": "#WEB UH Teemakurssi uinti",
+          "price": 8700,
+          "fare_product_id": 4320
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 0,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 2<br>Swimming Technique 2 for School-Agers",
+      "free_queue": 5,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "15:30-16:15"
+        }
+      ],
+      "end": "2026-12-10 16:15:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100810,
+      "start": "2026-10-22 15:30:00",
+      "is_course": 1,
+      "free": 1,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Perheuimakoulut",
+      "name": " Perheuimakoulu<br>Family Swimming School",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "16:00-16:30"
+        }
+      ],
+      "end": "2026-12-10 16:30:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 8,
+      "reservation_event_group_id": 100654,
+      "start": "2026-10-22 16:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 9300,
+          "name": "#Web UH PERHEUIMAKOULUT",
+          "price": 9300,
+          "fare_product_id": 4290
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 1<br>Swimming Technique 1 for School-Agers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "16:15-17:00"
+        }
+      ],
+      "end": "2026-12-10 17:00:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100692,
+      "start": "2026-10-22 16:15:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 3,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for Schoolers, advanced",
+      "free_queue": 2,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "16:20-16:50"
+        }
+      ],
+      "end": "2026-12-10 16:50:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100803,
+      "start": "2026-10-22 16:20:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for School-Agers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "16:30-17:00"
+        }
+      ],
+      "end": "2026-12-10 17:00:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100664,
+      "start": "2026-10-22 16:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 2,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 3<br>Swimming Technique 3 for School-Agers",
+      "free_queue": 3,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "16:35-17:20"
+        }
+      ],
+      "end": "2026-12-10 17:20:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100786,
+      "start": "2026-10-22 16:35:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 2<br>Swimming Technique 2 for School-Agers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "16:50-17:35"
+        }
+      ],
+      "end": "2026-12-10 17:35:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100660,
+      "start": "2026-10-22 16:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "17:00-17:30"
+        }
+      ],
+      "end": "2026-12-10 17:30:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100650,
+      "start": "2026-10-22 17:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for Schoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "17:05-17:35"
+        }
+      ],
+      "end": "2026-12-10 17:35:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100659,
+      "start": "2026-10-22 17:05:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "17:10-17:40"
+        }
+      ],
+      "end": "2026-12-10 17:40:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100655,
+      "start": "2026-10-22 17:10:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 3,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten uintikerho<br>Swimming Club for Preschoolers",
+      "free_queue": 1,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "17:30-18:00"
+        }
+      ],
+      "end": "2026-12-10 18:00:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100653,
+      "start": "2026-10-22 17:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 3<br>Swimming Technique 3 for School-Agers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "17:40-18:25"
+        }
+      ],
+      "end": "2026-12-10 18:25:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100661,
+      "start": "2026-10-22 17:40:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "17:45-18:15"
+        }
+      ],
+      "end": "2026-12-10 18:15:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100651,
+      "start": "2026-10-22 17:45:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "17:50-18:20"
+        }
+      ],
+      "end": "2026-12-10 18:20:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100656,
+      "start": "2026-10-22 17:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten alkeisuimakoulu<br>Swimming School for School-Agers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "18:10-18:40"
+        }
+      ],
+      "end": "2026-12-10 18:40:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100662,
+      "start": "2026-10-22 18:10:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 7,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Vapaauintikurssi (alkeet)",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "18:20-19:20"
+        }
+      ],
+      "end": "2026-11-12 19:20:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100645,
+      "start": "2026-10-22 18:20:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 4,
+      "fare_products": [
+        {
+          "original_price": 8700,
+          "name": "#WEB MR Teemakurssi uinti",
+          "price": 8700,
+          "fare_product_id": 4402
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Helsinginkatu 25, 00510 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "18:30-19:00"
+        }
+      ],
+      "end": "2026-12-10 19:00:00",
+      "location_id": 1,
+      "location": "Kallio",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100652,
+      "start": "2026-10-22 18:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten uintikerho<br>Swimming Club for Preschoolers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "18:30-19:00"
+        }
+      ],
+      "end": "2026-12-10 19:00:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100657,
+      "start": "2026-10-22 18:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 10,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 2<br>Swimming Technique 2 for Adults",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "18:30-19:30"
+        }
+      ],
+      "end": "2026-12-10 19:30:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100790,
+      "start": "2026-10-22 18:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 11300,
+          "name": "#Web UH AIKUISTEN uimakoulut 8x60min.",
+          "price": 11300,
+          "fare_product_id": 4287
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for School-Agers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "18:45-19:15"
+        }
+      ],
+      "end": "2026-12-10 19:15:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100663,
+      "start": "2026-10-22 18:45:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 8,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten alkeisuimakoulu<br>Swimming School for Adults, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "19:10-19:55"
+        }
+      ],
+      "end": "2026-12-10 19:55:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100698,
+      "start": "2026-10-22 19:10:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 10900,
+          "name": "#Web MR AIKUISTEN uimakoulut 8x45min.",
+          "price": 10900,
+          "fare_product_id": 4386
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 7,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 3,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Vapaauintikurssi (alkeet)",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 3,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "19:30-20:30"
+        }
+      ],
+      "end": "2026-11-12 20:30:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100644,
+      "start": "2026-10-22 19:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 4,
+      "fare_products": [
+        {
+          "original_price": 8700,
+          "name": "#WEB UH Teemakurssi uinti",
+          "price": 8700,
+          "fare_product_id": 4320
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 8,
+      "location_address": "Vuosaarentie 5,\n00980 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 1<br>Swimming Technique 1 for Adults",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "20:45-21:45"
+        }
+      ],
+      "end": "2026-12-10 21:45:00",
+      "location_id": 9,
+      "location": "Vuosaari",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100614,
+      "start": "2026-10-22 20:45:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 11300,
+          "name": "#Web VUO AIKUISTEN uimakoulut 8x60min.",
+          "price": 11300,
+          "fare_product_id": 4410
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 6,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 2,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 1<br>Swimming Technique 1 for Adults ",
+      "free_queue": 1,
+      "is_reservable": 1,
+      "queue_capacity": 3,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            4
+          ],
+          "days": "Fri",
+          "times": "07:30-08:15"
+        }
+      ],
+      "end": "2026-12-11 08:15:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100817,
+      "start": "2026-10-23 07:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 10900,
+          "name": "#Web UH AIKUISTEN uimakoulut 8x45min.",
+          "price": 10900,
+          "fare_product_id": 4286
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner ",
+      "free_queue": 1,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            4
+          ],
+          "days": "Fri",
+          "times": "08:20-08:50"
+        }
+      ],
+      "end": "2026-12-11 08:50:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100672,
+      "start": "2026-10-23 08:20:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 5700,
+          "name": "#Web UH LEIKKI-IKÄISET AAMU 8x30min.",
+          "price": 5700,
+          "fare_product_id": 4301
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Jousimiehentie 3\n00740 Helsinki",
+      "queue": 0,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 5,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            4
+          ],
+          "days": "Fri",
+          "times": "09:00-09:30"
+        }
+      ],
+      "end": "2026-12-11 09:30:00",
+      "location_id": 6,
+      "location": "Siltamäki",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100818,
+      "start": "2026-10-23 09:00:00",
+      "is_course": 1,
+      "free": 1,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 5700,
+          "name": "#Web UH LEIKKI-IKÄISET AAMU 8x30min.",
+          "price": 5700,
+          "fare_product_id": 4301
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            4
+          ],
+          "days": "Fri",
+          "times": "16:00-16:30"
+        }
+      ],
+      "end": "2026-12-11 16:30:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100673,
+      "start": "2026-10-23 16:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten alkeisuimakoulu<br>Swimming School for School-Agers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            4
+          ],
+          "days": "Fri",
+          "times": "16:40-17:10"
+        }
+      ],
+      "end": "2026-12-11 17:10:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100668,
+      "start": "2026-10-23 16:40:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Perheuimakoulut",
+      "name": " Perheuimakoulu<br>Family Swimming School",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            4
+          ],
+          "days": "Fri",
+          "times": "16:40-17:10"
+        }
+      ],
+      "end": "2026-12-11 17:10:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 8,
+      "reservation_event_group_id": 100674,
+      "start": "2026-10-23 16:40:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 9300,
+          "name": "#Web UH PERHEUIMAKOULUT",
+          "price": 9300,
+          "fare_product_id": 4290
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten alkeisuimakoulu<br>Swimming School for School-Agers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            4
+          ],
+          "days": "Fri",
+          "times": "17:15-17:45"
+        }
+      ],
+      "end": "2026-12-11 17:45:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100665,
+      "start": "2026-10-23 17:15:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            4
+          ],
+          "days": "Fri",
+          "times": "17:20-17:50"
+        }
+      ],
+      "end": "2026-12-11 17:50:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100675,
+      "start": "2026-10-23 17:20:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for School-Agers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            4
+          ],
+          "days": "Fri",
+          "times": "17:50-18:20"
+        }
+      ],
+      "end": "2026-12-11 18:20:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100666,
+      "start": "2026-10-23 17:50:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 7,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": -2,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            4
+          ],
+          "days": "Fri",
+          "times": "18:00-18:30"
+        }
+      ],
+      "end": "2026-12-11 18:30:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100676,
+      "start": "2026-10-23 18:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 1<br>Swimming Technique 1 for School-Agers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            4
+          ],
+          "days": "Fri",
+          "times": "18:25-19:10"
+        }
+      ],
+      "end": "2026-12-11 19:10:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100667,
+      "start": "2026-10-23 18:25:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 1<br>Swimming Technique 1 for School-Agers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            4
+          ],
+          "days": "Fri",
+          "times": "18:40-19:25"
+        }
+      ],
+      "end": "2026-12-11 19:25:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100669,
+      "start": "2026-10-23 18:40:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web MR KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4385
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Aikuisten uintitekniikka 1<br>Swimming Technique 1 for Adults",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            4
+          ],
+          "days": "Fri",
+          "times": "19:30-20:30"
+        }
+      ],
+      "end": "2026-12-11 20:30:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100677,
+      "start": "2026-10-23 19:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 11300,
+          "name": "#Web MR AIKUISTEN uimakoulut 8x60min.",
+          "price": 11300,
+          "fare_product_id": 4387
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Vuosaarentie 5,\n00980 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "08:00-08:30"
+        }
+      ],
+      "end": "2026-12-12 08:30:00",
+      "location_id": 9,
+      "location": "Vuosaari",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100678,
+      "start": "2026-10-24 08:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web VUO LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4406
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Vuosaarentie 5,\n00980 Helsinki",
+      "queue": 0,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 5,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "08:30-09:00"
+        }
+      ],
+      "end": "2026-12-12 09:00:00",
+      "location_id": 9,
+      "location": "Vuosaari",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100679,
+      "start": "2026-10-24 08:30:00",
+      "is_course": 1,
+      "free": 6,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web VUO LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4406
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "09:00-09:30"
+        }
+      ],
+      "end": "2026-12-12 09:30:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100680,
+      "start": "2026-10-24 09:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Perheuimakoulut",
+      "name": " Perheuimakoulu <br>Family Swimming School, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "09:00-09:30"
+        }
+      ],
+      "end": "2026-12-19 09:30:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 8,
+      "reservation_event_group_id": 100681,
+      "start": "2026-10-24 09:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 9300,
+          "name": "#Web MR PERHEUIMAKOULUT",
+          "price": 9300,
+          "fare_product_id": 4388
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Vuosaarentie 5,\n00980 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten alkeisuimakoulu<br>Swimming School for School-Agers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "09:00-09:30"
+        }
+      ],
+      "end": "2026-12-12 09:30:00",
+      "location_id": 9,
+      "location": "Vuosaari",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100684,
+      "start": "2026-10-24 09:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web VUO LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4406
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Vuosaarentie 5,\n00980 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for Schoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "09:30-10:00"
+        }
+      ],
+      "end": "2026-12-12 10:00:00",
+      "location_id": 9,
+      "location": "Vuosaari",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100685,
+      "start": "2026-10-24 09:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web VUO LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4406
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "09:40-10:10"
+        }
+      ],
+      "end": "2026-12-19 10:10:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100682,
+      "start": "2026-10-24 09:40:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 8,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for Schoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "09:40-10:10"
+        }
+      ],
+      "end": "2026-12-12 10:10:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100686,
+      "start": "2026-10-24 09:40:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web UH LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4277
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Koululaisten uintitekniikka 1<br>Swimming Technique 1 for School-Agers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "10:15-11:00"
+        }
+      ],
+      "end": "2026-12-12 11:00:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100687,
+      "start": "2026-10-24 10:15:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "10:20-10:50"
+        }
+      ],
+      "end": "2026-12-19 10:50:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100683,
+      "start": "2026-10-24 10:20:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten jatkouimakoulu<br>Swimming School for School-Agers, advanced",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "11:00-11:30"
+        }
+      ],
+      "end": "2026-12-19 11:30:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100690,
+      "start": "2026-10-24 11:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web MR LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4383
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Koululaisten uintitekniikka 2<br>Swimming Technique 2 for School-Agers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "11:05-11:50"
+        }
+      ],
+      "end": "2026-12-12 11:50:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100688,
+      "start": "2026-10-24 11:05:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 1<br>Swimming Technique 1 for School-Agers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "11:40-12:25"
+        }
+      ],
+      "end": "2026-12-19 12:25:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100691,
+      "start": "2026-10-24 11:40:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web MR KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4385
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Ostostie 4,\n00940 Helsinki",
+      "queue": 0,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 3<br>Swimming Technique 3 for School-Agers",
+      "free_queue": 5,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "11:55-12:40"
+        }
+      ],
+      "end": "2026-12-12 12:40:00",
+      "location_id": 3,
+      "location": "Kontula",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100689,
+      "start": "2026-10-24 11:55:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web UH KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4283
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten uintitekniikka 3<br>Swimming Technique 3 for School-Agers",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            5
+          ],
+          "days": "Sat",
+          "times": "12:30-13:15"
+        }
+      ],
+      "end": "2026-12-19 13:15:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100700,
+      "start": "2026-10-24 12:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 8200,
+          "name": "#Web MR KOULUIKÄISET 8x45min.",
+          "price": 8200,
+          "fare_product_id": 4385
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 8,
+      "location_address": "Vuosaarentie 5,\n00980 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten alkeisuimakoulu<br>Swimming School for Preschoolers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            6
+          ],
+          "days": "Sun",
+          "times": "08:00-08:30"
+        }
+      ],
+      "end": "2026-12-20 08:30:00",
+      "location_id": 9,
+      "location": "Vuosaari",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100791,
+      "start": "2026-10-25 08:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web VUO LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4406
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Vuosaarentie 5,\n00980 Helsinki",
+      "queue": 0,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten jatkouimakoulu<br>Swimming School for Preschoolers, advanced",
+      "free_queue": 5,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            6
+          ],
+          "days": "Sun",
+          "times": "08:30-09:00"
+        }
+      ],
+      "end": "2026-12-20 09:00:00",
+      "location_id": 9,
+      "location": "Vuosaari",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100792,
+      "start": "2026-10-25 08:30:00",
+      "is_course": 1,
+      "free": 3,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web VUO LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4406
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-25 07:00:00",
+      "capacity": 10,
+      "location_address": "Vuosaarentie 5,\n00980 Helsinki",
+      "queue": 0,
+      "reservation_group_name": "Leikki-ikäisten uimakoulut",
+      "name": "Leikki-ikäisten uintikerho<br>Swimming Club for Preschoolers",
+      "free_queue": 5,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            6
+          ],
+          "days": "Sun",
+          "times": "09:00-09:30"
+        }
+      ],
+      "end": "2026-12-20 09:30:00",
+      "location_id": 9,
+      "location": "Vuosaari",
+      "reservation_group_id": 6,
+      "reservation_event_group_id": 100793,
+      "start": "2026-10-25 09:00:00",
+      "is_course": 1,
+      "free": 2,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web VUO LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4406
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-26 07:00:00",
+      "capacity": 10,
+      "location_address": "Vuosaarentie 5,\n00980 Helsinki",
+      "queue": 5,
+      "reservation_group_name": "Kouluikäisten uimakoulut",
+      "name": "Kouluikäisten alkeisuimakoulu<br>Swimming School for School-Agers, beginner",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 5,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            6
+          ],
+          "days": "Sun",
+          "times": "09:30-10:00"
+        }
+      ],
+      "end": "2026-12-20 10:00:00",
+      "location_id": 9,
+      "location": "Vuosaari",
+      "reservation_group_id": 5,
+      "reservation_event_group_id": 100794,
+      "start": "2026-10-25 09:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 8,
+      "fare_products": [
+        {
+          "original_price": 7600,
+          "name": "#Web VUO LEIKKI-ja KOULUIKÄISET 8x30min.",
+          "price": 7600,
+          "fare_product_id": 4406
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 7,
+      "location_address": "Pekanraitti 14,\n00700 Helsinki",
+      "queue": 0,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Vapaauintikurssi (jatko)<br>Freestyle Stroke, advanced",
+      "free_queue": 4,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "09:00-10:00"
+        }
+      ],
+      "end": "2026-12-09 10:00:00",
+      "location_id": 5,
+      "location": "Malmi",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100612,
+      "start": "2026-11-18 09:00:00",
+      "is_course": 1,
+      "free": 1,
+      "event_number": 4,
+      "fare_products": [
+        {
+          "original_price": 8700,
+          "name": "#WEB UH Teemakurssi uinti",
+          "price": 8700,
+          "fare_product_id": 4320
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 7,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Vapaauintikurssi (jatko)",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "14:00-15:00"
+        }
+      ],
+      "end": "2026-12-09 15:00:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100610,
+      "start": "2026-11-18 14:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 4,
+      "fare_products": [
+        {
+          "original_price": 8700,
+          "name": "#WEB MR Teemakurssi uinti",
+          "price": 8700,
+          "fare_product_id": 4402
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 7,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 3,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Rintauintikurssi",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 3,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            2
+          ],
+          "days": "Wed",
+          "times": "15:00-16:00"
+        }
+      ],
+      "end": "2026-12-09 16:00:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100611,
+      "start": "2026-11-18 15:00:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 4,
+      "fare_products": [
+        {
+          "original_price": 8700,
+          "name": "#WEB MR Teemakurssi uinti",
+          "price": 8700,
+          "fare_product_id": 4402
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 7,
+      "location_address": "Mäkelänkatu 49,\n00550 Helsinki",
+      "queue": 4,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Vapaauintikurssi (jatko)",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 4,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "18:20-19:20"
+        }
+      ],
+      "end": "2026-12-10 19:20:00",
+      "location_id": 2,
+      "location": "Mäkelänrinne",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100648,
+      "start": "2026-11-19 18:20:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 4,
+      "fare_products": [
+        {
+          "original_price": 8700,
+          "name": "#WEB MR Teemakurssi uinti",
+          "price": 8700,
+          "fare_product_id": 4402
+        }
+      ]
+    },
+    {
+      "public_reservation_start": "2026-08-27 07:00:00",
+      "capacity": 7,
+      "location_address": "Topeliuksenkatu 41 a,\n00250 Helsinki",
+      "queue": 3,
+      "reservation_group_name": "Aikuisten uimakoulut",
+      "name": "Vapaauintikurssi (jatko)",
+      "free_queue": 0,
+      "is_reservable": 1,
+      "queue_capacity": 3,
+      "service_id": 9,
+      "weekdays": [
+        {
+          "weekdays": [
+            3
+          ],
+          "days": "Thu",
+          "times": "19:30-20:30"
+        }
+      ],
+      "end": "2026-12-10 20:30:00",
+      "location_id": 4,
+      "location": "Töölö",
+      "reservation_group_id": 4,
+      "reservation_event_group_id": 100647,
+      "start": "2026-11-19 19:30:00",
+      "is_course": 1,
+      "free": 0,
+      "event_number": 4,
+      "fare_products": [
+        {
+          "original_price": 8700,
+          "name": "#WEB UH Teemakurssi uinti",
+          "price": 8700,
+          "fare_product_id": 4320
+        }
+      ]
+    }
+  ]
+}

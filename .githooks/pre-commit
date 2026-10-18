@@ -1,0 +1,4 @@
+#!/bin/sh
+# Enable locally with: git config core.hooksPath .githooks
+set -eu
+python3 scripts/check_public_tree.py
