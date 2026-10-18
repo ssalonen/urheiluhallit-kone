@@ -33,11 +33,13 @@ from uhkone.testshop import TestShop
 
 def _course_rows() -> list[dict]:
     rows = load_seed()["courses"]
-    today = datetime.now(HELSINKI).date()
-    filters = replace(Settings().filters, date_from=today, available_only=False)
+    # The catalogue is a frozen public fixture. Its original course dates
+    # must not make this local-only smoke test expire; the simulator supplies
+    # its own registration opening time and stock.
+    filters = replace(Settings().filters, date_from=None, available_only=False)
     eligible = ranked([parse_course(row) for row in rows], filters)[:12]
     if len(eligible) < 3:
-        raise BookingError("Pakatusta julkisesta testidatasta ei löytynyt kolmea nykyisiin hakuehtoihin sopivaa tulevaa kurssia.")
+        raise BookingError("Pakatusta julkisesta testidatasta ei löytynyt kolmea halli- ja aikatoiveisiin sopivaa kurssia.")
     by_id = {row["reservation_event_group_id"]: row for row in rows}
     return [by_id[course.id] for course in eligible[:3]]
 
