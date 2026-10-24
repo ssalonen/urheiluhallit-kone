@@ -7,15 +7,16 @@ Only positive proof that a request was not sent permits another attempt.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal, InvalidOperation
 import json
 import math
 import os
-from pathlib import Path
 import tempfile
-from typing import Callable, Protocol
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from typing import Protocol
 
 from .models import Course, normalize_text
 
@@ -97,7 +98,8 @@ class BookingResult:
 
 
 class BookingBackend(Protocol):
-    identity: str
+    @property
+    def identity(self) -> str: ...
 
     def snapshot(self) -> Observation: ...
     def add_selected_course(self) -> None: ...
@@ -112,7 +114,7 @@ def _money(value: Decimal) -> str:
 def _aware(value: datetime) -> datetime:
     if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
         raise BookingError("Kellon on palautettava aikavyöhykkeellinen aika.")
-    return value.astimezone(timezone.utc)
+    return value.astimezone(UTC)
 
 
 def _binding(spec: BookingSpec) -> dict:
@@ -191,10 +193,10 @@ def _load_state(path: Path, identity: str, spec: BookingSpec) -> dict:
                 raise ValueError("Virheellinen tallennettu hinta")
         if state["phase"] == "adding" and state["add_started"] is None:
             raise ValueError("Lisäyksen ajankohta puuttuu")
-        if state["phase"] in {"held", "paying", "confirmed"} and state["expected_price"] is None:
-            # A preexisting confirmed booking needs no payment-price evidence.
-            if not (state["phase"] == "confirmed" and state["result_status"] == "already_confirmed"):
-                raise ValueError("Varausvaiheen hinta puuttuu")
+        # A preexisting confirmed booking needs no payment-price evidence.
+        if (state["phase"] in {"held", "paying", "confirmed"} and state["expected_price"] is None
+                and not (state["phase"] == "confirmed" and state["result_status"] == "already_confirmed")):
+            raise ValueError("Varausvaiheen hinta puuttuu")
         if state["phase"] == "confirmed":
             if state["result_status"] not in {"confirmed", "already_confirmed"} or not state["reservation_id"]:
                 raise ValueError("Vahvistuksen tiedot puuttuvat")
@@ -288,7 +290,7 @@ def _observation_metadata(observation: Observation) -> dict:
 
 def run_booking(
     spec: BookingSpec, backend: BookingBackend, state_path: Path, *,
-    now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+    now: Callable[[], datetime] = lambda: datetime.now(UTC),
     log: Callable[[str], None] = print,
     on_add_not_sent: Callable[[], None] | None = None,
     progress: Callable[[str, dict], None] | None = None,
@@ -487,7 +489,7 @@ def run_booking(
                 _save_state(state_path, state)
                 log(f"Maksupyyntöä ei lähetetty; uusi tarkistus ennen yritystä: {exc}")
                 emit("retry", action="checkout", retry_after=delay)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - Any backend failure may follow a sent mutation; reconcile without resending.
                 checkout_failures += 1
                 delay = retry_delay(exc, checkout_failures)
                 log(f"Maksun tulos on epävarma; maksupyyntöä ei lähetetä uudelleen: {exc}")
@@ -523,7 +525,7 @@ def run_booking(
                 emit("retry", action="add", retry_after=delay)
                 if on_add_not_sent is not None:
                     on_add_not_sent()
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - Any backend failure may follow a sent mutation; reconcile without resending.
                 add_failures += 1
                 delay = retry_delay(exc, add_failures)
                 log(f"Lisäyksen tulos on epävarma; tarkistetaan palvelimen tila ilman uutta lisäyspyyntöä: {exc}")

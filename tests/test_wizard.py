@@ -1,24 +1,23 @@
 """Scripted conversations never open a real shop, browser, or payment flow."""
 
+import unittest
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from io import StringIO
 from pathlib import Path
-import unittest
 
 from uhkone.cli import parser
 from uhkone.config import ConfigError, Settings
 from uhkone.models import Course
 from uhkone.wizard import run_wizard
 
-
 BASE_COURSE = Course(
     id=42, name="Leikki-ikäisten jatkouimakoulu", location="Mäkelänrinne",
-    start=datetime(2030, 1, 7, 18, tzinfo=timezone.utc),
-    end=datetime(2030, 3, 7, 18, 30, tzinfo=timezone.utc), weekdays=(1,),
-    time_start="18:00", time_end="18:30", price=Decimal("76"), free_places=0,
-    registration_start=datetime(2029, 12, 12, 7, tzinfo=timezone.utc),
+    start=datetime(2030, 1, 7, 18, tzinfo=UTC),
+    end=datetime(2030, 3, 7, 18, 30, tzinfo=UTC), weekdays=(1,),
+    time_start="18:00", time_end="18:30", price=Decimal(76), free_places=0,
+    registration_start=datetime(2029, 12, 12, 7, tzinfo=UTC),
     url="https://kauppa.urheiluhallit.fi/webshop/reservations2/reservations/9/1,2/6/-/42#",
 )
 
@@ -112,7 +111,7 @@ class WizardTests(unittest.TestCase):
         self.assertEqual(parsed.command, "varaa-yksi")
         self.assertEqual(parsed.kohteet, [42])
         self.assertEqual(parsed.lapsi, "Testiosallistuja")
-        self.assertEqual(parsed.enintaan, Decimal("76"))
+        self.assertEqual(parsed.enintaan, Decimal(76))
         self.assertEqual(parsed.maksutapa, "fastpay")
         self.assertTrue(parsed.jono)
         self.assertTrue(parsed.keskustele)

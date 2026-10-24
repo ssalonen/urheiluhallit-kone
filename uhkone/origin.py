@@ -1,13 +1,12 @@
 """Explicit origins: the real shop or a local simulator on an IPv4 loopback port."""
 from urllib.parse import urlsplit
 
-
 PRODUCTION_URL = "https://kauppa.urheiluhallit.fi"
 
 
 def validate_base_url(value: str) -> str:
     if not isinstance(value, str):
-        raise ValueError("Kaupan osoitteen pitää olla merkkijono.")
+        raise ValueError("Kaupan osoitteen pitää olla merkkijono.")  # noqa: TRY004 - Preserve the validation error contract.
     try:
         parsed = urlsplit(value)
         if (parsed.username or parsed.password or parsed.query or parsed.fragment

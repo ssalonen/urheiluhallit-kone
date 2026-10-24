@@ -6,13 +6,14 @@ the shop's POST-based RPC calls. The policy is removed before the user takes ove
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
 import os
-from pathlib import Path
 import re
 import shutil
 import sys
-from typing import Iterator, TYPE_CHECKING, Any
+from collections.abc import Generator
+from contextlib import contextmanager
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Protocol
 from urllib.parse import unquote, urlsplit
 
 from .client import BASE_URL
@@ -119,9 +120,9 @@ class _PreparationGuard:
 
 
 @contextmanager
-def _browser(profile_dir: Path, executable_path: str | None, *, headless: bool = False) -> Iterator[BrowserContext]:
+def _browser(profile_dir: Path, executable_path: str | None, *, headless: bool = False) -> Generator[BrowserContext]:
     try:
-        from playwright.sync_api import sync_playwright, Error
+        from playwright.sync_api import Error, sync_playwright
     except ImportError as exc:
         raise BrowserError("Asenna selainosat: pip install -e . ja python -m playwright install chromium") from exc
     if not headless and sys.platform.startswith("linux") and not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
@@ -157,7 +158,11 @@ def _browser(profile_dir: Path, executable_path: str | None, *, headless: bool =
                 pass
 
 
-def _ensure_login(page: Page, guard: _PreparationGuard, *, timeout_ms: float = 0) -> None:
+class _LoginGuard(Protocol):
+    allow_login: bool
+
+
+def _ensure_login(page: Page, guard: _LoginGuard, *, timeout_ms: float = 0) -> None:
     page.wait_for_function("() => !!(window.R2 && R2.session)")
     if not page.evaluate("() => R2.session.isAuthenticated()"):
         print("Kirjaudu avautuvassa Urheiluhallien selaimessa. Salasanaa ei lueta eikä tallenneta työkalun asetuksiin.")

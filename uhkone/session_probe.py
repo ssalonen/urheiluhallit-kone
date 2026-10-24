@@ -5,18 +5,18 @@ probe never adds a product or starts a payment, so empty carts are inconclusive.
 """
 from __future__ import annotations
 
-from contextlib import ExitStack
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import json
 import os
-from pathlib import Path
 import shutil
 import sys
 import tempfile
+from contextlib import ExitStack
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
-from .browser import BrowserError, _PreparationGuard, _ensure_login
+from .browser import BrowserError, _ensure_login, _PreparationGuard
 from .client import BASE_URL
 
 
@@ -64,8 +64,8 @@ def _snapshot(user: Any, cart: Any) -> _Snapshot:
             if course_id is not None:
                 course_ids.add(course_id)
     return _Snapshot(_positive_integer(user.get("account_id")),
-                     tuple(sorted(item_ids)) if ids_known else None,
-                     len(cart), tuple(sorted(course_ids)), datetime.now(timezone.utc).isoformat())
+                     tuple(sorted(value for value in item_ids if value is not None)) if ids_known else None,
+                     len(cart), tuple(sorted(course_ids)), datetime.now(UTC).isoformat())
 
 
 def _compare_snapshots(first: _Snapshot, second: _Snapshot) -> dict:
@@ -154,7 +154,7 @@ def inspect_sessions(profile_root: Path, executable_path: str | None = None, *,
     if isinstance(login_timeout_seconds, bool) or not isinstance(login_timeout_seconds, int) or login_timeout_seconds <= 0:
         raise BrowserError("Kirjautumisen odotusajan tulee olla positiivinen kokonaisluku sekunteina.")
     try:
-        from playwright.sync_api import sync_playwright, Error
+        from playwright.sync_api import Error, sync_playwright
     except ImportError as exc:
         raise BrowserError("Asenna selainosat: pip install -e . ja python -m playwright install chromium") from exc
     if sys.platform.startswith("linux") and not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
@@ -164,11 +164,7 @@ def inspect_sessions(profile_root: Path, executable_path: str | None = None, *,
     if os.name == "posix":
         profile_root.chmod(0o700)
     paths = [profile_root / "profiili-a", profile_root / "profiili-b"]
-    options = {"headless": False, "locale": "fi-FI", "timezone_id": "Europe/Helsinki",
-               "service_workers": "block", "viewport": {"width": 1000, "height": 900}}
     browser_executable = executable_path or shutil.which("chromium") or shutil.which("chromium-browser")
-    if browser_executable:
-        options["executable_path"] = browser_executable
     print("Avataan kaksi erillistä selainprofiilia. Kirjaudu molemmissa samalle huoltajan tilille.")
     print("Testi lukee korit. Tuotteiden lisäys, poisto, varaus ja maksu on estetty myös käsin painettaessa.")
     try:
@@ -180,7 +176,11 @@ def inspect_sessions(profile_root: Path, executable_path: str | None = None, *,
                 path.mkdir(parents=True, exist_ok=True, mode=0o700)
                 if os.name == "posix":
                     path.chmod(0o700)
-                context = playwright.chromium.launch_persistent_context(str(path), **options)
+                context = playwright.chromium.launch_persistent_context(
+                    str(path), headless=False, locale="fi-FI", timezone_id="Europe/Helsinki",
+                    service_workers="block", viewport={"width": 1000, "height": 900},
+                    executable_path=browser_executable,
+                )
                 stack.callback(context.close)
                 context.set_default_timeout(20_000)
                 guard = _PreparationGuard(context)

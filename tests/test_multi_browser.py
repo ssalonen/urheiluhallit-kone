@@ -1,14 +1,14 @@
 """Exclusive browser write routes and shared evidence for candidate courses."""
-from dataclasses import replace
 import json
-from types import SimpleNamespace
 import unittest
+from dataclasses import replace
+from types import SimpleNamespace
+from unittest.mock import Mock
 
+from tests.test_booking_browser import cart_row, course_row, reservation, spec
 from uhkone.booking import BookingError, Observation, TransientBookingError
-from uhkone.booking_browser import BookingBrowser, _BookingGuard
 from uhkone.client import BASE_URL
-from uhkone.multi_browser import BookingPool, _PoolRouting, _candidate_rows
-from tests.test_booking_browser import spec, course_row, cart_row, reservation
+from uhkone.multi_browser import BookingPool, _candidate_rows, _PoolRouting
 
 
 def candidates():
@@ -117,7 +117,7 @@ class ExclusiveTabRoutingTests(unittest.TestCase):
 
     def test_activation_foregrounds_only_the_winner_before_granting_its_route(self):
         states = []
-        self.pages[1].bring_to_front = lambda: states.append(self.routing.active_id)
+        self.pages[1].bring_to_front = Mock(side_effect=lambda: states.append(self.routing.active_id))
         chosen = self.pool.activate(124)
         self.assertEqual(states, [None])
         self.assertEqual(self.routing.active_id, 124)
@@ -198,14 +198,14 @@ class SharedCandidateEvidenceTests(unittest.TestCase):
         def user():
             calls.append("user")
             return {"account_id": 10, "linked_accounts": [{"account_id": 20, "name": "Aino Esimerkki"}]}
-        reader._user = user
+        reader._user = Mock(side_effect=user)
         values = {"/webshop/reservations2/apicart": cart or [],
                   "/webshop/reservations2/apiusereventgroups": reservations or [],
                   "cart/getreceiptinfo": None, "cart/islocked": {"isLocked": locked}}
         def read(path, **options):
             calls.append(path)
             return values[path]
-        reader._read = read
+        reader._read = Mock(side_effect=read)
         return pool, calls
 
     def test_shared_account_state_is_read_once_and_candidate_urls_batched(self):

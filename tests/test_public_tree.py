@@ -3,15 +3,15 @@ import contextlib
 import importlib.util
 import io
 import json
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
-
+from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "check_public_tree.py"
 spec = importlib.util.spec_from_file_location("public_tree_guard", SCRIPT)
+assert spec is not None and spec.loader is not None
 guard = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = guard
 spec.loader.exec_module(guard)

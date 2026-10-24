@@ -6,27 +6,40 @@ This module never clears a cart or creates/updates a child account.
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
-from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
-from email.utils import parsedate_to_datetime
-from html.parser import HTMLParser
-from html import unescape
 import json
-from pathlib import Path
 import re
 import sys
 import time
-from typing import Any, Iterator
+from collections.abc import Generator
+from contextlib import contextmanager
+from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
+from email.utils import parsedate_to_datetime
+from html import unescape
+from html.parser import HTMLParser
+from pathlib import Path
+from typing import Any
 from urllib.parse import parse_qs, unquote, urljoin, urlsplit
 
-from .booking import (ActionNotSent, ActionUncertain, BookingError, BookingSpec,
-                      Observation, TransientBookingError)
-from .browser import _browser, _ensure_login, _prepare_page, _request_allowed, _validate_course_url, BrowserError
+from .booking import (
+    ActionNotSent,
+    ActionUncertain,
+    BookingError,
+    BookingSpec,
+    Observation,
+    TransientBookingError,
+)
+from .browser import (
+    BrowserError,
+    _browser,
+    _ensure_login,
+    _prepare_page,
+    _request_allowed,
+    _validate_course_url,
+)
 from .client import BASE_URL, ClientError, parse_course
 from .models import normalize_location, normalize_text
 from .origin import is_local_test, same_origin, validate_base_url
-
 
 _READ_RPC = frozenset({
     "cart/getreceiptinfo", "cart/islocked", "cart/getonlinepaymenttypes",
@@ -98,7 +111,7 @@ def _payload(body: str | None) -> Any:
 
 def _retry_preflight(action, wait, deadline: datetime, *, now=None):
     """Retry only positively read-only, transient initialization failures."""
-    clock = now or (lambda: datetime.now(timezone.utc))
+    clock = now or (lambda: datetime.now(UTC))
     delay = 1.0
     while True:
         if clock() >= deadline:
@@ -360,12 +373,12 @@ class _BookingGuard:
         try:
             source = urlsplit(request.frame.url)
             source_origin = f"{source.scheme}://{source.netloc}"
-        except Exception:
+        except Exception:  # noqa: BLE001 - An unreadable frame cannot establish a trusted origin.
             source_origin = None
         try:
             top = urlsplit(request.frame.page.main_frame.url)
             top_origin = f"{top.scheme}://{top.netloc}"
-        except Exception:
+        except Exception:  # noqa: BLE001 - An unreadable frame cannot establish a trusted origin.
             top_origin = None
         trusted_source = (source_origin in self.provider_origins
                           or top_origin in self.provider_origins
@@ -434,7 +447,7 @@ class _BookingGuard:
                     and not target.username and not target.password):
                 self.external_action = action
                 self.provider_origins.add(f"https://{target.netloc}")
-        except Exception:
+        except Exception:  # noqa: BLE001 - An unreadable response cannot authorize payment-provider access.
             # A malformed payment response never grants provider write access.
             return
 
@@ -488,7 +501,7 @@ class BookingBrowser:
                     retry = float(value)
                 except ValueError:
                     try:
-                        retry = max(0, (parsedate_to_datetime(value) - datetime.now(timezone.utc)).total_seconds())
+                        retry = max(0, (parsedate_to_datetime(value) - datetime.now(UTC)).total_seconds())
                     except (TypeError, ValueError, OverflowError):
                         pass
                 raise TransientBookingError(f"Kauppa on ruuhkautunut (HTTP {status}).", retry_after=retry)
@@ -528,7 +541,9 @@ class BookingBrowser:
                    and " ".join(str(child.get("name", "")).casefold().split()) == wanted]
         if len(matches) != 1 or _integer(matches[0].get("account_id")) in {None, self.payer_id}:
             raise BookingError("Lapsen nimeä ei löytynyt yksiselitteisesti olemassa olevista lapsitileistä.")
-        self.child_id = _integer(matches[0]["account_id"])
+        child_id = _integer(matches[0]["account_id"])
+        assert child_id is not None  # Validated in the matching-child check.
+        self.child_id = child_id
         self.identity = f"{self.payer_id}:{self.child_id}:{self.spec.course.id}"
         self.guard.child_id, self.guard.payer_id = self.child_id, self.payer_id
 
@@ -545,7 +560,7 @@ class BookingBrowser:
         # already spent, or the availability of a payment method already used.
         self.page.goto(_validate_course_url(self.spec.course, base_url=self.base_url), wait_until="domcontentloaded")
 
-    def _select_payment(self, price: Decimal) -> None:
+    def _select_payment(self, price: Decimal | None) -> None:
         types = self._payment_types()
         eligible = [row for row in types if _eligible_payment(row, self.spec.payment_mode)]
         if self.payment_type_id is not None:
@@ -571,7 +586,7 @@ class BookingBrowser:
         self.payment_type_name = _payment_label(eligible[0].get("name")) or "Maksutapa"
         if self.spec.payment_mode == "saldo":
             balance = self._read("cart/checkcurrentuserbalance", rpc=True, content=[])
-            if not isinstance(balance, dict) or _money(balance.get("balance")) < price:
+            if not isinstance(balance, dict) or (price is None or _money(balance.get("balance")) < price):
                 raise BookingError("Asiakastilin saldo ei riitä valitun kurssin maksamiseen.")
         print(f"Valittu maksutapa: {self.payment_type_name} (tunnus {self.payment_type_id}).")
 
@@ -664,7 +679,7 @@ class BookingBrowser:
             with self.page.expect_response(lambda response: response.url == self.base_url + "/webshop/reservations2/apicart"
                                            and response.request.method == "POST", timeout=20_000):
                 button.click()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - Fail closed on browser failures, including possibly sent mutations.
             failure = exc
         self._finish_action(failure)
 
@@ -695,7 +710,7 @@ class BookingBrowser:
             with self.page.expect_response(lambda response: response.url == self.base_url + "/webshop/reservations2/apiusereventgroups"
                                            and response.request.method == "POST", timeout=20_000):
                 button.click()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - Fail closed on browser failures, including possibly sent mutations.
             failure = exc
         self._finish_action(failure)
 
@@ -705,6 +720,7 @@ class BookingBrowser:
         if (not state.held or state.cart_has_others or state.cart_empty or state.payment_locked
                 or self.guard.checkout_sent):
             raise ActionNotSent("Täsmällistä maksukelpoista kurssivarausta ei voitu vahvistaa tai maksu on jo aloitettu.")
+        assert state.current_price is not None  # The controller validates the held price.
         if self.payment_type_id is None:
             self._select_payment(state.current_price)
         types = [row for row in self._payment_types()
@@ -759,7 +775,7 @@ class BookingBrowser:
                 action.click()
             if self.spec.payment_mode in {"verkkomaksu", "fastpay"}:
                 print("Maksu aloitettu. Tee maksupalvelun mahdollinen lisätunnistautuminen avatussa selaimessa; työkalu tarkistaa vahvistuksen automaattisesti.")
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - Fail closed on browser failures, including possibly sent mutations.
             failure = exc
         self._finish_action(failure)
 
@@ -780,7 +796,7 @@ class BookingBrowser:
 @contextmanager
 def open_booking_browser(spec: BookingSpec, profile_dir: Path,
                          executable_path: str | None = None, *, base_url: str = BASE_URL,
-                         headless: bool = False) -> Iterator[BookingBrowser]:
+                         headless: bool = False) -> Generator[BookingBrowser]:
     base_url = validate_base_url(base_url)
     _validate_course_url(spec.course, base_url=base_url)
     try:
@@ -801,7 +817,7 @@ def open_booking_browser(spec: BookingSpec, profile_dir: Path,
                     raise TransientBookingError(f"Kaupan kirjautumissivu on ruuhkautunut (HTTP {response.status}).", retry_after=retry)
                 if response is not None and response.status in {401, 403}:
                     raise BookingError("Kaupan kirjautumissivu ei ole käytettävissä tällä yhteydellä.")
-                remaining_ms = max(1, (spec.deadline - datetime.now(timezone.utc)).total_seconds() * 1000)
+                remaining_ms = max(1, (spec.deadline - datetime.now(UTC)).total_seconds() * 1000)
                 _ensure_login(page, guard, timeout_ms=min(2_000_000_000, remaining_ms))
             _retry_preflight(lambda: _preflight_page(login_phase), backend.wait, spec.deadline)
             _retry_preflight(lambda: _preflight_page(backend.initialize), backend.wait, spec.deadline)

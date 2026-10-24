@@ -1,17 +1,22 @@
 """Explicit test origins cannot grant access to the real shop or another port."""
-from dataclasses import replace
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 import json
-from types import SimpleNamespace
 import unittest
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from uhkone.booking import BookingSpec
 from uhkone.booking_browser import BookingBrowser, _BookingGuard, _fresh_course
-from uhkone.browser import BrowserError, _PreparationGuard, _request_allowed, _validate_course_url
+from uhkone.browser import (
+    BrowserError,
+    _PreparationGuard,
+    _request_allowed,
+    _validate_course_url,
+)
 from uhkone.client import BASE_URL, parse_course
 from uhkone.origin import validate_base_url
-
 
 LOCAL = "http://127.0.0.1:18765"
 OTHER_LOCAL = "http://127.0.0.1:18766"
@@ -27,8 +32,8 @@ def row():
 
 
 def local_spec(mode="saldo"):
-    opening = datetime(2027, 1, 1, tzinfo=timezone.utc)
-    return BookingSpec(parse_course(row(), base_url=LOCAL), "Testilapsi", Decimal("80"),
+    opening = datetime(2027, 1, 1, tzinfo=UTC)
+    return BookingSpec(parse_course(row(), base_url=LOCAL), "Testilapsi", Decimal(80),
                        opening, opening + timedelta(minutes=30), mode)
 
 
@@ -61,7 +66,7 @@ class ExplicitOriginPolicyTests(unittest.TestCase):
 
     def test_scoped_local_write_cannot_reach_production_or_another_port(self):
         guard = _BookingGuard(None, local_spec(), base_url=LOCAL)
-        guard.child_id, guard.product_id, guard.price = 20, 4321, Decimal("76")
+        guard.child_id, guard.product_id, guard.price = 20, 4321, Decimal(76)
         guard.arm("add")
         body = json.dumps({"reservation_event_group_id": 123, "fare_product_id": 4321,
                            "quantity": 1, "price": 7600, "account": {"account_id": 20, "name": "Testilapsi"}})
@@ -71,7 +76,7 @@ class ExplicitOriginPolicyTests(unittest.TestCase):
         self.assertFalse(guard.permits_write(OTHER_LOCAL + path, "POST", body))
 
     def test_preparation_guard_keeps_production_blocked_in_test_mode(self):
-        guard = _PreparationGuard(None, base_url=LOCAL)
+        guard = _PreparationGuard(MagicMock(), base_url=LOCAL)
         calls = []
         for origin in (LOCAL, BASE_URL):
             request = SimpleNamespace(url=origin + "/webshop/reservations2/apieventgroups/123", method="GET")

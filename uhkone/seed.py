@@ -1,11 +1,10 @@
 """Small public catalogue snapshot for the local simulator; no customer data."""
-from datetime import datetime, timezone
 import hashlib
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .client import BASE_URL, CATALOGUE_PATH, ShopClient, parse_course
-
 
 DEFAULT_SEED = Path(__file__).parent / "data" / "courses.json"
 SOURCE_URL = BASE_URL + CATALOGUE_PATH + "?service_id=9"
@@ -53,7 +52,7 @@ def write_seed(path: Path, rows: list[dict], *, fetched_at: datetime | None = No
     encoded = json.dumps(rows, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     document = {
         "version": 1, "source_url": SOURCE_URL,
-        "fetched_at": (fetched_at or datetime.now(timezone.utc)).isoformat(),
+        "fetched_at": (fetched_at or datetime.now(UTC)).isoformat(),
         "data_sha256": hashlib.sha256(encoded).hexdigest(), "courses": rows,
     }
     path.parent.mkdir(parents=True, exist_ok=True)

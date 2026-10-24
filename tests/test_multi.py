@@ -1,23 +1,29 @@
 """Account-wide first-winner coordination with fake clocks and no network."""
 
-from dataclasses import replace
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 import json
 import os
-from pathlib import Path
 import stat
 import subprocess
 import sys
 import tempfile
 import unittest
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+from pathlib import Path
 
-from uhkone.booking import ActionNotSent, ActionUncertain, BookingError, BookingSpec, Observation, TransientBookingError
+from uhkone.booking import (
+    ActionNotSent,
+    ActionUncertain,
+    BookingError,
+    BookingSpec,
+    Observation,
+    TransientBookingError,
+)
 from uhkone.models import Course
 from uhkone.multi import RaceBusyError, _account_lock, run_race
 
-
-BASE = datetime(2030, 1, 1, tzinfo=timezone.utc)
+BASE = datetime(2030, 1, 1, tzinfo=UTC)
 
 
 class Clock:
@@ -33,7 +39,7 @@ class Backend:
         self.pool = pool
         self.course_id = course_id
         self.identity = f"payer:child:{course_id}"
-        self.observation = Observation(available=True, current_price=Decimal("90"))
+        self.observation = Observation(available=True, current_price=Decimal(90))
         self.on_snapshot = None
         self.on_add = None
         self.on_checkout = None
@@ -72,7 +78,7 @@ class Backend:
         self.observation = replace(self.observation, held=False, cart_empty=True,
                                    reservation_id=f"reservation-{self.course_id}",
                                    reservation_confirmed=True, receipt_id=f"receipt-{self.course_id}",
-                                   receipt_closed=True, receipt_total=Decimal("90"))
+                                   receipt_closed=True, receipt_total=Decimal(90))
 
     def join_queue(self):
         if self.pool.active != self.course_id:
@@ -100,6 +106,7 @@ class Pool:
 
     def __init__(self, clock, identifiers=(1, 2)):
         self.clock = clock
+        self.selection_clear = False
         self.backends = {course_id: Backend(self, course_id) for course_id in identifiers}
         self.writes = []
         self.active = None
@@ -140,7 +147,7 @@ class MultiTests(unittest.TestCase):
         self.specs = tuple(BookingSpec(
             course=Course(id=course_id, name="Leikki-ikäisten jatkouimakoulu",
                           location="Mäkelänrinne" if course_id == 1 else "Kallio"),
-            child_name="Testi Lapsi", max_price=Decimal("100"), opens_at=BASE,
+            child_name="Testi Lapsi", max_price=Decimal(100), opens_at=BASE,
             deadline=BASE + timedelta(seconds=30), payment_mode="saldo",
         ) for course_id in (1, 2))
 
@@ -328,7 +335,7 @@ class MultiTests(unittest.TestCase):
 
     def test_budget_rejected_candidate_does_not_block_affordable_one(self):
         self.pool.backends[1].observation = replace(self.pool.backends[1].observation,
-                                                   current_price=Decimal("101"))
+                                                   current_price=Decimal(101))
         self.assertEqual(self.race().course_id, 2)
 
     def test_lock_is_held_while_reading_and_persisted_files_are_private(self):

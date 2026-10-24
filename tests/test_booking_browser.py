@@ -1,17 +1,31 @@
 """Offline checks for irreversible-operation boundaries and server evidence."""
-from copy import deepcopy
-from datetime import datetime, timedelta, timezone
-from dataclasses import replace
-from decimal import Decimal
 import io
 import json
-from types import SimpleNamespace
 import unittest
 from contextlib import redirect_stdout
+from copy import deepcopy
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+from types import SimpleNamespace
+from unittest.mock import Mock
 from urllib.parse import urlencode
 
-from uhkone.booking import ActionNotSent, ActionUncertain, BookingError, BookingSpec, Observation, TransientBookingError
-from uhkone.booking_browser import BookingBrowser, _BookingGuard, _observation, _retry_preflight, _eligible_payment
+from uhkone.booking import (
+    ActionNotSent,
+    ActionUncertain,
+    BookingError,
+    BookingSpec,
+    Observation,
+    TransientBookingError,
+)
+from uhkone.booking_browser import (
+    BookingBrowser,
+    _BookingGuard,
+    _eligible_payment,
+    _observation,
+    _retry_preflight,
+)
 from uhkone.client import BASE_URL, parse_course
 
 
@@ -27,8 +41,8 @@ def course_row():
 
 
 def spec(mode="saldo"):
-    opening = datetime(2027, 1, 1, tzinfo=timezone.utc)
-    return BookingSpec(parse_course(course_row()), "Aino Esimerkki", Decimal("80"),
+    opening = datetime(2027, 1, 1, tzinfo=UTC)
+    return BookingSpec(parse_course(course_row()), "Aino Esimerkki", Decimal(80),
                        opening, opening + timedelta(minutes=30), mode)
 
 
@@ -46,7 +60,7 @@ class ScopeGuardTests(unittest.TestCase):
     def setUp(self):
         self.guard = _BookingGuard(None, spec())
         self.guard.child_id, self.guard.payer_id = 20, 10
-        self.guard.product_id, self.guard.price = 4321, Decimal("76")
+        self.guard.product_id, self.guard.price = 4321, Decimal(76)
         self.add = {"reservation_event_group_id": 123, "fare_product_id": 4321,
                     "quantity": 1, "price": 7600, "title": "Kurssi",
                     "account": {"account_id": "20", "name": "Aino Esimerkki"},
@@ -114,7 +128,7 @@ class ScopeGuardTests(unittest.TestCase):
 
     def test_provider_posts_require_actual_merchant_payment_form(self):
         guard = _BookingGuard(None, spec("verkkomaksu"))
-        guard.price, guard.payment_type_id, guard.balance_cents = Decimal("76"), 4, 0
+        guard.price, guard.payment_type_id, guard.balance_cents = Decimal(76), 4, 0
         top = SimpleNamespace(main_frame=SimpleNamespace(url="https://payment.example/start"))
         frame = SimpleNamespace(url="about:blank", page=top)
         bank_post = SimpleNamespace(url="https://bank.example/authenticate", method="POST",
@@ -213,7 +227,7 @@ class ServerEvidenceTests(unittest.TestCase):
 
     def test_held_price_comes_from_server_cart_not_catalogue(self):
         value = self.observe(cart=[cart_row(price=7000)])
-        self.assertEqual(value.current_price, Decimal("70"))
+        self.assertEqual(value.current_price, Decimal(70))
 
     def test_only_closed_paid_receipt_is_closed(self):
         for closed, pay_later in ((0, 0), (1, 1), (None, 0), (1, None)):
@@ -224,7 +238,7 @@ class ServerEvidenceTests(unittest.TestCase):
         value = self.observe(receipt=receipt)
         self.assertTrue(value.receipt_closed)
         self.assertEqual(value.receipt_id, "77")
-        self.assertEqual(value.receipt_total, Decimal("76"))
+        self.assertEqual(value.receipt_total, Decimal(76))
 
     def test_changed_target_and_unknown_shapes_fail_closed(self):
         for change in ({"reservation_event_group_id": 124}, {"location": "Kallio"},
@@ -263,7 +277,7 @@ class ServerEvidenceTests(unittest.TestCase):
 class QueueMutationPreconditionsTests(unittest.TestCase):
     def backend(self, state):
         backend = BookingBrowser(spec(), None, None, _BookingGuard(None, spec()))
-        backend.snapshot = lambda: state
+        backend.snapshot = Mock(return_value=state)
         return backend
 
     def test_existing_queue_requires_no_new_request(self):
@@ -319,7 +333,7 @@ class ReadOnlyPreflightTests(unittest.TestCase):
             return values.pop(0)
         context = SimpleNamespace(request=SimpleNamespace(get=get))
         backend = BookingBrowser(spec(), context, None, _BookingGuard(context, spec()))
-        clock = [datetime(2027, 1, 1, tzinfo=timezone.utc)]
+        clock = [datetime(2027, 1, 1, tzinfo=UTC)]
         waits = []
         def wait(seconds):
             waits.append(seconds)
@@ -333,19 +347,19 @@ class ReadOnlyPreflightTests(unittest.TestCase):
 
     def test_resuming_existing_purchase_never_requires_spent_balance(self):
         for state in (
-            Observation(reservation_confirmed=True, reservation_id="456", current_price=Decimal("76")),
-            Observation(held=True, cart_empty=False, current_price=Decimal("76")),
-            Observation(payment_locked=True, current_price=Decimal("76")),
-            Observation(reservation_id="456", current_price=Decimal("76")),
+            Observation(reservation_confirmed=True, reservation_id="456", current_price=Decimal(76)),
+            Observation(held=True, cart_empty=False, current_price=Decimal(76)),
+            Observation(payment_locked=True, current_price=Decimal(76)),
+            Observation(reservation_id="456", current_price=Decimal(76)),
         ):
             with self.subTest(state=state):
                 page = SimpleNamespace(goto=lambda *args, **kwargs: None)
                 backend = BookingBrowser(spec(), None, page, _BookingGuard(None, spec()))
-                backend._user = lambda: {"account_id": 10, "linked_accounts": [{"account_id": 20, "name": "Aino Esimerkki"}]}
-                backend.snapshot = lambda: state
+                backend._user = Mock(return_value={"account_id": 10, "linked_accounts": [{"account_id": 20, "name": "Aino Esimerkki"}]})
+                backend.snapshot = Mock(return_value=state)
                 def no_new_payment():
                     self.fail("Existing purchase reconciliation must not require any new payment method or balance")
-                backend._payment_types = no_new_payment
+                backend._payment_types = Mock(side_effect=no_new_payment)
                 backend.initialize()
                 self.assertEqual(backend.identity, "10:20:123")
 
@@ -359,7 +373,7 @@ class FastPaySelectionTests(unittest.TestCase):
     def backend(self, methods, payment_id=None):
         selected = replace(spec("fastpay"), payment_type_id=payment_id)
         backend = BookingBrowser(selected, None, None, _BookingGuard(None, selected))
-        backend._payment_types = lambda: methods
+        backend._payment_types = Mock(return_value=methods)
         return backend
 
     def test_only_branded_fastpay_is_chosen_among_external_methods(self):
@@ -370,7 +384,7 @@ class FastPaySelectionTests(unittest.TestCase):
         ])
         output = io.StringIO()
         with redirect_stdout(output):
-            backend._select_payment(Decimal("76"))
+            backend._select_payment(Decimal(76))
         self.assertEqual(backend.payment_type_id, 5)
         self.assertEqual(backend.payment_type_name, "FAST Pay (Visa •••• 1234)")
         self.assertIn("tunnus 5", output.getvalue())
@@ -378,7 +392,7 @@ class FastPaySelectionTests(unittest.TestCase):
     def test_explicit_unrelated_id_cannot_override_fastpay_mode(self):
         backend = self.backend([self.payment(3, "Korttimaksu"), self.payment(5, "FastPay")], payment_id=3)
         with self.assertRaisesRegex(BookingError, "FastPay"):
-            backend._select_payment(Decimal("76"))
+            backend._select_payment(Decimal(76))
 
     def test_disabled_balance_paylater_or_similar_names_do_not_match(self):
         for method in (
@@ -391,11 +405,11 @@ class FastPaySelectionTests(unittest.TestCase):
             with self.subTest(method=method):
                 self.assertFalse(_eligible_payment(method, "fastpay"))
                 with self.assertRaises(BookingError):
-                    self.backend([method])._select_payment(Decimal("76"))
+                    self.backend([method])._select_payment(Decimal(76))
 
     def test_checkout_revalidates_brand_even_if_method_id_is_unchanged(self):
         backend = self.backend([self.payment(5, "Tavallinen korttimaksu")], payment_id=5)
-        backend._recent_observation = lambda: Observation(held=True, cart_empty=False, current_price=Decimal("76"))
+        backend._recent_observation = lambda: Observation(held=True, cart_empty=False, current_price=Decimal(76))
         with self.assertRaises(BookingError):
             backend.checkout()
         self.assertFalse(backend.guard.checkout_sent)
