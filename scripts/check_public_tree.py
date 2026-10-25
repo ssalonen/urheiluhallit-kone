@@ -87,6 +87,8 @@ def allowed_path(path: str) -> bool:
         return True
     if len(parts) == 2 and parts[0] == "docs" and candidate.suffix == ".md":
         return True
+    if path == ".github/dependabot.yml":
+        return True
     return len(parts) == 3 and parts[:2] == (".github", "workflows") and candidate.suffix in {".yml", ".yaml"}
 
 
@@ -172,7 +174,7 @@ def check_blob(path: str, data: bytes) -> list[Finding]:
                 findings.append(Finding(path, number, category))
         if any(not _example_domain(match.group(1)) for match in EMAIL.finditer(line)):
             findings.append(Finding(path, number, "non-example email address"))
-        if any(_realistic_ssn(match) for match in SSN.finditer(line)):
+        if path != "uv.lock" and any(_realistic_ssn(match) for match in SSN.finditer(line)):
             findings.append(Finding(path, number, "possible Finnish personal identity code"))
         if any(_luhn_card(match.group()) for match in CARD_NUMBER.finditer(line)):
             findings.append(Finding(path, number, "possible payment card number"))

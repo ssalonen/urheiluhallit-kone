@@ -18,11 +18,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - uses: astral-sh/setup-uv@v6
+      - name: Sync development dependencies
+        run: uv sync --locked --all-groups
       - name: Check public source snapshot
-        run: python scripts/check_public_tree.py
-      - name: Install development dependencies
-        run: python -m pip install '.[test]'
+        run: uv run python scripts/check_public_tree.py
+      - name: Lint
+        run: uv run ruff check --output-format=github .
+      - name: Type check
+        run: uv run ty check --output-format=github
       - name: Install local test browser
-        run: python -m playwright install --with-deps chromium
+        run: uv run python -m playwright install --with-deps chromium
       - name: Test with synthetic participants and local pages
-        run: python -m pytest -q
+        run: PYTHONPATH=. uv run pytest -q
