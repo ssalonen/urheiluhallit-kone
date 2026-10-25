@@ -20,10 +20,11 @@ spec.loader.exec_module(guard)
 class PublicTreeTests(unittest.TestCase):
     def test_public_sources_and_synthetic_examples_are_allowed(self):
         for path in ("README.md", "uhkone/console.py", "tests/test_console.py", ".githooks/pre-commit",
-                     "docs/esimerkkiajo.html"):
+                     ".github/dependabot.yml", "docs/esimerkkiajo.html"):
             self.assertTrue(guard.allowed_path(path), path)
         content = 'child_name = "Testilapsi"\nemail = "person@example.com"\n'
         self.assertEqual(guard.check_blob("tests/test_example.py", content.encode()), [])
+        self.assertEqual(guard.check_blob("uv.lock", b"010101" + b"-123N"), [])
 
     def test_runtime_artifacts_and_private_captures_are_rejected(self):
         for path in (".state/state.json", "testiraportit/run.json", "profiles/Default/Preferences",
