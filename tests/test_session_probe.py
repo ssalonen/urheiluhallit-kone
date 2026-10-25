@@ -1,15 +1,20 @@
 """Read-only session diagnostics never infer isolation from cookie profiles."""
 import json
 import os
+import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
-import unittest
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 from uhkone.browser import BrowserError, _PreparationGuard
 from uhkone.client import BASE_URL
-from uhkone.session_probe import _compare_snapshots, _read_json, _snapshot, _write_report
+from uhkone.session_probe import (
+    _compare_snapshots,
+    _read_json,
+    _snapshot,
+    _write_report,
+)
 
 
 def cart_row(item_id=55, course_id=100569):
@@ -100,7 +105,7 @@ class ReadOnlyScopeTests(unittest.TestCase):
         response.dispose.assert_called_once()
 
     def test_cart_request_is_get_with_redirects_disabled(self):
-        context, response = self.context([cart_row()])
+        context, _response = self.context([cart_row()])
         self.assertEqual(_read_json(context, "/webshop/reservations2/apicart"), [cart_row()])
         context.request.get.assert_called_once_with(
             BASE_URL + "/webshop/reservations2/apicart", timeout=15_000, max_redirects=0)
@@ -122,7 +127,7 @@ class ReadOnlyScopeTests(unittest.TestCase):
         response.dispose.assert_called_once()
 
     def test_browser_guard_also_blocks_manual_cart_and_payment_buttons(self):
-        guard = _PreparationGuard(None)
+        guard = _PreparationGuard(MagicMock())
         calls = []
         for path, verb in (("/webshop/reservations2/apicart", "POST"),
                            ("/webshop/reservations2/apicart/55", "DELETE"),

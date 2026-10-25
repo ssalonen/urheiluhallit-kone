@@ -1,20 +1,20 @@
 """Offline Chromium integration of controller, merchant UI and scoped guard."""
-from copy import deepcopy
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 import json
-from pathlib import Path
 import shutil
 import tempfile
-from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from copy import deepcopy
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlsplit
 
 from uhkone.booking import BookingSpec, run_booking
 from uhkone.booking_browser import BookingBrowser, _BookingGuard
-from uhkone.client import BASE_URL, parse_course
-
+from uhkone.client import parse_course
 
 FIXTURE = '''<!doctype html><meta charset="utf-8">
 <div class="eventgroup"><h4 class="title">Leikki-ikäisten jatkouimakoulu</h4>
@@ -83,8 +83,8 @@ class BookingFlowTests(unittest.TestCase):
         try:
             executable = shutil.which("chromium") or shutil.which("chromium-browser")
             cls.browser = cls.playwright.chromium.launch(
-                headless=True, **({"executable_path": executable} if executable else {}))
-        except Exception as exc:
+                headless=True, executable_path=executable)
+        except Exception as exc:  # noqa: BLE001 - Skip browser integration when the browser cannot start.
             cls.playwright.stop()
             raise unittest.SkipTest(f"Chromium unavailable: {exc}")
 
@@ -99,11 +99,11 @@ class BookingFlowTests(unittest.TestCase):
                "location": "Mäkelänrinne", "start": "2030-01-10 10:00:00",
                "end": "2030-02-10 10:30:00", "free": 3, "is_reservable": 1,
                "fare_products": [{"fare_product_id": 4321, "price": 7600}]}
-        moment = datetime(2030, 1, 1, tzinfo=timezone.utc)
+        moment = datetime(2030, 1, 1, tzinfo=UTC)
         opening = moment + timedelta(seconds=6)
-        spec = BookingSpec(parse_course(row), "Aino Esimerkki", Decimal("80"), opening,
+        spec = BookingSpec(parse_course(row), "Aino Esimerkki", Decimal(80), opening,
                            opening + timedelta(seconds=40), "saldo")
-        server = {"cart": [], "own": [], "receipt": {
+        server: dict[str, Any] = {"cart": [], "own": [], "receipt": {
             "receipt_id": 77, "total_amount": 7600, "is_closed": 1, "is_pay_later": 0}}
         writes = []
         context = self.browser.new_context()
@@ -169,7 +169,7 @@ class BookingFlowTests(unittest.TestCase):
             page.wait_for_timeout(1)
 
         with tempfile.TemporaryDirectory() as directory, patch.object(backend, "_read", side_effect=read):
-            backend.wait = wait
+            backend.wait = Mock(side_effect=wait)
             backend.initialize()
             result = run_booking(spec, backend, Path(directory) / "state.json",
                                  now=lambda: moment, log=lambda message: None)

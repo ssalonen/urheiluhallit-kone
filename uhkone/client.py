@@ -1,11 +1,11 @@
 """Read-only adapter for Urheiluhallit's public Enkora course catalogue."""
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from html import unescape
-import re
-from typing import Any
+from typing import Any, Self
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -25,7 +25,7 @@ class ClientError(Exception):
 def _text(value: Any) -> str:
     if not isinstance(value, str):
         return ""
-    value = re.sub(r"<\s*(?:br\s*/?|/p|/div)\s*>", "\n", value, flags=re.I)
+    value = re.sub(r"<\s*(?:br\s*/?|/p|/div)\s*>", "\n", value, flags=re.IGNORECASE)
     return " ".join(unescape(re.sub(r"<[^>]*>", " ", value)).split())
 
 
@@ -163,7 +163,7 @@ class ShopClient:
             headers={"Accept": "application/json", "User-Agent": "uhkone/0.3 (course catalogue)"},
         )
 
-    def __enter__(self) -> ShopClient:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *_: object) -> None:
@@ -175,8 +175,10 @@ class ShopClient:
 
     def _get(self, path: str, **params: Any) -> Any:
         try:
-            options = {"follow_redirects": False} if is_local_test(self.base_url) else {}
-            response = self._client.get(f"{self.base_url}{path}", params=params or None, **options)
+            response = self._client.get(
+                f"{self.base_url}{path}", params=params or None,
+                follow_redirects=False if is_local_test(self.base_url) else httpx.USE_CLIENT_DEFAULT,
+            )
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             raise ClientError(f"Kurssikauppa vastasi virheellä HTTP {exc.response.status_code}.") from exc

@@ -1,16 +1,16 @@
 """Exercise command integration without network access or opening a browser."""
 
+import io
+import json
+import sys
+import tempfile
+import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import replace
 from datetime import date, datetime
 from decimal import Decimal
-import io
-import json
 from pathlib import Path
-import sys
-import tempfile
-from types import ModuleType
-import unittest
+from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
 from uhkone import cli
@@ -45,10 +45,10 @@ class CliTests(unittest.TestCase):
         self.client.__exit__.return_value = False
         self.client.courses.return_value = [self.course]
         self.client.get_course.return_value = self.course
-        client_module = ModuleType("uhkone.client")
+        client_module = SimpleNamespace(__name__="uhkone.client")
         client_module.ShopClient = Mock(return_value=self.client)
         client_module.ClientError = type("ClientError", (Exception,), {})
-        self.browser = ModuleType("uhkone.browser")
+        self.browser = SimpleNamespace(__name__="uhkone.browser")
         self.browser.prepare_course = Mock()
         self.browser.login = Mock()
         self.browser.BrowserError = type("BrowserError", (Exception,), {})
@@ -87,6 +87,7 @@ class CliTests(unittest.TestCase):
         self.assertNotIn("SECRET TOKEN", stdout)
         self.assertTrue(record["available"])
         self.assertEqual(record["price"], "145.50")
+        assert self.course.start is not None
         self.assertEqual(record["start"], self.course.start.isoformat())
         self.browser.prepare_course.assert_not_called()
 

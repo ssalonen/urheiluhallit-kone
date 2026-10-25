@@ -1,15 +1,16 @@
 """Actual loopback HTTP tests; no merchant account, browser or outside network."""
-from concurrent.futures import ThreadPoolExecutor
-from copy import deepcopy
 import json
-from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
-import httpx
+from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
+from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import ProxyHandler, Request, build_opener
+
+import httpx
 
 from uhkone.testshop import TestShop
 

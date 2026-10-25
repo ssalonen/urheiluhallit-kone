@@ -9,14 +9,13 @@ This is a guardrail, not a replacement for reviewing every staged change.
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-from datetime import date
 import json
-from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
-
+from dataclasses import dataclass
+from datetime import date
+from pathlib import Path, PurePosixPath
 
 TOP_LEVEL = frozenset({
     ".gitignore", ".gitattributes", ".editorconfig", ".pre-commit-config.yaml",
@@ -41,21 +40,21 @@ PRIVATE_SUFFIXES = frozenset({
     ".log", ".sqlite", ".sqlite3", ".db", ".har", ".trace", ".zip", ".gz",
     ".png", ".jpg", ".jpeg", ".webp", ".mp4", ".pem", ".key", ".p12", ".pfx",
 })
-EMAIL = re.compile(r"(?<![\w.])[A-Z0-9._%+-]+@([A-Z0-9.-]+\.[A-Z]{2,})(?![\w.])", re.I)
-SSN = re.compile(r"(?<!\d)(\d{2})(\d{2})(\d{2})[+\-ABCDEFUVWXY]\d{3}[0-9A-Y](?!\w)", re.I)
+EMAIL = re.compile(r"(?<![\w.])[A-Z0-9._%+-]+@([A-Z0-9.-]+\.[A-Z]{2,})(?![\w.])", re.IGNORECASE)
+SSN = re.compile(r"(?<!\d)(\d{2})(\d{2})(\d{2})[+\-ABCDEFUVWXY]\d{3}[0-9A-Y](?!\w)", re.IGNORECASE)
 SIGNATURES = (
     ("private key", re.compile(r"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----")),
     ("GitHub token", re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{30,})\b")),
     ("AWS access key", re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")),
     ("JWT token", re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b")),
-    ("bearer token", re.compile(r"\bBearer\s+[A-Za-z0-9._~+/-]{16,}", re.I)),
+    ("bearer token", re.compile(r"\bBearer\s+[A-Za-z0-9._~+/-]{16,}", re.IGNORECASE)),
     ("Finnish phone number", re.compile(r"\+358[\s().-]*(?:\d[\s().-]*){6,12}(?!\d)")),
     ("Finnish bank account", re.compile(r"\bFI(?:\s*\d){16}\b")),
-    ("cookie header", re.compile(r"(?:^|[\"'])Cookie:\s*[A-Za-z0-9_-]+=[^\s\"']{6,}", re.I)),
+    ("cookie header", re.compile(r"(?:^|[\"'])Cookie:\s*[A-Za-z0-9_-]+=[^\s\"']{6,}", re.IGNORECASE)),
 )
 SECRET_ASSIGNMENT = re.compile(
     r"[\"']?(?:password|passwd|access_token|refresh_token|api_key|apikey|client_secret|secret_key)"
-    r"[\"']?\s*[:=]\s*[\"']([^\"'\r\n]{8,})[\"']", re.I,
+    r"[\"']?\s*[:=]\s*[\"']([^\"'\r\n]{8,})[\"']", re.IGNORECASE,
 )
 CARD_NUMBER = re.compile(r"(?<![\w])(?:\d[ -]?){12,18}\d(?![\w])")
 

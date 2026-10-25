@@ -1,11 +1,10 @@
 """Validate the observed Enkora contract without any live requests or writes."""
-from decimal import Decimal
 import unittest
+from decimal import Decimal
 
 import httpx
 
 from uhkone.client import ClientError, ShopClient, parse_course
-
 
 # Public fields from the observed preschool advanced course, trimmed to avoid
 # depending on unrelated shop metadata or any participant/account information.
@@ -36,10 +35,12 @@ class ClientTests(unittest.TestCase):
 
     def test_observed_schema_maps_cents_local_time_weekday_and_html(self):
         course = parse_course(COURSE)
-        self.assertEqual(course.price, Decimal("76"))
+        self.assertEqual(course.price, Decimal(76))
         self.assertEqual(course.weekdays, (6,))
         self.assertEqual(course.time_start, "08:30")
         self.assertEqual(course.time_end, "09:00")
+        assert course.start is not None
+        assert course.end is not None
         self.assertEqual(course.start.isoformat(), "2026-10-24T08:30:00+03:00")
         self.assertEqual(course.end.isoformat(), "2026-12-12T09:00:00+02:00")
         self.assertNotIn("<br>", course.name)
@@ -56,23 +57,20 @@ class ClientTests(unittest.TestCase):
             self.assertEqual(client.get_course(100679).id, 100679)
         self.assertEqual(self.requests[0].method, "GET")
         self.assertEqual(self.requests[0].url.path, "/webshop/reservations2/apieventgroups/100679")
-        with self.make_client(COURSE) as client:
-            with self.assertRaisesRegex(ClientError, "eri kurssin"):
-                client.get_course(100680)
+        with self.make_client(COURSE) as client, self.assertRaisesRegex(ClientError, "eri kurssin"):
+            client.get_course(100680)
 
     def test_invalid_catalogue_and_required_identity_are_not_empty_results(self):
         for payload in ({"error": "login"}, [None], [{"name": "course"}], [COURSE, COURSE]):
-            with self.subTest(payload=payload):
-                with self.make_client(payload) as client:
-                    with self.assertRaises(ClientError):
-                        client.courses()
+            with self.subTest(payload=payload), self.make_client(payload) as client, self.assertRaises(ClientError):
+                client.courses()
         self.assertEqual(self.make_client([]).courses(), [])
 
     def test_missing_and_ambiguous_prices_are_unknown(self):
         for products in ([], None, [{"price": None}], [{"price": "NaN"}], [{"price": 7600}, {"price": 8200}]):
             row = dict(COURSE, fare_products=products)
             self.assertIsNone(parse_course(row).price)
-        self.assertEqual(parse_course(dict(COURSE, bundle_price=5700)).price, Decimal("57"))
+        self.assertEqual(parse_course(dict(COURSE, bundle_price=5700)).price, Decimal(57))
 
     def test_unknown_availability_is_never_open(self):
         for value in (None, "true", "1", 2):
@@ -109,13 +107,11 @@ class ClientTests(unittest.TestCase):
         self.assertFalse(parse_course(COURSE).queue_available)
 
     def test_http_and_non_json_errors_are_finnish(self):
-        with self.make_client({"error": "not found"}, status=404) as client:
-            with self.assertRaisesRegex(ClientError, "HTTP 404"):
-                client.get_course(100679)
+        with self.make_client({"error": "not found"}, status=404) as client, self.assertRaisesRegex(ClientError, "HTTP 404"):
+            client.get_course(100679)
         transport = httpx.MockTransport(lambda request: httpx.Response(200, text="<html>login</html>"))
-        with httpx.Client(transport=transport) as raw:
-            with self.assertRaisesRegex(ClientError, "JSON"):
-                ShopClient(client=raw).courses()
+        with httpx.Client(transport=transport) as raw, self.assertRaisesRegex(ClientError, "JSON"):
+            ShopClient(client=raw).courses()
 
 
 if __name__ == "__main__":

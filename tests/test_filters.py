@@ -1,9 +1,10 @@
 """Search correctness matters before any course can be selected for booking."""
 
+import unittest
 from dataclasses import replace
 from datetime import date, datetime
 from decimal import Decimal
-import unittest
+from typing import Any
 
 from uhkone.models import Course, SearchFilters, filter_courses, normalize_text
 
@@ -74,7 +75,7 @@ class FilterTests(unittest.TestCase):
             SearchFilters(weekdays=(1,)),
             SearchFilters(earliest_time="00:00"),
             SearchFilters(latest_time="23:59"),
-            SearchFilters(max_price=Decimal("200")),
+            SearchFilters(max_price=Decimal(200)),
         ):
             with self.subTest(filters=filters):
                 self.assertFalse(filters.matches(unknown))
@@ -198,10 +199,10 @@ class FilterTests(unittest.TestCase):
                 self.assertFalse(replace(self.course, **values).queue_available)
 
     def test_price_cap_and_order_preservation(self):
-        self.assertTrue(SearchFilters(max_price=Decimal("145")).matches(self.course))
+        self.assertTrue(SearchFilters(max_price=Decimal(145)).matches(self.course))
         self.assertFalse(SearchFilters(max_price=Decimal("144.99")).matches(self.course))
         self.assertFalse(
-            SearchFilters(max_price=Decimal("145")).matches(
+            SearchFilters(max_price=Decimal(145)).matches(
                 replace(self.course, price=Decimal("NaN"))
             )
         )
@@ -209,7 +210,8 @@ class FilterTests(unittest.TestCase):
         self.assertEqual(filter_courses([other, self.course], SearchFilters()), [other, self.course])
 
     def test_invalid_filters_raise(self):
-        for kwargs in (
+        # Include deliberately mistyped values to exercise runtime validation.
+        invalid_filters: tuple[dict[str, Any], ...] = (
             {"target": " "},
             {"weekdays": (0,)},
             {"weekdays": (8,)},
@@ -222,9 +224,10 @@ class FilterTests(unittest.TestCase):
             {"weekend_earliest_time": "24:00"},
             {"earliest_time": "17:00", "latest_time": "16:00"},
             {"date_from": date(2027, 2, 1), "date_to": date(2027, 1, 1)},
-            {"max_price": Decimal("-1")},
+            {"max_price": Decimal(-1)},
             {"max_price": Decimal("NaN")},
-        ):
+        )
+        for kwargs in invalid_filters:
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 SearchFilters(**kwargs)
 

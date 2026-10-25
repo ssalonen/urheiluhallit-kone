@@ -1,8 +1,8 @@
-from dataclasses import replace
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from dataclasses import replace
+from pathlib import Path
 from unittest.mock import patch
 
 from uhkone.models import Course
@@ -67,9 +67,8 @@ class WatchTests(unittest.TestCase):
         _, old = detect_changes([self.course], load_state(self.path))
         save_state(self.path, old)
         _, updated = detect_changes([self.available], old)
-        with patch("uhkone.watch.os.replace", side_effect=OSError("simulated disk failure")):
-            with self.assertRaises(WatchStateError):
-                save_state(self.path, updated)
+        with patch("uhkone.watch.os.replace", side_effect=OSError("simulated disk failure")), self.assertRaises(WatchStateError):
+            save_state(self.path, updated)
         self.assertEqual(load_state(self.path), old)
         self.assertEqual(sorted(path.name for path in self.path.parent.iterdir()), ["vahti.json"])
 
@@ -116,9 +115,8 @@ class WatchTests(unittest.TestCase):
     def test_unreadable_state_file_reports_watch_error(self):
         self.path.parent.mkdir()
         self.path.write_text(json.dumps({"version": 1, "courses": {}}), encoding="utf-8")
-        with patch("uhkone.watch.Path.read_text", side_effect=PermissionError("denied")):
-            with self.assertRaises(WatchStateError):
-                load_state(self.path)
+        with patch("uhkone.watch.Path.read_text", side_effect=PermissionError("denied")), self.assertRaises(WatchStateError):
+            load_state(self.path)
 
 
 if __name__ == "__main__":

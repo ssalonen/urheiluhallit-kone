@@ -8,14 +8,15 @@ prints a command containing personal information.
 from __future__ import annotations
 
 import argparse
+import re
+import sys
+from collections.abc import Callable
 from contextlib import redirect_stdout
 from dataclasses import replace
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-import re
-import sys
-from typing import Callable, TextIO
+from typing import TextIO
 
 from .config import ConfigError, Settings
 from .models import Course
@@ -140,7 +141,7 @@ def _budget(conversation: _Conversation, courses: list[Course]) -> Decimal:
     from .cli import euro_amount
     if any(course.price is None or not course.price.is_finite() for course in courses):
         raise ConfigError("Valitulta kurssilta puuttuu varmistettu hinta. Varausajoa ei aloitettu.")
-    highest = max(course.price for course in courses)
+    highest = max(course.price for course in courses if course.price is not None)
     while True:
         value = conversation.ask(f"Yhden kurssin enimmäishinta euroina [{highest:.2f}]:", default=f"{highest:.2f}")
         try:
@@ -219,6 +220,7 @@ def _review_and_run(conversation: _Conversation, courses: list[Course], args, se
     conversation.say("Osallistuja: syöttämäsi asiakastililtä valittava lapsi. Nimeä ei kirjoiteta asetustiedostoon.")
     for course in courses:
         starts = opening or course.registration_start
+        assert starts is not None  # Opening times were validated above.
         conversation.say(f"Kurssi {course.id}: ilmoittautuminen {starts.isoformat()}; yritysaika {duration} min.")
     conversation.say(
         "Jonopaikat: kaikille hyväksymillesi sopiville kursseille heti jonojen auetessa; "
