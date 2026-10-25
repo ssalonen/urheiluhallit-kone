@@ -7,33 +7,51 @@ their checkout operations must never race.
 
 from __future__ import annotations
 
-from contextlib import contextmanager
-from dataclasses import dataclass, replace
-from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import os
-from pathlib import Path
 import stat
-from typing import Callable, Mapping, Protocol, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from contextlib import contextmanager
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from typing import Protocol, cast
 
 from .booking import (
-    ActionNotSent, BookingBackend, BookingError, BookingSpec, Observation, TransientBookingError,
-    _aware, _binding, _check_observation, _load_state, _observation_metadata, _save_state, _unique_object,
+    ActionNotSent,
+    BookingBackend,
+    BookingError,
+    BookingSpec,
+    Observation,
+    TransientBookingError,
+    _aware,
+    _binding,
+    _check_observation,
+    _load_state,
+    _observation_metadata,
+    _save_state,
+    _unique_object,
     run_booking,
 )
 from .models import normalize_text
 from .origin import validate_base_url
 
 
+class QueueBackend(BookingBackend, Protocol):
+    def join_queue(self) -> None: ...
+
+
 class RacePool(Protocol):
     identity: str
     base_url: str
-    backends: Mapping[int, BookingBackend]
+
+    @property
+    def backends(self) -> Mapping[int, BookingBackend]: ...
 
     def observations(self) -> Mapping[int, Observation | TransientBookingError]: ...
     def activate(self, course_id: int) -> BookingBackend: ...
-    def activate_queue(self, course_id: int) -> BookingBackend: ...
+    def activate_queue(self, course_id: int) -> QueueBackend: ...
 
 
 @dataclass(frozen=True)
@@ -152,7 +170,7 @@ def _load_lease(path: Path, identity: str, origin: str, specs: Sequence[BookingS
             raise ValueError("Tallennettu voittajakurssi ei kuulu tähän ehdokasjoukkoon")
         queues = value["queues"]
         if not isinstance(queues, dict):
-            raise ValueError("Virheellinen tallennettujen jonovarausten rakenne")
+            raise ValueError("Virheellinen tallennettujen jonovarausten rakenne")  # noqa: TRY004 - Preserve the validation error contract.
         queue = value["queue"]
         for key, queue_item in queues.items():
             if (not isinstance(key, str) or not isinstance(queue_item, dict)
@@ -244,7 +262,7 @@ class _ArbitratedBackend:
 
 def run_race(
     specs: Sequence[BookingSpec], pool: RacePool, state_dir: Path, *,
-    now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+    now: Callable[[], datetime] = lambda: datetime.now(UTC),
     log: Callable[[str], None] = print,
     allow_queue: bool = False,
     queue_timeout: float = 60,
@@ -281,7 +299,7 @@ def run_race(
         raise BookingError("Selainpolut eivät vastaa hyväksyttyjä kursseja.")
     # The scope deliberately excludes the candidate IDs: changing candidates
     # cannot create another lock or bypass an uncertain earlier purchase.
-    scope = hashlib.sha256(f"{origin}\n{identity}".encode("utf-8")).hexdigest()
+    scope = hashlib.sha256(f"{origin}\n{identity}".encode()).hexdigest()
     root = Path(state_dir)
     lease_path = root / f"yksi-{scope}.json"
     lock_path = root / f"yksi-{scope}.lock"
@@ -360,12 +378,8 @@ def run_race(
         lease["existing_claim"] = lease["existing_claim"] or existing_claim
         save_lease(lease)
         ensure_identity()
-        try:
-            backend = pool.activate(course_id)
-        except Exception:
-            # Activation does not authorize a different candidate without
-            # positive evidence of no send, including after a process restart.
-            raise
+        # Activation failure preserves the pinned choice until no send is proven.
+        backend = pool.activate(course_id)
         if backend is not pool.backends[course_id]:
             raise BookingError("Aktivoitu selain ei vastaa valittua kurssia.")
         wrapper = _ArbitratedBackend(backend, spec, journal, existing_claim=lease["existing_claim"])
@@ -471,8 +485,8 @@ def run_race(
                 actual_visible = [spec for spec in specs if spec.course.id in observations
                           and spec.opens_at <= clock()
                           and observations[spec.course.id].available
-                          and observations[spec.course.id].current_price is not None
-                          and observations[spec.course.id].current_price <= spec.max_price]
+                          and (price := observations[spec.course.id].current_price) is not None
+                          and price <= spec.max_price]
                 actual = [spec for spec in actual_visible
                           if clock() >= cooldowns.get(spec.course.id, spec.opens_at)]
                 if actual:
@@ -483,7 +497,7 @@ def run_race(
                 if actual_visible:
                     wait(2, until=grace_end)
                     continue
-            queue = lease["queue"]
+            queue: dict | None = lease["queue"]
             if queue is not None:
                 observation = observations.get(queue["course_id"])
                 if observation is not None and observation.queued:
@@ -524,7 +538,7 @@ def run_race(
                 queue_cooldowns[course_id] = clock() + timedelta(seconds=2)
                 log(f"Jonopyyntöä ei lähetetty; toinen hyväksytty jono voidaan tarkistaa: {exc}")
                 continue
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - Any queue failure may follow a sent mutation; preserve the durable intent.
                 queue_dispatched_here = True
                 log(f"Jonopyynnön tulos on epävarma; pyyntöä ei lähetetä uudelleen: {exc}")
             else:
@@ -535,7 +549,7 @@ def run_race(
         queue = lease["queue"]
         if queue is not None:
             log("Jonopyynnön nykyistä vahvistusta ei saatu; uutta jonopyyntöä ei lähetetty.")
-            return with_queues(RaceResult("queue_pending", queue["course_id"]), lease)
+            return with_queues(RaceResult("queue_pending", cast(int, queue["course_id"])), lease)
         return with_queues(RaceResult("deadline"), lease)
 
     eager_cooldowns: dict[int, datetime] = {}
@@ -598,7 +612,7 @@ def run_race(
             before_action("queue", course_id)
             return True, course_id
         emit("queueing", course_id=course_id)
-        record = {"course_id": course_id, "phase": "sending", "sends": 1,
+        record: dict = {"course_id": course_id, "phase": "sending", "sends": 1,
                   "reservation_id": None, "position": None}
         records[str(course_id)] = record
         lease["queue"] = dict(record)
@@ -616,7 +630,7 @@ def run_race(
             eager_cooldowns[course_id] = clock() + timedelta(seconds=2)
             log(f"Jonopyyntöä ei lähetetty kurssille {course_id}; muut hyväksytyt polut jatkavat: {exc}")
             emit("retry", course_id=course_id, action="queue", retry_after=2)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - Any queue failure may follow a sent mutation; preserve the durable intent.
             log(f"Kurssin {course_id} jonopyynnön tulos on epävarma; tätä pyyntöä ei toisteta. "
                 f"Muiden kurssien haku jatkuu: {exc}")
             emit("queue_pending", course_id=course_id)
@@ -707,8 +721,8 @@ def run_race(
                        and current >= cooldowns.get(spec.course.id, spec.opens_at)
                        and spec.course.id in observations
                        and observations[spec.course.id].available
-                       and observations[spec.course.id].current_price is not None
-                       and observations[spec.course.id].current_price <= spec.max_price]
+                       and (price := observations[spec.course.id].current_price) is not None
+                       and price <= spec.max_price]
             if choices:
                 winner = choices[0].course.id
                 log(f"Kurssi {winner} saa yhteisen varausvuoron; muut polut jäävät seurantaan.")

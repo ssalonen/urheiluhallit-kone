@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import json
 import os
-from pathlib import Path
 import tempfile
+from datetime import UTC, datetime
+from pathlib import Path
 
 from .models import Course
 
@@ -78,7 +78,7 @@ def detect_changes(courses: list[Course], state: dict, *, baseline: bool = False
             elif course.available and not old["available"]:
                 events.append(("vapautui", course))
         entries[key] = {"available": course.available}
-    return events, {"version": 1, "checked_at": datetime.now(timezone.utc).isoformat(), "courses": entries}
+    return events, {"version": 1, "checked_at": datetime.now(UTC).isoformat(), "courses": entries}
 
 
 def save_state(path: Path, state: dict) -> None:

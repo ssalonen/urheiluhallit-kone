@@ -1,9 +1,9 @@
-from copy import deepcopy
-from datetime import datetime, timezone
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from copy import deepcopy
+from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
 
@@ -42,14 +42,14 @@ class PublicSeedTests(unittest.TestCase):
         self.assertNotIn("EXCLUDE ME", json.dumps(sanitized))
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "seed.json"
-            write_seed(path, [row], fetched_at=datetime(2026, 10, 18, tzinfo=timezone.utc))
+            write_seed(path, [row], fetched_at=datetime(2026, 10, 18, tzinfo=UTC))
             self.assertEqual(load_seed(path)["courses"], sanitized)
 
     def test_tampered_snapshot_is_not_silently_accepted(self):
         row = load_seed()["courses"][0]
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "seed.json"
-            document = write_seed(path, [row], fetched_at=datetime(2026, 10, 18, tzinfo=timezone.utc))
+            document = write_seed(path, [row], fetched_at=datetime(2026, 10, 18, tzinfo=UTC))
             self.assertEqual(load_seed(path)["courses"], [row])
             document["courses"][0]["name"] += " changed"
             path.write_text(json.dumps(document))
@@ -62,10 +62,8 @@ class PublicSeedTests(unittest.TestCase):
             requests.append(str(request.url))
             return httpx.Response(302, headers={"Location": "https://kauppa.urheiluhallit.fi/webshop/"})
         local = "http://127.0.0.1:18765"
-        with httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=True) as http:
-            with ShopClient(base_url=local, client=http) as shop:
-                with self.assertRaises(ClientError):
-                    shop.get_course(123)
+        with httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=True) as http, ShopClient(base_url=local, client=http) as shop, self.assertRaises(ClientError):
+            shop.get_course(123)
         self.assertEqual(len(requests), 1)
         self.assertTrue(requests[0].startswith(local))
 

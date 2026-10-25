@@ -3,7 +3,14 @@ import shutil
 import unittest
 from dataclasses import replace
 
-from uhkone.browser import BrowserError, _prepare_page, _request_allowed, _select_child, _validate_course_url, _is_queue_confirmation
+from uhkone.browser import (
+    BrowserError,
+    _is_queue_confirmation,
+    _prepare_page,
+    _request_allowed,
+    _select_child,
+    _validate_course_url,
+)
 from uhkone.client import BASE_URL
 from uhkone.models import Course
 
@@ -68,9 +75,8 @@ class PreparationPolicyTests(unittest.TestCase):
             course.url.replace("https:", "http:"),
             course.url.replace("/9/", "/10/"),
         ):
-            with self.subTest(url=url):
-                with self.assertRaises(BrowserError):
-                    _validate_course_url(replace(course, url=url))
+            with self.subTest(url=url), self.assertRaises(BrowserError):
+                _validate_course_url(replace(course, url=url))
 
 
 class ChildSelectionFixtureTests(unittest.TestCase):
@@ -83,8 +89,8 @@ class ChildSelectionFixtureTests(unittest.TestCase):
         cls.playwright = sync_playwright().start()
         try:
             executable = shutil.which("chromium") or shutil.which("chromium-browser")
-            cls.browser = cls.playwright.chromium.launch(headless=True, **({"executable_path": executable} if executable else {}))
-        except Exception:
+            cls.browser = cls.playwright.chromium.launch(headless=True, executable_path=executable)
+        except Exception:  # noqa: BLE001 - Skip browser integration when the browser cannot start.
             cls.playwright.stop()
             raise unittest.SkipTest("Chromium unavailable")
 

@@ -7,13 +7,13 @@ access and does not reserve places.
 
 from __future__ import annotations
 
+import re
+import unicodedata
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from decimal import Decimal
-import re
-import unicodedata
-from typing import Any, Iterable
-
+from typing import Any
 
 DEFAULT_TARGET = "Leikki-ikäisten jatkouimakoulu"
 
@@ -237,9 +237,11 @@ class SearchFilters:
             start_time = _parse_time(course.time_start)
             if start_time is None:
                 return False
-            if self.earliest_time is not None and start_time < _parse_time(self.earliest_time):
+            earliest_time = _parse_time(self.earliest_time)
+            latest_time = _parse_time(self.latest_time)
+            if earliest_time is not None and start_time < earliest_time:
                 return False
-            if self.latest_time is not None and start_time > _parse_time(self.latest_time):
+            if latest_time is not None and start_time > latest_time:
                 return False
 
         if self.weekday_earliest_time is not None or self.weekend_earliest_time is not None:
@@ -248,18 +250,17 @@ class SearchFilters:
                 return False
             for day, start_time in meetings:
                 earliest = self.weekday_earliest_time if day <= 5 else self.weekend_earliest_time
-                if earliest is not None and start_time < _parse_time(earliest):
+                earliest_time = _parse_time(earliest)
+                if earliest_time is not None and start_time < earliest_time:
                     return False
 
         if self.available_only and not course.available:
             return False
-        if self.max_price is not None and (
+        return not (self.max_price is not None and (
             course.price is None
             or not course.price.is_finite()
             or course.price > self.max_price
-        ):
-            return False
-        return True
+        ))
 
 
 def filter_courses(courses: Iterable[Course], filters: SearchFilters) -> list[Course]:

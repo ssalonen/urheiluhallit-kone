@@ -8,21 +8,30 @@ choice; independent waitlist entries leave other actual course options open.
 """
 from __future__ import annotations
 
+import time
+from collections.abc import Generator, Sequence
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from pathlib import Path
-import time
-from typing import Any, Iterator, Sequence
+from typing import Any
 
 from .booking import BookingError, BookingSpec, Observation, TransientBookingError
-from .booking_browser import (BookingBrowser, _BookingGuard, _cart_match, _flag, _fresh_course,
-                              _integer, _money, _observation, _preflight_page,
-                              _retry_preflight)
+from .booking_browser import (
+    BookingBrowser,
+    _BookingGuard,
+    _cart_match,
+    _flag,
+    _fresh_course,
+    _integer,
+    _money,
+    _observation,
+    _preflight_page,
+    _retry_preflight,
+)
 from .browser import BrowserError, _browser, _ensure_login, _validate_course_url
 from .client import BASE_URL
 from .origin import same_origin, validate_base_url
-
 
 _COURSE_READS = """async jobs => {
   const results = [];
@@ -57,7 +66,7 @@ def _retry_after(value: str) -> float:
         return max(0, float(value))
     except (TypeError, ValueError):
         try:
-            return max(0, (parsedate_to_datetime(value) - datetime.now(timezone.utc)).total_seconds())
+            return max(0, (parsedate_to_datetime(value) - datetime.now(UTC)).total_seconds())
         except (TypeError, ValueError, OverflowError):
             return 0
 
@@ -71,6 +80,7 @@ def _candidate_rows(values: Any, expected_ids: set[int]) -> dict[int, dict | Tra
         if not isinstance(item, dict) or _integer(item.get("id")) not in expected_ids:
             raise BookingError("Rinnakkainen kurssihaku palautti tuntemattoman kurssin.")
         course_id = _integer(item["id"])
+        assert course_id is not None  # Checked against expected_ids above.
         if course_id in result:
             raise BookingError("Rinnakkainen kurssihaku palautti saman kurssin kahdesti.")
         if item.get("transport_error") is True:
@@ -117,7 +127,7 @@ class _PoolRouting:
                 page = page.opener()
                 if page is None:
                     return False
-        except Exception:
+        except Exception:  # noqa: BLE001 - An inaccessible request frame cannot authorize a write.
             return False
         return False
 
@@ -140,7 +150,7 @@ class _PoolRouting:
         return self.activate(course_id)
 
     def route(self, route) -> None:
-        if self._active_page(route.request):
+        if self._active_page(route.request) and self.active_id is not None:
             backend = self.backends[self.active_id]
             was_sent = backend.guard.sent
             try:
@@ -156,7 +166,7 @@ class _PoolRouting:
             self.read_guard.route(route)
 
     def response(self, response) -> None:
-        if self._active_page(response.request):
+        if self._active_page(response.request) and self.active_id is not None:
             self.backends[self.active_id].guard.response(response)
 
 
@@ -298,7 +308,7 @@ class BookingPool:
             backend.page.evaluate("url => { setTimeout(() => { location.href = url; }, 0); }", url)
         for course_id, backend in self.backends.items():
             try:
-                def ready():
+                def ready(backend=backend):
                     backend.page.wait_for_url(backend.spec.course.url, wait_until="domcontentloaded", timeout=15_000)
                     backend.page.wait_for_function("() => !!(window.R2 && R2.session && R2.eventgroups)", timeout=15_000)
                 _preflight_page(ready)
@@ -309,7 +319,7 @@ class BookingPool:
 @contextmanager
 def open_booking_pool(specs: Sequence[BookingSpec], profile_dir: Path,
                       executable_path: str | None = None, *, base_url: str = BASE_URL,
-                      headless: bool = False) -> Iterator[BookingPool]:
+                      headless: bool = False) -> Generator[BookingPool]:
     specs = tuple(specs)
     base_url = validate_base_url(base_url)
     if not specs or len({spec.course.id for spec in specs}) != len(specs):
@@ -334,7 +344,7 @@ def open_booking_pool(specs: Sequence[BookingSpec], profile_dir: Path,
                 response = first.goto(base_url + "/webshop/reservations2/", wait_until="domcontentloaded")
                 if response is not None and (response.status == 429 or response.status >= 500):
                     raise TransientBookingError("Kaupan kirjautumissivu on ruuhkautunut.", retry_after=_retry_after(response.headers.get("retry-after", "")))
-                remaining = max(1, (deadline - datetime.now(timezone.utc)).total_seconds() * 1000)
+                remaining = max(1, (deadline - datetime.now(UTC)).total_seconds() * 1000)
                 _ensure_login(first, routing.read_guard, timeout_ms=min(2_000_000_000, remaining))
             _retry_preflight(lambda: _preflight_page(login), pool.wait, deadline)
             _retry_preflight(lambda: _preflight_page(pool.initialize), pool.wait, deadline)

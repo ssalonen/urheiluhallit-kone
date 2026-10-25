@@ -1,8 +1,8 @@
+import tempfile
+import unittest
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
-import tempfile
-import unittest
 from unittest.mock import patch
 
 from uhkone.config import ConfigError, Settings, load_settings, state_directory
@@ -78,7 +78,7 @@ vali_sekuntia = 60
         self.assertEqual(settings.filters.weekdays, ())
         self.assertEqual(settings.filters.weekday_earliest_time, "17:30")
         self.assertEqual(settings.filters.weekend_earliest_time, "09:30")
-        self.assertEqual(settings.filters.max_price, Decimal("0"))
+        self.assertEqual(settings.filters.max_price, Decimal(0))
 
     def test_invalid_preferences_report_config_errors(self):
         cases = (

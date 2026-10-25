@@ -3,22 +3,22 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
+import re
+import sys
+import time
 from dataclasses import asdict, replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
-import hashlib
-import json
 from pathlib import Path
-import sys
-import time
-from zoneinfo import ZoneInfo
+from typing import cast
 from urllib.parse import urlsplit
-import re
+from zoneinfo import ZoneInfo
 
 from .config import ConfigError, load_settings, state_directory
 from .models import Course, SearchFilters, filter_courses, normalize_location
 from .watch import WatchStateError, detect_changes, load_state, save_state
-
 
 HELSINKI = ZoneInfo("Europe/Helsinki")
 DAYS = ("ma", "ti", "ke", "to", "pe", "la", "su")
@@ -322,7 +322,7 @@ def controlled_race(specs, pool, directory: Path, args):
 
         def progress(phase: str, metadata: dict) -> None:
             course_id = metadata.get("course_id")
-            if phase == "candidate":
+            if phase == "candidate" and course_id is not None:
                 # Polling many tabs must not flood the console with identical
                 # catalogue observations. A heartbeat still reports progress.
                 flags = tuple(bool(metadata.get(key)) for key in (
@@ -417,7 +417,8 @@ def run_reservation(args, filters: SearchFilters, directory: Path, client) -> in
             class SinglePool:
                 identity = PRODUCTION_URL + "|" + backend.identity.rsplit(":", 1)[0]
                 base_url = PRODUCTION_URL
-                backends = {specs[0].course.id: backend}
+                def __init__(self):
+                    self.backends = {specs[0].course.id: backend}
                 def observations(self):
                     return {specs[0].course.id: backend.snapshot()}
                 def activate(self, course_id):
@@ -435,8 +436,8 @@ def run_reservation(args, filters: SearchFilters, directory: Path, client) -> in
 
 
 def run_test_shop(args, settings) -> int:
+    from .client import ClientError, ShopClient, parse_course
     from .seed import load_seed
-    from .client import ShopClient, parse_course, ClientError
     from .testshop import TestShop
     _check_terminal(args)
     document = load_seed(args.data)
@@ -478,8 +479,9 @@ def run_test_shop(args, settings) -> int:
             raise ConfigError("Koeajon aikarajan pitää olla 1–300 sekuntia.")
         if not 1 <= args.jono_aikaraja <= 300:
             raise ConfigError("Jonovaiheen lisäajan pitää olla 1–300 sekuntia.")
-        from .booking import BookingSpec
         from tempfile import TemporaryDirectory
+
+        from .booking import BookingSpec
         with ShopClient(base_url=server.base_url) as client:
             courses = []
             for course_id in candidate_ids:
@@ -494,7 +496,7 @@ def run_test_shop(args, settings) -> int:
                         time.sleep(1)
         if any(course.price is None for course in courses):
             raise ConfigError("Testikurssin hinta puuttuu.")
-        specs = [BookingSpec(course=course, child_name="Testilapsi", max_price=course.price,
+        specs = [BookingSpec(course=course, child_name="Testilapsi", max_price=cast(Decimal, course.price),
                              opens_at=server.opens_at, deadline=max(server.opens_at, datetime.now(HELSINKI)) + timedelta(seconds=args.aikaraja),
                              payment_mode=args.maksutapa, payment_type_id=5 if args.maksutapa == "fastpay" else 4) for course in courses]
         started = datetime.now(HELSINKI)
@@ -593,7 +595,7 @@ def main(argv: list[str] | None = None) -> int:
             from .browser import login
             login(directory / "selain", executable_path=args.selain)
             return 0
-        from .client import ShopClient, ClientError
+        from .client import ShopClient
         with ShopClient() as client:
             if args.command == "kurssi":
                 print_courses([client.get_course(args.id)], details=True)

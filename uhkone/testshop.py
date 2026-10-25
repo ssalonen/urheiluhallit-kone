@@ -6,21 +6,20 @@ stock, balance and every transaction are explicitly simulated.
 """
 from __future__ import annotations
 
-from copy import deepcopy
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal, InvalidOperation
-from http.cookies import CookieError, SimpleCookie
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import math
 import os
-from pathlib import Path
 import re
 import secrets
 import sqlite3
 import threading
+from copy import deepcopy
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal, InvalidOperation
+from http.cookies import CookieError, SimpleCookie
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
-
 
 SCENARIOS = frozenset({"normaali", "ruuhka", "varaus-vastaus-katoaa", "maksu-vastaus-katoaa", "viimeinen-paikka", "taynna",
                        "fastpay-kortti-puuttuu", "fastpay-hylatty", "ensisijainen-taynna",
@@ -72,7 +71,7 @@ class TestShop:
         self._lock = threading.RLock()
         self._server = self._thread = None
         self.scenario = scenario
-        self.opens_at = datetime.now(timezone.utc) + timedelta(seconds=opens_in)
+        self.opens_at = datetime.now(UTC) + timedelta(seconds=opens_in)
         if str(db_path) != ":memory:":
             Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._db = sqlite3.connect(str(db_path), check_same_thread=False, isolation_level=None)
@@ -109,7 +108,7 @@ class TestShop:
             seen = set()
             for row in courses:
                 if not isinstance(row, dict):
-                    raise ValueError("Kurssitietue ei ole objekti")
+                    raise ValueError("Kurssitietue ei ole objekti")  # noqa: TRY004 - Preserve the validation error contract.
                 course_id = _int(row.get("reservation_event_group_id"))
                 if course_id <= 0 or course_id in seen or not row.get("name") or not row.get("location"):
                     raise ValueError("Kurssin tunnus, nimi tai halli on virheellinen")
@@ -174,7 +173,7 @@ class TestShop:
         shop = self
 
         class Handler(BaseHTTPRequestHandler):
-            def log_message(self, *_):
+            def log_message(self, format: str, *args: object) -> None:
                 pass
 
             def reply(self, status, value, *, html=False, retry_after=None):
@@ -233,6 +232,7 @@ class TestShop:
         if self._server is not None:
             self._server.shutdown()
             self._server.server_close()
+            assert self._thread is not None
             self._thread.join(timeout=2)
             self._server = None
         self._db.close()
@@ -249,7 +249,7 @@ class TestShop:
         free = max(0, stored["capacity"] - occupied)
         row["_test"] = {"simulated": True, "scenario": self.scenario, "original_availability": {
             key: deepcopy(row.get(key)) for key in ("free", "capacity", "is_reservable", "public_reservation_start", "queue_capacity", "queue", "free_queue")}}
-        row.update(free=free, capacity=stored["capacity"], is_reservable=datetime.now(timezone.utc) >= self.opens_at,
+        row.update(free=free, capacity=stored["capacity"], is_reservable=datetime.now(UTC) >= self.opens_at,
                    queue_capacity=stored["queue_capacity"], queue=queued, free_queue=max(0, stored["queue_capacity"] - queued),
                    public_reservation_start=self.opens_at.isoformat())
         return row
@@ -322,7 +322,7 @@ class TestShop:
             course = self._db.execute("SELECT * FROM courses WHERE id=?", (course_id,)).fetchone()
             if course is None or _int(data.get("fare_product_id")) != course["product_id"] or _int(data.get("price")) != course["price"]:
                 raise _APIError("Kurssi, myyntituote tai hinta ei täsmää")
-            if datetime.now(timezone.utc) < self.opens_at:
+            if datetime.now(UTC) < self.opens_at:
                 raise _APIError("Testi-ilmoittautuminen ei ole vielä alkanut")
             self._db.execute("BEGIN IMMEDIATE")
             if self._db.execute("SELECT count(*) FROM reservations WHERE course_id=? AND status IN(2,4,5,7)", (course_id,)).fetchone()[0] >= course["capacity"]:
@@ -365,7 +365,7 @@ class TestShop:
             course = self._db.execute("SELECT * FROM courses WHERE id=?", (course_id,)).fetchone()
             if course is None:
                 raise _APIError("Testikurssia ei löydy", 404)
-            if datetime.now(timezone.utc) < self.opens_at:
+            if datetime.now(UTC) < self.opens_at:
                 raise _APIError("Testi-ilmoittautuminen ei ole vielä alkanut")
             self._db.execute("BEGIN IMMEDIATE")
             if self._db.execute("SELECT count(*) FROM reservations WHERE course_id=? AND status IN(2,4,5,7)", (course_id,)).fetchone()[0] < course["capacity"]:

@@ -1,19 +1,18 @@
 """Terminal controls exercise main-thread waits without a real browser/stdin."""
 
+import unittest
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from io import StringIO
-import unittest
 
 from uhkone.console import StopRequested, TerminalSession
 from uhkone.models import Course
 
-
 PUBLIC_COURSE = Course(
     id=42, name="Leikki-ikäisten jatkouimakoulu", location="Mäkelänrinne",
-    start=datetime(2030, 1, 5, 10, tzinfo=timezone.utc), time_start="10:00",
-    price=Decimal("76"), description="PRIVATE_DESCRIPTION",
+    start=datetime(2030, 1, 5, 10, tzinfo=UTC), time_start="10:00",
+    price=Decimal(76), description="PRIVATE_DESCRIPTION",
     raw={"account_name": "PRIVATE_ACCOUNT", "card": "PRIVATE_CARD"},
 )
 
@@ -38,7 +37,7 @@ class ConsoleTests(unittest.TestCase):
         return TerminalSession(
             stream=self.output, input_stream=StringIO(), start_reader=False,
             clock=self.clock.now,
-            wall_clock=lambda: datetime(2030, 1, 1, 12, 34, 56, tzinfo=timezone.utc),
+            wall_clock=lambda: datetime(2030, 1, 1, 12, 34, 56, tzinfo=UTC),
             **options,
         )
 
@@ -231,6 +230,7 @@ class ConsoleTests(unittest.TestCase):
         source = StringIO("tila\n")
         session = TerminalSession(stream=self.output, input_stream=source, interactive=True)
         with session:
+            assert session._reader is not None
             session._reader.join(timeout=1)
             self.assertFalse(session._reader.is_alive())
             session.checkpoint(self.clock.wait)

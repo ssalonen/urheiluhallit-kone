@@ -8,16 +8,17 @@ backend objects, error messages, account names, card data or reservation IDs.
 
 from __future__ import annotations
 
-from collections import deque
-from datetime import datetime
 import math
 import os
-from queue import Empty, Queue
 import select
 import sys
-from threading import Event, Thread
 import time
-from typing import Callable, TextIO
+from collections import deque
+from collections.abc import Callable
+from datetime import datetime
+from queue import Empty, Queue
+from threading import Event, Thread
+from typing import TextIO
 
 from .models import Course
 
@@ -193,6 +194,8 @@ class TerminalSession:
             self.finish_input()
 
     def _read_windows_console(self) -> None:
+        if sys.platform != "win32":
+            return
         import msvcrt
         line: deque[str] = deque()
         while not self._stop_reader.wait(0.05):

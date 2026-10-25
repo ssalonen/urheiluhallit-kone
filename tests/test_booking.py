@@ -1,23 +1,27 @@
 """Fake-clock transaction tests: no network, payment or browser operations."""
 
-from dataclasses import replace
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 import json
-from pathlib import Path
 import stat
 import tempfile
 import unittest
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+from pathlib import Path
 from unittest.mock import patch
 
 from uhkone.booking import (
-    ActionNotSent, ActionUncertain, BookingError, BookingSpec, Observation,
-    TransientBookingError, run_booking,
+    ActionNotSent,
+    ActionUncertain,
+    BookingError,
+    BookingSpec,
+    Observation,
+    TransientBookingError,
+    run_booking,
 )
 from uhkone.models import Course
 
-
-BASE = datetime(2030, 1, 1, tzinfo=timezone.utc)
+BASE = datetime(2030, 1, 1, tzinfo=UTC)
 
 
 class Clock:
@@ -35,8 +39,8 @@ class Backend:
     def __init__(self, clock):
         self.clock = clock
         self.observation = Observation(
-            available=True, current_price=Decimal("90"),
-            receipt_id="old-receipt", receipt_closed=True, receipt_total=Decimal("90"),
+            available=True, current_price=Decimal(90),
+            receipt_id="old-receipt", receipt_closed=True, receipt_total=Decimal(90),
         )
         self.waits = []
         self.snapshots = []
@@ -76,7 +80,7 @@ class Backend:
         self.observation = replace(
             self.observation, held=False, cart_empty=True, reservation_id="reservation-123",
             reservation_confirmed=True, receipt_id="new-receipt", receipt_closed=True,
-            receipt_total=Decimal("90"),
+            receipt_total=Decimal(90),
         )
 
     def wait(self, seconds):
@@ -95,7 +99,7 @@ class BookingTests(unittest.TestCase):
         self.backend = Backend(self.clock)
         self.spec = BookingSpec(
             course=Course(id=123, name="Leikki-ikäisten jatkouimakoulu", location="Mäkelänrinne"),
-            child_name="Testi Lapsi", max_price=Decimal("100"), opens_at=BASE,
+            child_name="Testi Lapsi", max_price=Decimal(100), opens_at=BASE,
             deadline=BASE + timedelta(seconds=90), payment_mode="saldo",
         )
         self.logs = []
@@ -182,9 +186,8 @@ class BookingTests(unittest.TestCase):
             raise ActionUncertain("No response; commit remains pending")
 
         def snapshot(backend):
-            if backend.adds and self.clock.now() >= BASE + timedelta(seconds=30):
-                if not backend.checkouts:
-                    backend.hold()
+            if backend.adds and self.clock.now() >= BASE + timedelta(seconds=30) and not backend.checkouts:
+                backend.hold()
 
         self.backend.on_add = add
         self.backend.on_snapshot = snapshot
@@ -294,7 +297,7 @@ class BookingTests(unittest.TestCase):
     def test_held_price_increase_blocks_checkout(self):
         def add(backend):
             backend.hold()
-            backend.observation = replace(backend.observation, current_price=Decimal("101"))
+            backend.observation = replace(backend.observation, current_price=Decimal(101))
 
         self.backend.on_add = add
         with self.assertRaises(BookingError):
@@ -351,7 +354,7 @@ class BookingTests(unittest.TestCase):
         changes = (
             {"child_name": "Another Child"},
             {"course": replace(self.spec.course, id=124)},
-            {"max_price": Decimal("101")},
+            {"max_price": Decimal(101)},
             {"payment_mode": "verkkomaksu"},
             {"payment_type_id": 7},
         )
@@ -381,9 +384,8 @@ class BookingTests(unittest.TestCase):
         self.run_booking(replace(self.spec, deadline=BASE + timedelta(seconds=2)))
         original = self.path.read_bytes()
         self.backend.observation = replace(self.backend.observation, available=True)
-        with patch("uhkone.booking.os.replace", side_effect=OSError("disk failure")):
-            with self.assertRaises(BookingError):
-                self.run_booking()
+        with patch("uhkone.booking.os.replace", side_effect=OSError("disk failure")), self.assertRaises(BookingError):
+            self.run_booking()
         self.assertEqual(self.path.read_bytes(), original)
         self.assertEqual(sorted(p.name for p in self.path.parent.iterdir()), ["booking.json"])
         self.assertEqual((self.backend.adds, self.backend.checkouts), ([], []))
@@ -402,7 +404,7 @@ class BookingTests(unittest.TestCase):
             {"opens_at": datetime(2030, 1, 1)},
             {"deadline": BASE},
             {"max_price": Decimal("NaN")},
-            {"max_price": Decimal("-1")},
+            {"max_price": Decimal(-1)},
             {"child_name": " "},
             {"payment_mode": "unknown"},
             {"payment_type_id": True},
@@ -435,7 +437,7 @@ class BookingTests(unittest.TestCase):
     def test_pause_at_add_prompt_refreshes_price_and_rejects_changed_budget(self):
         def pause(action, course_id):
             self.backend.wait(5)
-            self.backend.observation = replace(self.backend.observation, current_price=Decimal("101"))
+            self.backend.observation = replace(self.backend.observation, current_price=Decimal(101))
         with self.assertRaises(BookingError):
             self.run_booking(before_action=pause)
         self.assertEqual((self.backend.adds, self.backend.checkouts), ([], []))

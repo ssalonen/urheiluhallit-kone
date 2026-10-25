@@ -9,20 +9,22 @@ No catalogue update, external merchant request, or real card operation is used.
 from __future__ import annotations
 
 import argparse
-from dataclasses import replace
-from datetime import datetime, timedelta, timezone
 import json
-from pathlib import Path
 import shutil
 import sys
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
+from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import cast
 
 # Also support running this directly from an uninstalled source checkout.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from uhkone.booking import BookingError, BookingSpec
 from uhkone.cli import ranked
-from uhkone.client import HELSINKI, ShopClient, parse_course
+from uhkone.client import ShopClient, parse_course
 from uhkone.config import Settings
 from uhkone.multi import run_race
 from uhkone.multi_browser import open_booking_pool
@@ -71,8 +73,9 @@ def run_smoke(executable_path: str | None = None) -> dict:
             raise AssertionError("Smoke-testi saa käyttää vain paikallista testikauppaa.")
         with ShopClient(base_url=shop.base_url) as client:
             courses = [client.get_course(course_id) for course_id in course_ids]
-        deadline = datetime.now(timezone.utc) + timedelta(seconds=90)
-        specs = [BookingSpec(course=course, child_name="Testilapsi", max_price=course.price,
+        deadline = datetime.now(UTC) + timedelta(seconds=90)
+        assert all(course.price is not None for course in courses)
+        specs = [BookingSpec(course=course, child_name="Testilapsi", max_price=cast(Decimal, course.price),
                              opens_at=shop.opens_at, deadline=deadline,
                              payment_mode="fastpay", payment_type_id=5) for course in courses]
 
@@ -100,7 +103,7 @@ def run_smoke(executable_path: str | None = None) -> dict:
                 raise AssertionError("Jonojen jälkeen avattu kolmas kurssi ei vahvistunut: "
                                      + json.dumps({"status": first.status, "course_id": first.course_id,
                                                    "released": released, "server": first_stats}, ensure_ascii=False))
-            expected_cents = int(courses[2].price * 100)
+            expected_cents = int(specs[2].max_price * 100)
             _assert_counts(first_stats, target, expected_cents)
             resumed = run_race(specs, pool, state_dir, allow_queue=True, queue_policy="eager",
                                queue_timeout=20, progress=progress, log=lambda message: None)

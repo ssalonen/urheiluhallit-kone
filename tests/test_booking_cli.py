@@ -1,14 +1,14 @@
 """The selected unpublished-for-booking course is a valid booking target."""
+import io
+import sys
+import tempfile
+import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import replace
 from datetime import datetime
 from decimal import Decimal
-import io
 from pathlib import Path
-import sys
-import tempfile
-from types import ModuleType, SimpleNamespace
-import unittest
+from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, patch
 
 from uhkone import cli
@@ -23,25 +23,25 @@ class ReservationCliTests(unittest.TestCase):
         self.url = "https://kauppa.urheiluhallit.fi/webshop/reservations2/reservations/9/2/6/-/123"
         self.course = Course(123, "Leikki-ikäisten jatkouimakoulu", "Mäkelänrinne",
                              start=datetime(2099, 2, 1, 17, tzinfo=cli.HELSINKI),
-                             price=Decimal("76"), free_places=8, is_reservable=False,
+                             price=Decimal(76), free_places=8, is_reservable=False,
                              registration_start=datetime(2099, 1, 12, 7, tzinfo=cli.HELSINKI),
                              url=self.url)
         self.client = MagicMock()
         self.client.__enter__.return_value = self.client
         self.client.get_course.return_value = self.course
-        client_module = ModuleType("uhkone.client")
+        client_module = SimpleNamespace(__name__="uhkone.client")
         client_module.ShopClient = Mock(return_value=self.client)
         client_module.ClientError = type("ClientError", (Exception,), {})
-        booking = ModuleType("uhkone.booking")
+        booking = SimpleNamespace(__name__="uhkone.booking")
         booking.BookingSpec = lambda **kwargs: SimpleNamespace(**kwargs)
-        multi = ModuleType("uhkone.multi")
+        multi = SimpleNamespace(__name__="uhkone.multi")
         self.run_booking = multi.run_race = Mock(return_value=SimpleNamespace(
             status="confirmed", course_id=123, reservation_id="r123", receipt_id="receipt123"))
-        browser = ModuleType("uhkone.booking_browser")
+        browser = SimpleNamespace(__name__="uhkone.booking_browser")
         self.open_browser = browser.open_booking_browser = MagicMock()
         self.backend = self.open_browser.return_value.__enter__.return_value
         self.backend.identity = "1:2:123"
-        pool_module = ModuleType("uhkone.multi_browser")
+        pool_module = SimpleNamespace(__name__="uhkone.multi_browser")
         self.open_pool = pool_module.open_booking_pool = MagicMock()
         self.addCleanup(patch.stopall)
         patch.dict(sys.modules, {"uhkone.client": client_module,
