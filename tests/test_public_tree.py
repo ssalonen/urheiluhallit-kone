@@ -20,7 +20,9 @@ spec.loader.exec_module(guard)
 class PublicTreeTests(unittest.TestCase):
     def test_public_sources_and_synthetic_examples_are_allowed(self):
         for path in ("README.md", "uhkone/console.py", "tests/test_console.py", ".githooks/pre-commit",
-                     ".github/dependabot.yml", "docs/esimerkkiajo.html"):
+                     ".github/dependabot.yml", "docs/esimerkkiajo.html",
+                     "docs/superpowers/plans/2026-11-15-reserve-without-payment.md",
+                     "docs/superpowers/specs/2026-11-15-reserve-without-payment-design.md"):
             self.assertTrue(guard.allowed_path(path), path)
         content = 'child_name = "Testilapsi"\nemail = "person@example.com"\n'
         self.assertEqual(guard.check_blob("tests/test_example.py", content.encode()), [])
@@ -29,7 +31,7 @@ class PublicTreeTests(unittest.TestCase):
     def test_runtime_artifacts_and_private_captures_are_rejected(self):
         for path in (".state/state.json", "testiraportit/run.json", "profiles/Default/Preferences",
                      "uhkone/cookies.json", "uhkone/shop.html", "docs/other-capture.html", "capture.png", ".env",
-                     "tests/test_secret.pem", "../README.md"):
+                     "tests/test_secret.pem", "../README.md", "docs/superpowers/plans/other.md"):
             self.assertFalse(guard.allowed_path(path), path)
 
     def test_sensitive_content_is_reported_without_its_value(self):

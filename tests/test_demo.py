@@ -1,23 +1,23 @@
 """The standalone control-pane example ends at the selected payment boundary."""
 
-from pathlib import Path
 import shutil
 import unittest
+from pathlib import Path
 
 
 class DemoTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         try:
-            from playwright.sync_api import sync_playwright
+            from playwright.sync_api import Error, sync_playwright
         except ImportError:
             raise unittest.SkipTest("Playwright unavailable")
         cls.playwright = sync_playwright().start()
         try:
             executable = shutil.which("chromium") or shutil.which("chromium-browser")
-            cls.browser = cls.playwright.chromium.launch(
-                headless=True, **({"executable_path": executable} if executable else {}))
-        except Exception as exc:
+            cls.browser = (cls.playwright.chromium.launch(headless=True, executable_path=executable)
+                           if executable else cls.playwright.chromium.launch(headless=True))
+        except Error as exc:
             cls.playwright.stop()
             raise unittest.SkipTest(f"Chromium unavailable: {exc}")
 

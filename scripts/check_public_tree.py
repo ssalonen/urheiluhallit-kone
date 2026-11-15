@@ -87,6 +87,11 @@ def allowed_path(path: str) -> bool:
         return True
     if len(parts) == 2 and parts[0] == "docs" and candidate.suffix == ".md":
         return True
+    if path in {
+        "docs/superpowers/plans/2026-11-15-reserve-without-payment.md",
+        "docs/superpowers/specs/2026-11-15-reserve-without-payment-design.md",
+    }:
+        return True
     if path == ".github/dependabot.yml":
         return True
     return len(parts) == 3 and parts[:2] == (".github", "workflows") and candidate.suffix in {".yml", ".yaml"}
