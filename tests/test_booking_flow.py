@@ -94,6 +94,12 @@ class BookingFlowTests(unittest.TestCase):
         cls.playwright.stop()
 
     def test_scheduled_exact_child_cart_and_balance_checkout_reconcile_real_ui(self):
+        self._exercise_flow(without_payment=False)
+
+    def test_without_payment_stops_after_exact_child_cart_write(self):
+        self._exercise_flow(without_payment=True)
+
+    def _exercise_flow(self, *, without_payment):
         row = {"reservation_event_group_id": 123, "service_id": 9, "location_id": 2,
                "reservation_group_id": 6, "name": "Leikki-ikäisten jatkouimakoulu",
                "location": "Mäkelänrinne", "start": "2030-01-10 10:00:00",
@@ -102,7 +108,7 @@ class BookingFlowTests(unittest.TestCase):
         moment = datetime(2030, 1, 1, tzinfo=UTC)
         opening = moment + timedelta(seconds=6)
         spec = BookingSpec(parse_course(row), "Aino Esimerkki", Decimal(80), opening,
-                           opening + timedelta(seconds=40), "saldo")
+                           opening + timedelta(seconds=40), "none" if without_payment else "saldo", without_payment=without_payment)
         server: dict[str, Any] = {"cart": [], "own": [], "receipt": {
             "receipt_id": 77, "total_amount": 7600, "is_closed": 1, "is_pay_later": 0}}
         writes = []
@@ -173,14 +179,21 @@ class BookingFlowTests(unittest.TestCase):
             backend.initialize()
             result = run_booking(spec, backend, Path(directory) / "state.json",
                                  now=lambda: moment, log=lambda message: None)
-        self.assertEqual((result.status, result.reservation_id, result.receipt_id), ("confirmed", "456", "78"))
-        self.assertEqual([path for path, _ in writes], ["/webshop/reservations2/apicart",
-                                                      "/webshop/call/cart/externalpaymentstart"])
+            if without_payment:
+                backend.show_unpaid_cart()
+                self.assertTrue(page.locator("#modal #usageTermsCheckbox").is_visible())
+        if without_payment:
+            self.assertEqual((result.status, result.receipt_id), ("held_unpaid", None))
+            self.assertEqual([path for path, _ in writes], ["/webshop/reservations2/apicart"])
+        else:
+            self.assertEqual((result.status, result.reservation_id, result.receipt_id), ("confirmed", "456", "78"))
+            self.assertEqual([path for path, _ in writes], ["/webshop/reservations2/apicart",
+                                                          "/webshop/call/cart/externalpaymentstart"])
         self.assertEqual(page.evaluate("window.selectedParticipants"), [20])
         self.assertGreater(page.evaluate("window.modelRefreshes"), 0)
-        self.assertTrue(guard.checkout_sent)
+        self.assertEqual(guard.checkout_sent, not without_payment)
         self.assertFalse(guard.blocked_write)
-        self.assertEqual(server["cart"], [])
+        self.assertEqual(len(server["cart"]), 1 if without_payment else 0)
 
 
 if __name__ == "__main__":

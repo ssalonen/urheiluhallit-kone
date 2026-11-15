@@ -113,6 +113,41 @@ class BookingTests(unittest.TestCase):
     def state(self):
         return json.loads(self.path.read_text(encoding="utf-8"))
 
+    def test_without_payment_stops_at_verified_cart_and_restart_does_not_add(self):
+        spec = replace(self.spec, payment_mode="none", without_payment=True)
+        first = self.run_booking(spec)
+        self.assertEqual(first.status, "held_unpaid")
+        self.assertEqual(len(self.backend.adds), 1)
+        self.assertEqual(self.backend.checkouts, [])
+        self.assertEqual(self.state()["checkout_sends"], 0)
+        second = self.run_booking(spec)
+        self.assertEqual(second.status, "held_unpaid")
+        self.assertEqual(len(self.backend.adds), 1)
+        self.assertEqual(self.backend.checkouts, [])
+
+    def test_without_payment_reconciles_lost_add_response_without_retry(self):
+        spec = replace(self.spec, payment_mode="none", without_payment=True)
+        def lost_response(backend):
+            backend.hold()
+            raise ActionUncertain("response lost")
+        self.backend.on_add = lost_response
+        result = self.run_booking(spec)
+        self.assertEqual(result.status, "held_unpaid")
+        self.assertEqual(len(self.backend.adds), 1)
+        self.assertEqual(self.backend.checkouts, [])
+
+    def test_without_payment_journal_cannot_resume_as_paid(self):
+        self.run_booking(replace(self.spec, payment_mode="none", without_payment=True))
+        with self.assertRaises(BookingError):
+            self.run_booking(self.spec)
+        self.assertEqual(self.backend.checkouts, [])
+
+    def test_without_payment_rejects_payment_method_fields(self):
+        with self.assertRaises(BookingError):
+            replace(self.spec, without_payment=True)
+        with self.assertRaises(BookingError):
+            replace(self.spec, payment_mode="none", payment_type_id=4, without_payment=True)
+
     def test_future_opening_has_preflight_but_no_early_write_and_bounded_wait_chunks(self):
         spec = replace(self.spec, opens_at=BASE + timedelta(seconds=120), deadline=BASE + timedelta(seconds=180))
         result = self.run_booking(spec)

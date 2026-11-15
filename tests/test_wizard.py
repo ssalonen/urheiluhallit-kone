@@ -127,6 +127,15 @@ class WizardTests(unittest.TestCase):
         self.assertIn("varsinaisen paikan haku jatkuu", self.output.getvalue())
         self.assertNotIn("Jonopaikka: yksi", self.output.getvalue())
 
+    def test_guided_unpaid_cart_choice_omits_payment_method(self):
+        answers = self.booking_answers()
+        answers[4] = "4"
+        self.assertEqual(self.run_conversation(answers), 7)
+        parsed = self.runs[0][1]
+        self.assertTrue(parsed.ilman_maksua)
+        self.assertIsNone(parsed.maksutapa)
+        self.assertIn("Pysähdytään ostoskoriin ennen maksua", self.output.getvalue())
+
     def test_blank_or_unrecognized_final_confirmation_never_starts_booking(self):
         for final in ("", "kyllä", "joo", "start"):
             with self.subTest(final=final):

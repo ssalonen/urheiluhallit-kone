@@ -273,7 +273,8 @@ class _BookingGuard:
         self.return_paths: set[tuple[str, str]] = set()
 
     def arm(self, action: str) -> None:
-        if action not in {"add", "checkout", "queue"} or self.armed is not None:
+        if (action not in {"add", "checkout", "queue"} or self.armed is not None
+                or (action == "checkout" and self.spec.without_payment)):
             raise BookingError("Varaustoiminnon tila ei ole yksiselitteinen.")
         self.armed, self.sent, self.blocked_write = action, False, False
 
@@ -353,7 +354,7 @@ class _BookingGuard:
         return ((self.armed == "add" and parsed.path == "/webshop/reservations2/apicart" and self._add_matches(data))
                 or (self.armed == "queue" and not self.queue_sent and not self.actual_sent
                     and parsed.path == "/webshop/reservations2/apiusereventgroups" and self._queue_matches(data))
-                or (self.armed == "checkout" and not self.checkout_sent
+                or (self.armed == "checkout" and not self.spec.without_payment and not self.checkout_sent
                     and parsed.path == "/webshop/call/cart/externalpaymentstart" and self._checkout_matches(data)))
 
     def _provider_request(self, request) -> bool:
@@ -554,7 +555,7 @@ class BookingBrowser:
             raise BookingError("Ostoskorissa on muita tuotteita. Työkalu ei poista eikä osta niitä.")
         if initial.payment_locked:
             print("Ostoskorissa on keskeneräinen maksu. Työkalu tarkistaa sen tilaa lähettämättä uutta maksua.")
-        if not (initial.payment_locked or initial.held or initial.reservation_id is not None or initial.reservation_confirmed):
+        if not self.spec.without_payment and not (initial.payment_locked or initial.held or initial.reservation_id is not None or initial.reservation_confirmed):
             self._select_payment(initial.current_price)
         # Resuming a previous purchase must not require the balance that was
         # already spent, or the availability of a payment method already used.
@@ -715,6 +716,8 @@ class BookingBrowser:
         self._finish_action(failure)
 
     def checkout(self) -> None:
+        if self.spec.without_payment:
+            raise BookingError("Maksu on estetty tämän ajon asetuksissa.")
         self.guard.sent, self.guard.blocked_write = False, False
         state = self._recent_observation()
         if (not state.held or state.cart_has_others or state.cart_empty or state.payment_locked
@@ -778,6 +781,27 @@ class BookingBrowser:
         except Exception as exc:  # noqa: BLE001 - Fail closed on browser failures, including possibly sent mutations.
             failure = exc
         self._finish_action(failure)
+
+    def show_unpaid_cart(self) -> None:
+        """Show the verified cart while the write guard still blocks payment."""
+        if not self.spec.without_payment:
+            raise BookingError("Maksamatonta ostoskoria voi näyttää vain ilman maksua -ajossa.")
+        state = self.snapshot()
+        if (not state.held or state.cart_has_others or state.cart_empty or state.payment_locked
+                or self.guard.checkout_sent):
+            raise BookingError("Maksamatonta kurssiriviä ei voi enää vahvistaa ostoskorista.")
+        self.page.evaluate("() => R2.cart.fetch({reset:true}).then(() => R2.vent.trigger('cart:open'))")
+        ui_cart = self.page.evaluate("() => R2.cart.toJSON()")
+        if (not isinstance(ui_cart, list) or len(ui_cart) != 1
+                or not _cart_match(ui_cart[0], self.spec.course.id, self.child_id)
+                or _money(ui_cart[0].get("bundle_price") if ui_cart[0].get("bundle_price") is not None else ui_cart[0].get("price")) != state.current_price):
+            raise BookingError("Selaimen ostoskori ei vastaa vahvistettua maksamatonta kurssivarausta.")
+
+    def wait_for_close(self) -> None:
+        """Keep the visible cart and its no-payment guard active for review."""
+        while any(not page.is_closed() for page in self.context.pages):
+            active = next(page for page in self.context.pages if not page.is_closed())
+            active.wait_for_timeout(250)
 
     def wait(self, seconds: float) -> None:
         remaining = max(0, seconds)

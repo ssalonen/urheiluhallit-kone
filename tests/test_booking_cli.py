@@ -92,6 +92,21 @@ class ReservationCliTests(unittest.TestCase):
         self.assertEqual(spec.payment_type_id, 5)
         self.assertIn("fastpay", stdout)
 
+    def test_without_payment_needs_no_payment_method_and_reports_unpaid_cart(self):
+        self.args = ["varaa", self.url, "--lapsi", "Testilapsi", "--enintaan", "76,00"]
+        self.run_booking.return_value = SimpleNamespace(
+            status="held_unpaid", course_id=123, reservation_id="r123", receipt_id=None)
+        code, stdout, stderr = self.invoke(["--ilman-maksua"])
+        self.assertEqual(code, 0, stderr)
+        spec = self.run_booking.call_args.args[0][0]
+        self.assertTrue(spec.without_payment)
+        self.assertEqual(spec.payment_mode, "none")
+        self.assertFalse(self.run_booking.call_args.kwargs["allow_queue"])
+        self.assertIn("maksamaton", stdout.casefold())
+        self.assertNotIn("VARAUS VAHVISTETTU", stdout)
+        self.backend.show_unpaid_cart.assert_called_once_with()
+        self.backend.wait_for_close.assert_called_once_with()
+
     def test_requested_queue_fallback_is_default_and_can_be_disabled(self):
         self.invoke()
         self.assertTrue(self.run_booking.call_args.kwargs["allow_queue"])

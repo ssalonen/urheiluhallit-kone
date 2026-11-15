@@ -324,9 +324,9 @@ def run_race(
     def with_queues(result: RaceResult, lease: dict) -> RaceResult:
         records = lease["queues"]
         # A queue upgraded into the confirmed actual winner is no longer an
-        # independent waitlist entry. No additional post-payment reads are
-        # needed to establish that distinction.
-        actual_winner = result.course_id if result.status in {"confirmed", "already_confirmed"} else None
+        # independent waitlist entry. No additional reads after the actual
+        # result are needed to establish that distinction.
+        actual_winner = result.course_id if result.status in {"confirmed", "already_confirmed", "held_unpaid"} else None
         confirmed = tuple((spec.course.id, records[str(spec.course.id)]["reservation_id"],
                            records[str(spec.course.id)]["position"])
                           for spec in specs if str(spec.course.id) in records

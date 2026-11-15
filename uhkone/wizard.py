@@ -193,8 +193,8 @@ def _review_and_run(conversation: _Conversation, courses: list[Course], args, se
     child = conversation.ask("Lapsen tarkka nimi asiakastilillä (vain tämän ajon käyttöön; tyhjä peruu):")
     budget = _budget(conversation, courses)
     payment = conversation.choice(
-        "Maksutapa: 1 FastPay, 2 verkkomaksu, 3 saldo [1]:",
-        {"1": "fastpay", "fastpay": "fastpay", "2": "verkkomaksu", "verkkomaksu": "verkkomaksu", "3": "saldo", "saldo": "saldo"},
+        "Maksutapa: 1 FastPay, 2 verkkomaksu, 3 saldo, 4 pysähdy maksamattomaan ostoskoriin [1]:",
+        {"1": "fastpay", "fastpay": "fastpay", "2": "verkkomaksu", "verkkomaksu": "verkkomaksu", "3": "saldo", "saldo": "saldo", "4": "none"},
         default="1",
     )
     if payment == "fastpay":
@@ -216,7 +216,8 @@ def _review_and_run(conversation: _Conversation, courses: list[Course], args, se
     conversation.say("\nTarkista hyväksymäsi kurssit:")
     conversation.show_courses(courses)
     conversation.say(f"Tavoite: yksi varsinainen kurssipaikka {len(courses)} hyväksytystä vaihtoehdosta.")
-    conversation.say(f"Yhden kurssin enimmäishinta: {budget:.2f} €. Maksutapa: {payment}.")
+    conversation.say(f"Yhden kurssin enimmäishinta: {budget:.2f} €. " +
+                     ("Pysähdytään ostoskoriin ennen maksua." if payment == "none" else f"Maksutapa: {payment}."))
     conversation.say("Osallistuja: syöttämäsi asiakastililtä valittava lapsi. Nimeä ei kirjoiteta asetustiedostoon.")
     for course in courses:
         starts = opening or course.registration_start
@@ -228,17 +229,20 @@ def _review_and_run(conversation: _Conversation, courses: list[Course], args, se
         if use_queue else "Jonopaikkaa ei yritetä."
     )
     conversation.say(
-        "Kysyn hyväksynnän ennen varausta, maksua ja jonopyyntöä. Hyväksyntä voi hidastaa paikan saamista."
-        if step_mode else "Etenen hyväksytyillä ehdoilla automaattisesti. Maksu voidaan tehdä ilman uutta kysymystä."
+        ("Kysyn hyväksynnän ennen varausta ja jonopyyntöä. Hyväksyntä voi hidastaa paikan saamista. Maksua ei aloiteta."
+         if payment == "none" else "Kysyn hyväksynnän ennen varausta, maksua ja jonopyyntöä. Hyväksyntä voi hidastaa paikan saamista.")
+        if step_mode else ("Etenen hyväksytyillä ehdoilla ostoskoriin asti. Maksua ei aloiteta."
+                           if payment == "none" else "Etenen hyväksytyillä ehdoilla automaattisesti. Maksu voidaan tehdä ilman uutta kysymystä.")
     )
     conversation.say("Näet selaimen ja jatkuvat tilaviestit. Ajon aikana käytössä: tila, tauko, jatka, lopeta.")
     if conversation.ask("Käynnistä kirjoittamalla täsmälleen aloita (muu vastaus peruu):").casefold() != "aloita":
         raise _Cancelled
     command = [
         "varaa-yksi", *(str(course.id) for course in courses), "--lapsi", child,
-        "--enintaan", str(budget), "--maksutapa", payment, "--kesto", str(duration),
+        "--enintaan", str(budget), "--kesto", str(duration),
         "--keskustele", "--jono" if use_queue else "--ei-jono",
     ]
+    command.extend(("--ilman-maksua",) if payment == "none" else ("--maksutapa", payment))
     if step_mode:
         command.append("--kysy-toiminnot")
     if opening is not None:

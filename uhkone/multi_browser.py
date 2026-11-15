@@ -292,7 +292,7 @@ class BookingPool:
                            for value in successes))
         selected_methods = {}
         for backend in self.backends.values():
-            if existing:
+            if existing or backend.spec.without_payment:
                 continue
             key = (backend.spec.payment_mode, backend.spec.payment_type_id)
             if key not in selected_methods:

@@ -112,7 +112,7 @@ def parser() -> argparse.ArgumentParser:
     book.add_argument("kohde", type=course_target, help="Etukäteen valitun kurssin osoite tai tunnus")
     book.add_argument("--lapsi", required=True, help="Olemassa olevan lapsitilin tarkka nimi")
     book.add_argument("--enintaan", type=euro_amount, required=True, help="Kurssista sallittu enimmäissumma euroina")
-    book.add_argument("--maksutapa", choices=("saldo", "fastpay", "verkkomaksu"), required=True, help="Saldomaksu, tallennetun kortin FastPay tai verkkopankki/kortti")
+    book.add_argument("--maksutapa", choices=("saldo", "fastpay", "verkkomaksu"), help="Saldomaksu, tallennetun kortin FastPay tai verkkopankki/kortti")
     book.add_argument("--maksutunnus", type=positive_id, help="Kaupan maksutapatunnus, jos verkkokaupassa on useita vaihtoehtoja")
     book.add_argument("--avautuu", type=opening_time, help="Ilmoittautumisen alkamisaika; oletuksena kurssin julkaisema aika")
     book.add_argument("--kesto", type=int, default=30, help="Varausyrityksen kesto avautumisesta minuutteina (oletus 30)")
@@ -121,12 +121,13 @@ def parser() -> argparse.ArgumentParser:
     race.add_argument("kohteet", nargs="+", type=course_target, help="Hyväksyttyjen kurssien osoitteet tai tunnukset")
     race.add_argument("--lapsi", required=True, help="Olemassa olevan lapsitilin tarkka nimi")
     race.add_argument("--enintaan", type=euro_amount, required=True, help="Yhden kurssin enimmäissumma euroina")
-    race.add_argument("--maksutapa", choices=("saldo", "fastpay", "verkkomaksu"), required=True)
+    race.add_argument("--maksutapa", choices=("saldo", "fastpay", "verkkomaksu"))
     race.add_argument("--maksutunnus", type=positive_id, help="Kaupan maksutapatunnus")
     race.add_argument("--avautuu", type=opening_time, help="Ilmoittautumisen alkuaika, jos yhteinen aika on tiedossa")
     race.add_argument("--kesto", type=int, default=30, help="Yrityksen kesto kunkin kurssin avautumisesta minuutteina")
     race.add_argument("--selain", help="Chrome/Chromium-ohjelman polku")
     for booking_command in (book, race):
+        booking_command.add_argument("--ilman-maksua", action="store_true", help="Lisää yksi kurssi ostoskoriin ja pysähdy ennen maksua")
         queue_choice = booking_command.add_mutually_exclusive_group()
         queue_choice.add_argument("--jono", dest="jono", action="store_true", help="Liity sopiviin jonoihin ja jatka yhden varsinaisen paikan hakua")
         queue_choice.add_argument("--ei-jono", dest="jono", action="store_false", help="Tavoittele vain varsinaista kurssipaikkaa")
@@ -145,6 +146,7 @@ def parser() -> argparse.ArgumentParser:
     simulation.add_argument("--avautuu-sekunnissa", type=float, default=5, help="Paikallisen ilmoittautumisen viive sekunteina")
     demo = commands.add_parser("koeajo", parents=[common, simulation], help="Aja koko osto paikallisessa testikaupassa")
     demo.add_argument("--maksutapa", choices=("saldo", "fastpay"), default="saldo", help="Simuloitu saldomaksu tai tallennetun testikortin FastPay")
+    demo.add_argument("--ilman-maksua", action="store_true", help="Pysähdy paikallisen testikaupan maksamattomaan ostoskoriin")
     demo.add_argument("--monta", type=int, default=1, help="Tavoittele näin montaa sopivaa kurssia; osta yksi")
     demo.add_argument("--jono", action="store_true", help="Liity testissä useisiin jonoihin varsinaisen paikan haun aikana")
     demo.add_argument("--jono-aikaraja", type=int, default=15, help=argparse.SUPPRESS)
@@ -349,6 +351,11 @@ def run_reservation(args, filters: SearchFilters, directory: Path, client) -> in
     from .booking_browser import open_booking_browser
     from .origin import PRODUCTION_URL
     _check_terminal(args)
+    if args.ilman_maksua:
+        if args.maksutapa is not None or args.maksutunnus is not None:
+            raise ConfigError("--ilman-maksua ei käytä --maksutapa- tai --maksutunnus-valintaa.")
+    elif args.maksutapa is None:
+        raise ConfigError("Valitse --maksutapa tai käytä --ilman-maksua.")
     if not args.lapsi.strip():
         raise ConfigError("Lapsen tarkka nimi tarvitaan.")
     if not 1 <= args.kesto <= 240:
@@ -377,12 +384,15 @@ def run_reservation(args, filters: SearchFilters, directory: Path, client) -> in
             raise ConfigError(f"Kurssin {course.id} ilmoittautumisen alkuaika puuttuu. Anna tiedossa oleva aika --avautuu-valitsimella.")
         specs.append(BookingSpec(course=course, child_name=args.lapsi.strip(), max_price=args.enintaan,
                                 opens_at=opens, deadline=max(opens, now) + timedelta(minutes=args.kesto),
-                                payment_mode=args.maksutapa, payment_type_id=args.maksutunnus))
+                                payment_mode="none" if args.ilman_maksua else args.maksutapa,
+                                payment_type_id=args.maksutunnus, without_payment=args.ilman_maksua))
     print_courses(selected, details=True)
-    print(f"Tavoitteena yksi kurssi {len(specs)} vaihtoehdosta. Enimmäishinta {args.enintaan} €. Maksutapa: {args.maksutapa}.", flush=True)
+    print(f"Tavoitteena yksi kurssi {len(specs)} vaihtoehdosta. Enimmäishinta {args.enintaan} €. "
+          + ("Pysähdytään maksamattomaan ostoskoriin." if args.ilman_maksua else f"Maksutapa: {args.maksutapa}."), flush=True)
     print("Samalla tarkistuksella valmiista vaihtoehdoista valitaan hallien toivejärjestyksessä. Muulloin ensimmäinen valmis polku saa varausvuoron.", flush=True)
     if args.jono:
-        print("Jonotus: liity kaikkiin valittuihin sopiviin jonoihin heti kun mahdollista. Varsinaisen paikan haku jatkuu; maksetaan enintään yksi kurssi.", flush=True)
+        print("Jonotus: liity kaikkiin valittuihin sopiviin jonoihin heti kun mahdollista. Varsinaisen paikan haku jatkuu; "
+              + ("yksi kurssi lisätään ostoskoriin ilman maksua." if args.ilman_maksua else "maksetaan enintään yksi kurssi."), flush=True)
     print("Avaan näkyvän selaimen. Kirjaudu tarvittaessa itse. Pidä sama selainprofiili käytössä myös jatkaessasi keskeytynyttä ajoa.", flush=True)
 
     def report(pool):
@@ -398,6 +408,15 @@ def run_reservation(args, filters: SearchFilters, directory: Path, client) -> in
             print(f"VARAUS VAHVISTETTU. Kurssi: {result.course_id}. Varaustunnus: {result.reservation_id or 'ei erillistä tunnusta'}")
             if result.receipt_id:
                 print(f"Kuitti: {result.receipt_id}")
+            return 0
+        if result.status == "held_unpaid":
+            print(f"MAKSAMATON VARAUS OSTOSKORISSA. Kurssi: {result.course_id}. "
+                  "Maksua ei aloitettu. Ostoskorin paikka voi vanhentua.")
+            backend = pool.activate(result.course_id)
+            backend.show_unpaid_cart()
+            print("Ostoskori on avoinna näkyvässä selaimessa. Maksutoiminnot on estetty tässä ajossa. "
+                  "Sulje selainikkuna, kun olet tarkistanut ostoskorin.")
+            backend.wait_for_close()
             return 0
         if result.status == "queued":
             if not queues:
@@ -464,6 +483,8 @@ def run_test_shop(args, settings) -> int:
         raise ConfigError("Testikaupan avautumisviiveen pitää olla 0–3600 sekuntia.")
     if args.command == "koeajo" and args.skenaario.startswith("fastpay-") and args.maksutapa != "fastpay":
         raise ConfigError("FastPay-skenaario tarvitsee valinnan --maksutapa fastpay.")
+    if args.command == "koeajo" and args.ilman_maksua and args.skenaario in {"maksu-vastaus-katoaa", "fastpay-kortti-puuttuu", "fastpay-hylatty"}:
+        raise ConfigError("Maksuskenaariota ei voi käyttää --ilman-maksua-ajossa.")
     if args.command == "koeajo" and args.skenaario == "ensisijainen-taynna" and count < 2:
         raise ConfigError("Vaihtoehdon voittaminen tarvitsee vähintään kaksi kurssia: --monta 2.")
     print("TESTIKAUPPA — paikallinen simulaattori. Vain testihenkilöitä ja simuloituja maksuja.", flush=True)
@@ -498,14 +519,17 @@ def run_test_shop(args, settings) -> int:
             raise ConfigError("Testikurssin hinta puuttuu.")
         specs = [BookingSpec(course=course, child_name="Testilapsi", max_price=cast(Decimal, course.price),
                              opens_at=server.opens_at, deadline=max(server.opens_at, datetime.now(HELSINKI)) + timedelta(seconds=args.aikaraja),
-                             payment_mode=args.maksutapa, payment_type_id=5 if args.maksutapa == "fastpay" else 4) for course in courses]
+                             payment_mode="none" if args.ilman_maksua else args.maksutapa,
+                             payment_type_id=None if args.ilman_maksua else 5 if args.maksutapa == "fastpay" else 4,
+                             without_payment=args.ilman_maksua) for course in courses]
         started = datetime.now(HELSINKI)
         with TemporaryDirectory(prefix="uhkone-koeajo-") as tmp:
             from .multi_browser import open_booking_pool
             with open_booking_pool(specs, Path(tmp) / "testiselain", executable_path=args.selain,
                                    base_url=server.base_url, headless=args.headless) as pool:
                 result = controlled_race(specs, pool, Path(tmp) / "yhteinen-tila", args)
-            report = {"test_only": True, "real_payment": False, "scenario": args.skenaario, "payment_mode": args.maksutapa,
+            report = {"test_only": True, "real_payment": False, "scenario": args.skenaario,
+                      "payment_mode": "none" if args.ilman_maksua else args.maksutapa,
                       "source_url": document["source_url"], "data_fetched_at": document["fetched_at"],
                       "started_at": started.isoformat(), "finished_at": datetime.now(HELSINKI).isoformat(),
                       "outcome": result.status, "course_id": getattr(result, "course_id", server.course_id),
@@ -518,6 +542,10 @@ def run_test_shop(args, settings) -> int:
                       "server": server.stats()}
             success = (result.status == "confirmed" and report["server"]["checkout_posts"] == 1
                        and report["server"]["confirmed"] == 1 and report["server"]["receipts"] == 1)
+            if args.ilman_maksua:
+                success = (result.status == "held_unpaid" and report["server"]["cart_posts"] == 1
+                           and report["server"]["checkout_posts"] == 0 and report["server"]["receipts"] == 0
+                           and report["server"]["confirmed"] == 0)
             if args.skenaario == "taynna":
                 success = result.status == "deadline" and report["server"]["writes"] == 0
             if args.skenaario == "fastpay-hylatty":
@@ -561,7 +589,7 @@ def main(argv: list[str] | None = None) -> int:
 
             def reserve(selected_args, selected_settings, selected_directory):
                 if selected_args.jono is None:
-                    selected_args.jono = selected_settings.queue_fallback
+                    selected_args.jono = False if selected_args.ilman_maksua else selected_settings.queue_fallback
                 with ShopClient() as client:
                     return run_reservation(selected_args, get_filters(selected_args, selected_settings.filters),
                                            selected_directory, client)
@@ -605,7 +633,7 @@ def main(argv: list[str] | None = None) -> int:
                 return run_watch(args, settings, filters, directory, client)
             if args.command in {"varaa", "varaa-yksi"}:
                 if args.jono is None:
-                    args.jono = settings.queue_fallback
+                    args.jono = False if args.ilman_maksua else settings.queue_fallback
                 return run_reservation(args, filters, directory, client)
             if args.command == "haku":
                 courses = ranked(client.courses(), filters)

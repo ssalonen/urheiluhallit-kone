@@ -7,6 +7,7 @@ Versiossa **0.5** on ohjattu käyttötila, jatkuvat tilaviestit sekä komennot a
 Ohjelma ei ole Urheiluhallien tai Enkoran virallinen tuote. **Oikealla asiakastilillä tehtävää varausta tai FastPay-maksua ei ole tehty tämän projektin testeissä.** Testikaupassa onnistuva ajo ei vielä osoita oikean kaupan kaikkien vaiheiden toimivan. Palvelun ruuhka tai loppuvat paikat voivat estää varaamisen.
 
 Interaktiivinen esimerkkiajo: [avaa HTML](docs/esimerkkiajo.html) (lataa tiedosto ja avaa selaimessa). Esimerkki toimii paikallisesti kuvitteellisilla kursseilla ja osallistujalla.
+Esimerkin ohjauspaneelissa voi valita myös pysähtymisen maksamattomaan ostoskoriin. HTML on itsenäinen havainnollistus eikä käynnistä komentoriviohjelmaa tai tee verkkopyyntöjä.
 
 ## Käyttöönotto
 
@@ -60,6 +61,17 @@ Valitsimet `--keskustele` ja `--kysy-toiminnot` tuovat ohjauksen myös suoriin v
 
 ## Useita kurssipolkuja, yksi maksettu paikka
 
+### Varaa ostoskoriin ilman maksua
+
+`--ilman-maksua` käy läpi saman kurssi- ja lapsivalinnan sekä varausyrityksen, mutta pysähtyy, kun täsmällinen maksamaton kurssirivi on tarkistettu ostoskorissa. Maksutapaa ei anneta, eikä ohjelma aloita maksua. Ostoskorissa oleva paikka voi vanhentua eikä ole maksettu tai lopullisesti vahvistettu kurssipaikka.
+
+```sh
+uhkone varaa-yksi KURSSITUNNUS --lapsi "Lapsen tarkka nimi" --enintaan 76 --ilman-maksua --ei-jono
+```
+
+Valitsin toimii myös `varaa`-komennossa. Ohjatussa tilassa valitse maksutavan sijaan "pysähdy maksamattomaan ostoskoriin". Työkalu avaa tarkistetun ostoskorin näkyvään selaimeen ja odottaa, että suljet ikkunan; tämän ajon selainverkkoesto estää maksupyynnöt myös ostoskorin näkymässä. Samaa ajoa voi jatkaa samalla selainprofiililla ja tilahakemistolla ostoskorin tilanteen tarkistamiseksi; tämä tila ei muutu myöhemmässä ajossa automaattisesti maksulliseksi.
+Tässä tilassa jonoihin ei liitytä oletuksena; `--jono` sallii sen erikseen.
+
 `varaa-yksi` hyväksyy useita etukäteen valittuja kurssiosoitteita tai tunnuksia. Ohjelma avaa niille erilliset välilehdet samassa selainprofiilissa. Julkisia kurssitietoja luetaan rinnakkain rajatulla määrällä pyyntöjä. Varsinaiset varaus- ja maksutoiminnot käyttävät yhteistä vuoroa.
 
 Jos useampi sopiva paikka on samalla tarkistuksella saatavilla, hallien toivejärjestys ratkaisee. Pelkästään Kallion paikan ollessa valmis sitä voidaan tavoitella heti. Ohjelma ei odota mahdollista myöhempää Mäkelänrinteen paikkaa.
@@ -110,6 +122,7 @@ Kahdella kirjautuneella selaimella tehdyssä havainnossa **ostoskoreilla oli eri
 
 ```sh
 uhkone koeajo
+uhkone koeajo --ilman-maksua
 uhkone koeajo --monta 4 --maksutapa fastpay --keskustele
 uhkone koeajo --monta 4 --maksutapa fastpay --kysy-toiminnot
 uhkone koeajo --monta 4 --skenaario maksu-vastaus-katoaa --maksutapa fastpay

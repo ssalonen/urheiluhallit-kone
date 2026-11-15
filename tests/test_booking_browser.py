@@ -70,6 +70,12 @@ class ScopeGuardTests(unittest.TestCase):
     def test_readiness_never_allows_an_unarmed_cart_write(self):
         self.assertFalse(self.guard.permits_write(self.add_url, "POST", json.dumps(self.add)))
 
+    def test_unpaid_mode_cannot_arm_checkout(self):
+        guard = _BookingGuard(None, replace(spec(), payment_mode="none", without_payment=True))
+        with self.assertRaises(BookingError):
+            guard.arm("checkout")
+        self.assertFalse(guard.permits_write(BASE_URL + "/webshop/call/cart/externalpaymentstart", "POST", ""))
+
     def test_exact_course_child_quantity_and_price_are_required(self):
         self.guard.arm("add")
         self.assertTrue(self.guard.permits_write(self.add_url, "POST", json.dumps(self.add)))

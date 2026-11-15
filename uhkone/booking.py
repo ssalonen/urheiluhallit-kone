@@ -52,6 +52,7 @@ class BookingSpec:
     deadline: datetime
     payment_mode: str
     payment_type_id: int | None = None
+    without_payment: bool = False
 
     def __post_init__(self):
         if type(self.course.id) is not int or self.course.id <= 0:
@@ -65,8 +66,12 @@ class BookingSpec:
                 raise BookingError("Avaus- ja määräajoissa on oltava aikavyöhyke.")
         if self.deadline <= self.opens_at:
             raise BookingError("Määräajan on oltava avaamisajan jälkeen.")
-        if self.payment_mode not in {"saldo", "fastpay", "verkkomaksu"}:
+        if type(self.without_payment) is not bool:
+            raise BookingError("Maksuton pysäytystila on virheellinen.")
+        if self.payment_mode not in ({"none"} if self.without_payment else {"saldo", "fastpay", "verkkomaksu"}):
             raise BookingError("Maksutapa on saldo, fastpay tai verkkomaksu.")
+        if self.without_payment and self.payment_type_id is not None:
+            raise BookingError("Maksutunnusta ei anneta ilman maksua -ajossa.")
         if self.payment_type_id is not None and (type(self.payment_type_id) is not int or self.payment_type_id <= 0):
             raise BookingError("Maksutunnuksen on oltava positiivinen kokonaisluku.")
 
@@ -118,7 +123,7 @@ def _aware(value: datetime) -> datetime:
 
 
 def _binding(spec: BookingSpec) -> dict:
-    return {
+    result = {
         "course_id": spec.course.id,
         "course_name": spec.course.name,
         "location": spec.course.location,
@@ -130,6 +135,9 @@ def _binding(spec: BookingSpec) -> dict:
         "payment_mode": spec.payment_mode,
         "payment_type_id": spec.payment_type_id,
     }
+    if spec.without_payment:
+        result["without_payment"] = True
+    return result
 
 
 def _new_state(identity: str, spec: BookingSpec) -> dict:
@@ -446,6 +454,9 @@ def run_booking(
             state.update(phase="held", expected_price=_money(price), absent_count=0, last_absent=None)
             _save_state(state_path, state)
             emit("held", in_this_cart=True)
+            if spec.without_payment:
+                log("Kurssi on ostoskorissa maksamattomana. Maksua ei aloitettu.")
+                return BookingResult("held_unpaid", observation.reservation_id, None)
         elif observation.reservation_confirmed:
             # A reservation appeared after a possible add. Do not add or pay
             # again while its payment evidence is still catching up.
