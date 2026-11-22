@@ -2,7 +2,7 @@
 import io
 import json
 import unittest
-from contextlib import redirect_stdout
+from contextlib import nullcontext, redirect_stdout
 from copy import deepcopy
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -41,7 +41,7 @@ def course_row():
 
 
 def spec(mode="saldo"):
-    opening = datetime(2027, 1, 1, tzinfo=UTC)
+    opening = datetime.now(UTC)
     return BookingSpec(parse_course(course_row()), "Aino Esimerkki", Decimal(80),
                        opening, opening + timedelta(minutes=30), mode)
 
@@ -119,7 +119,10 @@ class ScopeGuardTests(unittest.TestCase):
         self.assertTrue(self.guard.permits_write(url, "POST", body))
         for change in ({"payment_type_id": 5}, {"balance_amount": 7601},
                        {"service_group_id": 8}, {"create_invoice": True},
-                       {"return_url": "https://example.org/?doPayment=success"}):
+                       {"return_url": "https://example.org/?doPayment=success"},
+                       {"return_url": "//example.org/webshop/reservations2/?doPayment=success"},
+                       {"return_url": BASE_URL + "/webshop/reservations2-neighbor?doPayment=success"},
+                       {"return_url": BASE_URL + "/webshop/reservations2/reservations/9/2/6/-/124?doPayment=success"}):
             payload = options | change
             with self.subTest(change=change):
                 self.assertFalse(self.guard.permits_write(url, "POST", urlencode({"content": json.dumps([payload])})))
@@ -143,8 +146,8 @@ class ScopeGuardTests(unittest.TestCase):
                                    json=lambda: {"result": {"form": '<form id="payment_form" action="https://payment.example/start"></form>'}})
         guard.response(response)
         self.assertFalse(guard._provider_request(bank_post))
-        options = {"return_url": BASE_URL + "/webshop/reservations2/?doPayment=success",
-                   "cancel_url": BASE_URL + "/webshop/reservations2/?doPayment=cancel",
+        options = {"return_url": "/webshop/reservations2/reservations/9/2/6/-/123?doPayment=success",
+                   "cancel_url": "/webshop/reservations2/reservations/9/2/6/-/123?doPayment=cancel",
                    "balance_amount": None, "payment_type_id": 4}
         request = SimpleNamespace(url=response.url, method="POST",
                                   post_data=urlencode({"content": json.dumps([options])}))
@@ -156,7 +159,7 @@ class ScopeGuardTests(unittest.TestCase):
         self.assertFalse(guard._provider_request(bank_post))
         guard.response(response)
         self.assertTrue(guard._provider_request(bank_post))
-        merchant_return = SimpleNamespace(url=options["return_url"] + "&receipt_id=77", method="POST",
+        merchant_return = SimpleNamespace(url=BASE_URL + options["return_url"] + "&receipt_id=77", method="POST",
                                           redirected_from=None, frame=frame, resource_type="document")
         self.assertTrue(guard._provider_request(merchant_return))
         merchant_return.url = BASE_URL + "/webshop/call/cart/resetcart"
@@ -165,6 +168,18 @@ class ScopeGuardTests(unittest.TestCase):
                                 frame=SimpleNamespace(url=BASE_URL, page=SimpleNamespace(main_frame=SimpleNamespace(url=BASE_URL))),
                                 resource_type="xhr")
         self.assertFalse(guard._provider_request(other))
+
+    def test_armed_requests_are_blocked_at_the_deadline(self):
+        past = datetime.now(UTC) - timedelta(seconds=1)
+        guard = _BookingGuard(None, replace(spec(), opens_at=past - timedelta(minutes=1), deadline=past))
+        guard.child_id, guard.product_id, guard.price = 20, 4321, Decimal(76)
+        guard.arm("add")
+        calls = []
+        request = SimpleNamespace(url=self.add_url, method="POST", post_data=json.dumps(self.add))
+        guard.route(SimpleNamespace(request=request, continue_=lambda: calls.append("sent"),
+                                    abort=lambda _reason: calls.append("blocked")))
+        self.assertEqual(calls, ["blocked"])
+        self.assertFalse(guard.actual_sent)
 
     def test_queue_scope_allows_only_the_exact_child_course_and_status_one(self):
         self.guard.arm("queue")
@@ -216,14 +231,43 @@ class ServerEvidenceTests(unittest.TestCase):
         self.assertTrue(value.cart_has_others)
         self.assertFalse(self.observe(reservations=[reservation(4, 1, child=10)]).reservation_confirmed)
 
-    def test_final_group_status_without_optional_paid_field_uses_receipt_evidence(self):
+    def test_final_group_status_without_paid_field_does_not_confirm_payment(self):
         own_reservation = reservation(4, 1)
         del own_reservation["is_paid"]
         receipt = {"receipt_id": 78, "total_amount": 7600, "is_closed": 1, "is_pay_later": 0}
         value = self.observe(reservations=[own_reservation], receipt=receipt)
-        self.assertTrue(value.reservation_confirmed)
+        self.assertFalse(value.reservation_confirmed)
         self.assertTrue(value.receipt_closed)
         self.assertEqual(value.receipt_id, "78")
+
+    def test_reservation_and_session_receipt_identifiers_are_independent(self):
+        own = reservation(4, 1) | {"receipt_event_id": "79"}
+        receipt = {"receipt_id": 78, "total_amount": 7600, "is_closed": 1, "is_pay_later": 0}
+        value = self.observe(reservations=[own], receipt=receipt)
+        self.assertEqual(value.reservation_receipt_id, "79")
+        self.assertEqual(value.receipt_id, "78")
+        for invalid in (None, 0, -1, True, "unknown"):
+            with self.subTest(invalid=invalid):
+                value = self.observe(reservations=[own | {"receipt_event_id": invalid}], receipt=receipt)
+                self.assertIsNone(value.reservation_receipt_id)
+
+    def test_foreign_product_for_same_course_and_child_is_not_a_hold(self):
+        value = self.observe(cart=[cart_row() | {"fare_product_id": 999}], reservations=[reservation()])
+        self.assertFalse(value.held)
+        self.assertTrue(value.cart_has_others)
+
+    def test_held_price_over_cap_stops_reconciliation(self):
+        with self.assertRaises(BookingError):
+            self.observe(cart=[cart_row(price=8100)], reservations=[reservation()])
+
+    def test_changed_weekly_schedule_is_not_the_approved_course(self):
+        row = course_row() | {"weekdays": [{"weekdays": [0], "times": "11:30 - 12:00"},
+                                          {"weekdays": [2], "times": "13:00 - 13:30"}]}
+        approved = replace(spec(), course=parse_course(row))
+        changed = row | {"weekdays": [{"weekdays": [2], "times": "11:30 - 12:00"},
+                                      {"weekdays": [0], "times": "13:00 - 13:30"}]}
+        with self.assertRaises(BookingError):
+            _observation(approved, 20, changed, [], [], None, {"isLocked": False})
 
     def test_second_line_or_quantity_two_blocks_the_purchase(self):
         for cart in ([cart_row(), cart_row()], [dict(cart_row(), quantity=2)]):
@@ -328,6 +372,68 @@ class QueueMutationPreconditionsTests(unittest.TestCase):
 
 
 class ReadOnlyPreflightTests(unittest.TestCase):
+    def test_rpc_no_arguments_follow_public_serializer(self):
+        calls = []
+        def post(url, *, form, **options):
+            calls.append((url.split("/call/")[1], form["content"]))
+            return SimpleNamespace(status=200, headers={}, json=lambda: {"result": None}, dispose=lambda: None)
+        context = SimpleNamespace(request=SimpleNamespace(post=post))
+        backend = BookingBrowser(spec(), context, None, _BookingGuard(context, spec()))
+        backend._read("cart/getreceiptinfo", rpc=True)
+        backend._read("cart/islocked", rpc=True)
+        backend._read("user/getcurrentuser", rpc=True, content=[True, True])
+        self.assertEqual(calls, [("cart/getreceiptinfo", '""'), ("cart/islocked", '""'),
+                                 ("user/getcurrentuser", "[true, true]")])
+
+    def test_transient_add_refresh_remains_retryable_without_a_send(self):
+        backend = BookingBrowser(spec(), None, None, _BookingGuard(None, spec()))
+        backend.snapshot = Mock(side_effect=TransientBookingError("HTTP 503", retry_after=7))
+        with self.assertRaises(ActionNotSent) as error:
+            backend.add_selected_course()
+        self.assertEqual(error.exception.retry_after, 7)
+        self.assertFalse(backend.guard.actual_sent)
+
+    def test_transient_payment_type_refresh_remains_retryable_without_a_send(self):
+        selected = replace(spec("fastpay"), payment_type_id=5)
+        backend = BookingBrowser(selected, None, None, _BookingGuard(None, selected))
+        backend.snapshot = Mock(return_value=Observation(held=True, cart_empty=False, reservation_id="456",
+                                                          current_price=Decimal(76)))
+        backend._payment_types = Mock(side_effect=TransientBookingError("HTTP 503", retry_after=8))
+        with self.assertRaises(ActionNotSent) as error:
+            backend.checkout()
+        self.assertEqual(error.exception.retry_after, 8)
+        self.assertFalse(backend.guard.actual_sent)
+
+    def test_fresh_own_reservation_blocks_add_even_without_cart(self):
+        backend = BookingBrowser(spec(), None, None, _BookingGuard(None, spec()))
+        backend.snapshot = Mock(return_value=Observation(available=True, current_price=Decimal(76),
+                                                          reservation_id="456"))
+        backend._participant_action = Mock(side_effect=AssertionError("must stop before entering the UI action"))
+        with self.assertRaises(ActionNotSent):
+            backend.add_selected_course()
+        backend._participant_action.assert_not_called()
+
+    def test_reservation_appearing_while_preparing_participant_blocks_submit(self):
+        backend = BookingBrowser(spec(), None, None, _BookingGuard(None, spec()))
+        available = Observation(available=True, current_price=Decimal(76))
+        backend.snapshot = Mock(side_effect=[available, replace(available, reservation_id="456")])
+        button = SimpleNamespace(click=Mock())
+        backend._participant_action = Mock(return_value=button)
+        backend.page = SimpleNamespace(expect_response=lambda *args, **kwargs: nullcontext())
+        with self.assertRaises(ActionNotSent):
+            backend.add_selected_course()
+        button.click.assert_not_called()
+
+    def test_a_paid_reservation_with_a_cart_does_not_start_checkout(self):
+        backend = BookingBrowser(spec(), None, None, _BookingGuard(None, spec()))
+        backend.snapshot = Mock(return_value=Observation(held=True, cart_empty=False, reservation_id="456",
+                               reservation_confirmed=True, current_price=Decimal(76)))
+        backend._payment_types = Mock(side_effect=AssertionError("must stop before fetching payment methods"))
+        with self.assertRaises(ActionNotSent):
+            backend.checkout()
+        backend._payment_types.assert_not_called()
+        self.assertFalse(backend.guard.actual_sent)
+
     def test_http_503_is_retried_once_with_retry_after_before_ready(self):
         values = [
             SimpleNamespace(status=503, headers={"retry-after": "3"}, dispose=lambda: None),

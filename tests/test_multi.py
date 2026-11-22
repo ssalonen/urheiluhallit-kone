@@ -11,6 +11,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 
 from uhkone.booking import (
     ActionNotSent,
@@ -19,6 +20,7 @@ from uhkone.booking import (
     BookingSpec,
     Observation,
     TransientBookingError,
+    _save_state,
 )
 from uhkone.models import Course
 from uhkone.multi import RaceBusyError, _account_lock, run_race
@@ -64,7 +66,8 @@ class Backend:
             self.hold()
 
     def hold(self):
-        self.observation = replace(self.observation, held=True, cart_empty=False)
+        self.observation = replace(self.observation, held=True, cart_empty=False,
+                                   reservation_id=f"reservation-{self.course_id}")
 
     def checkout(self):
         self.checkouts.append(self.pool.clock.now())
@@ -78,7 +81,8 @@ class Backend:
         self.observation = replace(self.observation, held=False, cart_empty=True,
                                    reservation_id=f"reservation-{self.course_id}",
                                    reservation_confirmed=True, receipt_id=f"receipt-{self.course_id}",
-                                   receipt_closed=True, receipt_total=Decimal(90))
+                                   receipt_closed=True, receipt_total=Decimal(90),
+                                   reservation_receipt_id=f"receipt-{self.course_id}")
 
     def join_queue(self):
         if self.pool.active != self.course_id:
@@ -181,6 +185,42 @@ class MultiTests(unittest.TestCase):
         self.assertEqual(self.race(specs).course_id, 2)
         self.assertEqual(self.pool.backends[2].adds, [BASE])
 
+    def test_later_opening_preserves_polling_for_a_brief_place_on_an_open_course(self):
+        specs = (replace(self.specs[0], deadline=BASE + timedelta(seconds=12)),
+                 replace(self.specs[1], opens_at=BASE + timedelta(seconds=100),
+                         deadline=BASE + timedelta(seconds=104)))
+        self.pool.backends[2].observation = replace(self.pool.backends[2].observation, available=False)
+        def set_places(pool):
+            first = pool.backends[1]
+            elapsed = (self.clock.now() - BASE).total_seconds()
+            first.observation = replace(first.observation, available=3 <= elapsed < 12)
+        self.pool.on_observations = set_places
+        result = self.race(specs)
+        self.assertEqual((result.status, result.course_id), ("confirmed", 1))
+        self.assertEqual(self.pool.writes, [(1, "add"), (1, "checkout")])
+
+    def test_price_increase_before_first_send_yields_to_affordable_alternative(self):
+        def raise_price(backend):
+            backend.observation = replace(backend.observation, current_price=Decimal(101))
+        self.pool.backends[1].on_snapshot = raise_price
+        result = self.race()
+        self.assertEqual((result.status, result.course_id), ("confirmed", 2))
+        self.assertEqual(self.pool.writes, [(2, "add"), (2, "checkout")])
+
+    def test_both_queue_policies_skip_a_candidate_over_budget(self):
+        self.queue_only()
+        for policy in ("eager", "fallback"):
+            clock = Clock()
+            pool = Pool(clock)
+            for course_id, backend in pool.backends.items():
+                backend.observation = replace(backend.observation, available=False, queue_available=True,
+                                              current_price=Decimal(101 if course_id == 1 else 90))
+            result = run_race(self.specs, pool, self.root / policy, now=clock.now, log=lambda _: None,
+                              allow_queue=True, queue_policy=policy)
+            with self.subTest(policy=policy):
+                self.assertEqual((result.status, result.course_id), ("queued", 2))
+                self.assertEqual(pool.writes, [(2, "queue")])
+
     def test_no_mutation_before_opening(self):
         specs = tuple(replace(spec, opens_at=BASE + timedelta(seconds=8)) for spec in self.specs)
         result = self.race(specs)
@@ -191,6 +231,35 @@ class MultiTests(unittest.TestCase):
         self.pool.backends[2].hold()
         self.assertEqual(self.race().course_id, 2)
         self.assertEqual(self.pool.writes, [(2, "checkout")])
+
+    def test_paid_claim_from_shared_read_survives_an_older_selected_tab_snapshot(self):
+        backend = self.pool.backends[1]
+        backend.confirm()
+        backend.hold()
+        def older_tab(target):
+            target.observation = replace(target.observation, reservation_confirmed=False)
+        backend.on_snapshot = older_tab
+        self.assertEqual(self.race().status, "deadline")
+        self.assertEqual(self.pool.writes, [])
+        backend.on_snapshot = None
+        backend.confirm()
+        later = tuple(replace(spec, deadline=self.clock.now() + timedelta(seconds=10)) for spec in self.specs)
+        self.assertEqual(self.race(later).status, "already_confirmed")
+        self.assertEqual(self.pool.writes, [])
+
+    def test_crash_after_pinning_shared_paid_claim_preserves_its_identity(self):
+        backend = self.pool.backends[1]
+        backend.confirm()
+        backend.hold()
+        def interrupt_after_pin(path, state):
+            _save_state(path, state)
+            if state.get("pinned_id") is not None:
+                raise KeyboardInterrupt()
+        with patch("uhkone.multi._save_state", side_effect=interrupt_after_pin), self.assertRaises(KeyboardInterrupt):
+            self.race()
+        backend.observation = replace(backend.observation, reservation_confirmed=False)
+        self.assertEqual(self.race().status, "deadline")
+        self.assertEqual(self.pool.writes, [])
 
     def test_existing_confirmation_prevents_any_new_booking(self):
         self.pool.backends[2].confirm()

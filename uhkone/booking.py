@@ -35,7 +35,7 @@ class TransientBookingError(BookingError):
         self.retry_after = delay if math.isfinite(delay) and delay > 0 else 0
 
 
-class ActionNotSent(BookingError):
+class ActionNotSent(TransientBookingError):
     """Positive evidence that the mutation request was never sent."""
 
 
@@ -93,6 +93,7 @@ class Observation:
     queued: bool = False
     queue_reservation_id: str | None = None
     queue_position: int | None = None
+    reservation_receipt_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -174,7 +175,7 @@ def _load_state(path: Path, identity: str, spec: BookingSpec) -> dict:
         if (state["identity"] != identity
                 or json.dumps(state["spec"], sort_keys=True) != json.dumps(template["spec"], sort_keys=True)):
             raise BookingError("Tallennettu varaustila kuuluu eri lapselle, kurssille, maksutavalle tai hintarajalle.")
-        if state["phase"] not in {"ready", "adding", "held", "paying", "confirmed"}:
+        if state["phase"] not in {"ready", "adding", "held", "paying", "verifying", "confirmed"}:
             raise ValueError("Tuntematon varausvaihe")
         if not isinstance(state["attempts"], dict) or set(state["attempts"]) != {"add", "checkout"}:
             raise ValueError("Virheelliset yrityslaskurit")
@@ -199,6 +200,8 @@ def _load_state(path: Path, identity: str, spec: BookingSpec) -> dict:
             price = Decimal(state["expected_price"])
             if not price.is_finite() or not 0 <= price <= spec.max_price:
                 raise ValueError("Virheellinen tallennettu hinta")
+        if state["phase"] == "verifying" and not state["reservation_id"]:
+            raise ValueError("Tarkistettavan varauksen tunnus puuttuu")
         if state["phase"] == "adding" and state["add_started"] is None:
             raise ValueError("Lisäyksen ajankohta puuttuu")
         # A preexisting confirmed booking needs no payment-price evidence.
@@ -261,7 +264,8 @@ def _check_observation(observation: Observation) -> None:
                 "queue_available", "queued"):
         if type(getattr(observation, key)) is not bool:
             raise BookingError("Varausrajapinnan totuusarvo ei ole yksiselitteinen.")
-    for value in (observation.reservation_id, observation.receipt_id, observation.queue_reservation_id):
+    for value in (observation.reservation_id, observation.receipt_id, observation.reservation_receipt_id,
+                  observation.queue_reservation_id):
         if value is not None and (not isinstance(value, str) or not value.strip()):
             raise BookingError("Varausrajapinnan kuitti- tai varaustunnus on virheellinen.")
     if observation.queue_position is not None and (type(observation.queue_position) is not int or observation.queue_position < 1):
@@ -333,6 +337,10 @@ def run_booking(
                 or not current.reservation_confirmed
                 or current.reservation_id != state["reservation_id"]):
             raise BookingError("Aiemmin valmistunut varaus ei ole enää vahvistettu samalla tunnuksella. Uutta maksua ei lähetetä.")
+        if state["result_status"] == "confirmed" and (
+            not state["checkout_sends"] or current.reservation_receipt_id != state["receipt_id"]
+        ):
+            raise BookingError("Tallennettua maksua ei voi yhdistää tämän varauksen kuittiin. Uutta maksua ei lähetetä.")
         emit("confirmed", status=state["result_status"])
         return BookingResult(state["result_status"], state["reservation_id"], state["receipt_id"])
     _save_state(state_path, state)
@@ -408,10 +416,32 @@ def run_booking(
         preflight = True
         if observation.reservation_confirmed and not observation.reservation_id:
             raise BookingError("Vahvistetun varauksen tunnus puuttuu.")
-        if observation.reservation_id:
+        if (observation.reservation_id and state["reservation_id"]
+                and observation.reservation_id != state["reservation_id"]):
+            # The original reservation may still settle. A replacement cannot
+            # establish success or authorize another checkout.
+            emit("reservation_pending")
+            wait(2)
+            continue
+        if observation.reservation_id and not state["checkout_sends"]:
             state["reservation_id"] = observation.reservation_id
-        if observation.reservation_confirmed and state["add_sends"] == state["checkout_sends"] == 0:
+        if observation.reservation_confirmed and observation.held:
+            # The cart and own reservations are independent reads. Let a stale
+            # cart clear before reporting a hold, a payment, or a confirmation.
+            if not state["checkout_sends"] and state["phase"] != "verifying":
+                state["phase"] = "verifying"
+                _save_state(state_path, state)
+            emit("reservation_pending")
+            wait(2)
+            continue
+        if observation.reservation_confirmed and state["checkout_sends"] == 0:
             return finish("already_confirmed", observation)
+        if state["phase"] == "verifying":
+            # A later incomplete read cannot authorize paying a reservation
+            # already observed as paid, including after a restart.
+            emit("reservation_pending")
+            wait(2)
+            continue
         _check_cart(observation)
         if (state["phase"] == "ready" and state["add_sends"] == state["checkout_sends"] == 0
                 and state["reservation_id"] is not None
@@ -429,8 +459,10 @@ def run_booking(
             continue
         if state["phase"] == "paying":
             expected = Decimal(state["expected_price"])
-            if (observation.reservation_confirmed and observation.cart_empty
+            if (state["checkout_sends"] == 1 and observation.reservation_confirmed
+                    and observation.reservation_id == state["reservation_id"] and observation.cart_empty
                     and observation.receipt_closed and observation.receipt_id
+                    and observation.reservation_receipt_id == observation.receipt_id
                     and observation.receipt_id != state["baseline_receipt_id"]
                     and observation.receipt_total == expected):
                 return finish("confirmed", observation)
@@ -457,16 +489,6 @@ def run_booking(
             if spec.without_payment:
                 log("Kurssi on ostoskorissa maksamattomana. Maksua ei aloitettu.")
                 return BookingResult("held_unpaid", observation.reservation_id, None)
-        elif observation.reservation_confirmed:
-            # A reservation appeared after a possible add. Do not add or pay
-            # again while its payment evidence is still catching up.
-            if state["expected_price"] is None:
-                raise ActionUncertain("Varaus ilmestyi, mutta maksun hintatieto puuttuu.")
-            state["phase"] = "paying"
-            _save_state(state_path, state)
-            emit("payment_pending")
-            wait(2)
-            continue
         elif state["phase"] in {"adding", "held"} or state["add_sends"] > 0:
             # A missing cart or reservation is not proof that an earlier add
             # failed. This also locks old journals that once allowed retries.
@@ -478,7 +500,11 @@ def run_booking(
             continue
 
         if state["phase"] == "held":
-            _write_price(observation, spec)
+            if observation.reservation_id is None:
+                # Bind the checkout to its own reservation before dispatch.
+                emit("reservation_pending")
+                wait(2)
+                continue
             if before_action is not None and permitted_action != "checkout":
                 before_action("checkout", spec.course.id)
                 granted_action = "checkout"

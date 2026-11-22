@@ -2,6 +2,7 @@
 import json
 import unittest
 from dataclasses import replace
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -228,6 +229,18 @@ class SharedCandidateEvidenceTests(unittest.TestCase):
         values = pool.observations()
         self.assertIsInstance(values[123], TransientBookingError)
         self.assertEqual(values[123].retry_after, 7)
+        self.assertTrue(values[124].available)
+        self.assertTrue(pool.selection_clear)
+
+    def test_higher_price_on_unselected_course_keeps_other_candidate_available(self):
+        pool, _ = self.make_pool()
+        pool._reader().page.values = [
+            {"id": 123, "status": 200, "value": course_row() | {
+                "fare_products": [{"fare_product_id": 4321, "price": 11000}]}},
+            {"id": 124, "status": 200, "value": course_row() | {"reservation_event_group_id": 124}},
+        ]
+        values = pool.observations()
+        self.assertEqual(values[123].current_price, Decimal(110))
         self.assertTrue(values[124].available)
         self.assertTrue(pool.selection_clear)
 

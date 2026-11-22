@@ -22,7 +22,10 @@ class PublicTreeTests(unittest.TestCase):
         for path in ("README.md", "uhkone/console.py", "tests/test_console.py", ".githooks/pre-commit",
                      ".github/dependabot.yml", "docs/esimerkkiajo.html",
                      "docs/superpowers/plans/2026-11-15-reserve-without-payment.md",
-                     "docs/superpowers/specs/2026-11-15-reserve-without-payment-design.md"):
+                     "docs/superpowers/specs/2026-11-15-reserve-without-payment-design.md",
+                     "tests/conftest.py", "docs/laadunvarmistus-2026-11-22.md",
+                     "docs/superpowers/plans/2026-11-22-correctness-audit.md",
+                     "docs/superpowers/specs/2026-11-22-correctness-audit-design.md"):
             self.assertTrue(guard.allowed_path(path), path)
         content = 'child_name = "Testilapsi"\nemail = "person@example.com"\n'
         self.assertEqual(guard.check_blob("tests/test_example.py", content.encode()), [])

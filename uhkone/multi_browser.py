@@ -283,8 +283,8 @@ class BookingPool:
         if not successes:
             raise next(value for value in initial.values() if isinstance(value, TransientBookingError))
         candidate_cart = (len(self._shared_cart) == 1
-                          and any(_cart_match(self._shared_cart[0], course_id, self._reader().child_id)
-                                  for course_id in self.backends))
+                          and any(_cart_match(self._shared_cart[0], backend.spec.course, backend.child_id)
+                                  for backend in self.backends.values()))
         if self._shared_cart and not candidate_cart:
             raise BookingError("Yhteisessä ostoskorissa on muu tuote. Vaihtoehtoja ei osteta automaattisesti.")
         existing = (candidate_cart or self._candidate_activity

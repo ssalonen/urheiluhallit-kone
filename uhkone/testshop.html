@@ -42,7 +42,7 @@ async function api(path, content, rpc=false){
   if(!response.ok||data.errors||data.user_errors)throw Error((data.errors||['Testipalvelu vastasi '+response.status]).join(', '));
   return rpc?data.result:data;
 }
-const rpc=(path,content=null)=>api('/webshop/call/'+path,content,true);
+const rpc=(path,content='')=>api('/webshop/call/'+path,content,true);
 function price(row){
   return row.bundle_price??row.price??row.fare_products[0].price;
 }
@@ -94,14 +94,16 @@ function participants(row,queue=false){
   };
 }
 async function cartModal(){
-  let types;
-  try{types=await rpc('cart/getonlinepaymenttypes',[]);}catch(error){message(error.message);return;}
   modal.hidden=false;
   modal.className='';
-  modal.innerHTML='<div class="modal-header"><h3>Simuloitu testimaksu</h3></div><p>Oikeaa rahaa ei veloiteta.</p>'+
+  const content='<div class="modal-header"><h3>Simuloitu testimaksu</h3></div><p>Oikeaa rahaa ei veloiteta.</p>'+
     '<label><input id="usageTermsCheckbox" type="checkbox"> Hyväksyn simuloidun testivarauksen.</label>'+
     '<label><input id="useBalanceCheckbox" type="checkbox"> Käytä kuvitteellista testisaldoa.</label>'+
     '<div class="payment-methods"></div>';
+  modal.innerHTML=content;
+  let types;
+  try{types=await rpc('cart/getonlinepaymenttypes',[]);}catch(error){message(error.message);return;}
+  modal.innerHTML=content;
   for(const type of types.filter(item=>!item.is_disabled&&!item.is_pay_later)){
     const action=document.createElement('a');action.href='#';action.setAttribute('role','button');
     action.className=type.is_balance?'buyWithBalance':'buyCart';action.setAttribute('payment-type-id',type.payment_type_id);
@@ -113,8 +115,8 @@ async function cartModal(){
       if(!modal.querySelector('#usageTermsCheckbox').checked||useBalance!==type.is_balance){message('Hyväksy testiehdot ja valitse testisaldo vain saldomaksuun.');return;}
       try{
         const total=cartRows.reduce((sum,row)=>sum+Number(row.price),0);
-        await rpc('cart/externalpaymentstart',[{return_url:location.origin+prefix+'?doPayment=success',
-          cancel_url:location.origin+prefix+'?doPayment=cancel',balance_amount:type.is_balance?total:null,
+        await rpc('cart/externalpaymentstart',[{return_url:location.pathname+'?doPayment=success',
+          cancel_url:location.pathname+'?doPayment=cancel',balance_amount:type.is_balance?total:null,
           payment_type_id:String(type.payment_type_id),service_group_id:9}]);
         modal.hidden=true;cartRows=[];message('SIMULOITU MAKSU VALMIS. Tarkista varaus ja kuitti testin tilasta.');
       }catch(error){message(error.message+' — maksun tila tarkistetaan palvelimelta.');}

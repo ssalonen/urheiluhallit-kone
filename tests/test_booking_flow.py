@@ -48,20 +48,39 @@ function participants() {
 function cartModal() {
   modal.hidden = false;
   modal.innerHTML = `<input type="checkbox" id="usageTermsCheckbox">
-    <input type="checkbox" id="useBalanceCheckbox">
-    <a href="#" class="buyWithBalance" payment-type-id="4">Maksa saldolla</a>`;
-  document.querySelector('.buyWithBalance').onclick = async event => {
+    <input type="checkbox" id="useBalanceCheckbox">`;
+  setTimeout(renderPaymentOptions, 300);
+}
+function renderPaymentOptions() {
+  const fastpay = window.useFastPay;
+  modal.innerHTML = `<input type="checkbox" id="usageTermsCheckbox">
+    <input type="checkbox" id="useBalanceCheckbox">` + (fastpay
+    ? `<div class="btn-group-dropdown-top-left"><button class="dropdown-toggle">Maksutavat</button>
+         <a hidden href="#" class="buyCart" payment-type-id="5">FastPay</a></div>`
+    : `<a href="#" class="buyWithBalance" payment-type-id="4">Maksa saldolla</a>`);
+  const action = modal.querySelector(fastpay ? '.buyCart' : '.buyWithBalance');
+  if (fastpay) {
+    modal.querySelector('.dropdown-toggle').onclick = event => {
+      event.stopPropagation();
+      action.hidden = false;
+    };
+  }
+  action.onclick = async event => {
     event.preventDefault();
     if (!document.querySelector('#usageTermsCheckbox').checked ||
-        !document.querySelector('#useBalanceCheckbox').checked) throw Error('Terms or balance missing');
-    const options = {return_url:location.origin+'/webshop/reservations2/?doPayment=success',
-      cancel_url:location.origin+'/webshop/reservations2/?doPayment=cancel',
-      balance_amount:7600, payment_type_id:'4', service_group_id:9};
+        document.querySelector('#useBalanceCheckbox').checked === fastpay) throw Error('Terms or balance missing');
+    const options = {return_url:location.pathname+'?doPayment=success',
+      cancel_url:location.pathname+'?doPayment=cancel',
+      balance_amount:fastpay ? null : 7600, payment_type_id:fastpay ? '5' : '4', service_group_id:9};
     const form = new URLSearchParams({input_format:'json', output_format:'json', content:JSON.stringify([options])});
     await fetch('/webshop/call/cart/externalpaymentstart', {method:'POST', body:form});
     modal.hidden = true;
   };
 }
+document.addEventListener('click', () => {
+  const action = modal.querySelector('.buyCart');
+  if (action) action.hidden = true;
+});
 window.R2 = {
   session:{isAuthenticated:()=>true}, user:{get:key=>key==='account_id'?10:null}, service_group_id:9,
   eventgroups:{length:1, get:id=>Number(id)===123?{set:row=>window.modelRefreshes++}:null},
@@ -99,22 +118,27 @@ class BookingFlowTests(unittest.TestCase):
     def test_without_payment_stops_after_exact_child_cart_write(self):
         self._exercise_flow(without_payment=True)
 
-    def _exercise_flow(self, *, without_payment):
+    def test_delayed_fastpay_dropdown_preserves_terms_before_submit(self):
+        self._exercise_flow(without_payment=False, fastpay=True)
+
+    def _exercise_flow(self, *, without_payment, fastpay=False):
         row = {"reservation_event_group_id": 123, "service_id": 9, "location_id": 2,
                "reservation_group_id": 6, "name": "Leikki-ikäisten jatkouimakoulu",
                "location": "Mäkelänrinne", "start": "2030-01-10 10:00:00",
                "end": "2030-02-10 10:30:00", "free": 3, "is_reservable": 1,
                "fare_products": [{"fare_product_id": 4321, "price": 7600}]}
-        moment = datetime(2030, 1, 1, tzinfo=UTC)
+        moment = datetime.now(UTC)
         opening = moment + timedelta(seconds=6)
+        payment_mode = "none" if without_payment else "fastpay" if fastpay else "saldo"
         spec = BookingSpec(parse_course(row), "Aino Esimerkki", Decimal(80), opening,
-                           opening + timedelta(seconds=40), "none" if without_payment else "saldo", without_payment=without_payment)
+                           opening + timedelta(seconds=40), payment_mode, without_payment=without_payment)
         server: dict[str, Any] = {"cart": [], "own": [], "receipt": {
             "receipt_id": 77, "total_amount": 7600, "is_closed": 1, "is_pay_later": 0}}
         writes = []
         context = self.browser.new_context()
         self.addCleanup(context.close)
         page = context.new_page()
+        page.add_init_script(f"window.useFastPay = {json.dumps(fastpay)};")
         page.set_default_timeout(3000)
         guard = _BookingGuard(context, spec)
         guard.allow_login = False
@@ -130,15 +154,18 @@ class BookingFlowTests(unittest.TestCase):
                     server["cart"] = [{"item_id": 11, "fare_product_id": 4321, "quantity": 1,
                         "price": 7600, "reservation_params": {"reservation_event_group_id": 123,
                                                               "reservation_account_id": 20}}]
+                    server["own"] = [{"reservation_id": 456, "reservation_event_group_id": 123,
+                        "reservation_account_id": 20, "reservation_status_id": 7, "is_paid": 0}]
                     response = server["cart"]
                 else:
                     self.assertEqual(path, "/webshop/call/cart/externalpaymentstart")
                     options = json.loads(parse_qs(request.post_data)["content"][0])[0]
-                    self.assertEqual((int(options["payment_type_id"]), options["balance_amount"]), (4, 7600))
+                    expected_payment = (5, None) if fastpay else (4, 7600)
+                    self.assertEqual((int(options["payment_type_id"]), options["balance_amount"]), expected_payment)
                     self.assertEqual(server["cart"][0]["reservation_params"]["reservation_account_id"], 20)
                     server["cart"] = []
                     server["own"] = [{"reservation_id": 456, "reservation_event_group_id": 123,
-                        "reservation_account_id": 20, "reservation_status_id": 4, "is_paid": 1}]
+                        "reservation_account_id": 20, "reservation_status_id": 4, "is_paid": 1, "receipt_event_id": 78}]
                     server["receipt"] = server["receipt"] | {"receipt_id": 78}
                     response = {"result": {"payment_succeeded": True}}
                 route.fulfill(status=200, content_type="application/json", body=json.dumps(response))
@@ -165,8 +192,10 @@ class BookingFlowTests(unittest.TestCase):
                 "/webshop/reservations2/apiusereventgroups": server["own"],
                 "cart/getreceiptinfo": server["receipt"], "cart/islocked": {"isLocked": False},
                 "cart/checkcurrentuserbalance": {"balance": 10000},
-                "cart/getonlinepaymenttypes": [{"payment_type_id": 4, "is_disabled": 0,
-                                               "is_pay_later": 0, "is_balance": 1}]}
+                "cart/getonlinepaymenttypes": [
+                    {"payment_type_id": 5, "is_disabled": 0, "is_pay_later": 0, "is_balance": 0, "name": "FastPay"}
+                    if fastpay else {"payment_type_id": 4, "is_disabled": 0, "is_pay_later": 0, "is_balance": 1}
+                ]}
             return deepcopy(values[path])
 
         def wait(seconds):

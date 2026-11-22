@@ -82,7 +82,7 @@ def allowed_path(path: str) -> bool:
     if path in {"uhkone/testshop.html", "uhkone/data/courses.json", "docs/esimerkkiajo.html"}:
         return True
     if len(parts) == 2 and parts[0] == "tests":
-        return candidate.suffix == ".py" and (candidate.name.startswith("test_") or candidate.name == "__init__.py")
+        return candidate.suffix == ".py" and (candidate.name.startswith("test_") or candidate.name in {"__init__.py", "conftest.py"})
     if len(parts) == 2 and parts[0] == "scripts" and candidate.suffix == ".py":
         return True
     if len(parts) == 2 and parts[0] == "docs" and candidate.suffix == ".md":
@@ -90,6 +90,8 @@ def allowed_path(path: str) -> bool:
     if path in {
         "docs/superpowers/plans/2026-11-15-reserve-without-payment.md",
         "docs/superpowers/specs/2026-11-15-reserve-without-payment-design.md",
+        "docs/superpowers/plans/2026-11-22-correctness-audit.md",
+        "docs/superpowers/specs/2026-11-22-correctness-audit-design.md",
     }:
         return True
     if path == ".github/dependabot.yml":

@@ -141,6 +141,7 @@ def _lease_template(identity: str, origin: str, specs: Sequence[BookingSpec]) ->
         "candidates": sorted((_binding(spec) for spec in specs), key=lambda item: item["course_id"]),
         "pinned_id": None,
         "existing_claim": False,
+        "confirmed_claim_id": None,
         "queue": None,
         "queues": {},
     }
@@ -156,6 +157,8 @@ def _load_lease(path: Path, identity: str, origin: str, specs: Sequence[BookingS
         value = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_object)
         # Queue support was added to version 1 without changing actual-course
         # bindings or the meaning of a previously pinned purchase.
+        if isinstance(value, dict):
+            value.setdefault("confirmed_claim_id", None)
         if isinstance(value, dict) and "queue" not in value:
             value["queue"] = None
         if isinstance(value, dict) and "queues" not in value:
@@ -166,6 +169,9 @@ def _load_lease(path: Path, identity: str, origin: str, specs: Sequence[BookingS
         pinned = value["pinned_id"]
         if type(value["existing_claim"]) is not bool or (value["existing_claim"] and pinned is None):
             raise ValueError("Virheellinen aiemmin nähdyn varauksen tieto")
+        paid_id = value["confirmed_claim_id"]
+        if paid_id is not None and (not isinstance(paid_id, str) or not paid_id.strip() or not value["existing_claim"]):
+            raise ValueError("Vahvistetun varauksen tunnus ei vastaa tallennettua varausta")
         if pinned is not None and (type(pinned) is not int or pinned not in {spec.course.id for spec in specs}):
             raise ValueError("Tallennettu voittajakurssi ei kuulu tähän ehdokasjoukkoon")
         queues = value["queues"]
@@ -197,7 +203,7 @@ def _load_lease(path: Path, identity: str, origin: str, specs: Sequence[BookingS
             if key in queues and queues[key] != value["queue"]:
                 raise ValueError("Jonovarauksen vanha ja uusi tallenne ovat ristiriidassa")
             queues[key] = value["queue"]
-        comparison = dict(value, pinned_id=None, existing_claim=False, queue=None, queues={})
+        comparison = dict(value, pinned_id=None, existing_claim=False, confirmed_claim_id=None, queue=None, queues={})
         if comparison != expected:
             raise BookingError(
                 "Saman maksajan ja lapsen tallennettu varausajo käyttää eri kurssijoukkoa tai asetuksia. "
@@ -220,12 +226,18 @@ def _can_release(path: Path, backend: BookingBackend, spec: BookingSpec) -> bool
     )
 
 
+def _affordable(spec: BookingSpec, observation: Observation) -> bool:
+    return observation.current_price is not None and observation.current_price <= spec.max_price
+
+
 class _ArbitratedBackend:
-    def __init__(self, backend: BookingBackend, spec: BookingSpec, journal: Path, *, existing_claim: bool):
+    def __init__(self, backend: BookingBackend, spec: BookingSpec, journal: Path, *,
+                 existing_claim: bool, confirmed_claim_id: str | None):
         self.backend = backend
         self.spec = spec
         self.journal = journal
         self.existing_claim = existing_claim
+        self.confirmed_claim_id = confirmed_claim_id
 
     @property
     def identity(self):
@@ -234,12 +246,17 @@ class _ArbitratedBackend:
     def snapshot(self):
         value = self.backend.snapshot()
         _check_observation(value)
+        if self.confirmed_claim_id is not None and (
+            not value.reservation_confirmed or value.reservation_id != self.confirmed_claim_id or value.held
+        ):
+            raise TransientBookingError("Odotetaan aiemmin vahvistetun varauksen yhdenmukaista tilaa.")
         if (self.existing_claim and not value.held and not value.reservation_confirmed
                 and value.reservation_id is None and value.cart_empty and not value.cart_has_others):
             # Shared account reads may expose a claim before the selected
             # course page does. Losing that evidence cannot authorize an add.
             raise TransientBookingError("Aiemmin nähty oma varaus ei vielä näy kurssipolussa.")
-        if (not self.existing_claim and not value.available and not value.held and not value.reservation_confirmed
+        if (not self.existing_claim and (not value.available or not _affordable(self.spec, value))
+                and not value.held and not value.reservation_confirmed
                 and value.reservation_id is None
                 and not value.payment_locked and not value.cart_has_others and value.cart_empty
                 and _can_release(self.journal, self.backend, self.spec)):
@@ -362,7 +379,7 @@ def run_race(
             emit("heartbeat")
             backend.wait(min(1, remaining))
 
-    def selected(lease: dict, course_id: int, *, existing_claim: bool = False,
+    def selected(lease: dict, course_id: int, *, observed_claim: Observation | None = None,
                  grace_deadline: datetime | None = None) -> RaceResult | None:
         spec = by_id[course_id]
         if grace_deadline is not None and grace_deadline > spec.deadline:
@@ -375,14 +392,19 @@ def run_race(
             checkpoint()
         # The intent is durable before activating a writable page.
         lease["pinned_id"] = course_id
-        lease["existing_claim"] = lease["existing_claim"] or existing_claim
+        lease["existing_claim"] = lease["existing_claim"] or observed_claim is not None
+        if observed_claim is not None and observed_claim.reservation_confirmed:
+            if not observed_claim.reservation_id:
+                raise BookingError("Vahvistetun varauksen tunnus puuttuu.")
+            lease["confirmed_claim_id"] = observed_claim.reservation_id
         save_lease(lease)
         ensure_identity()
         # Activation failure preserves the pinned choice until no send is proven.
         backend = pool.activate(course_id)
         if backend is not pool.backends[course_id]:
             raise BookingError("Aktivoitu selain ei vastaa valittua kurssia.")
-        wrapper = _ArbitratedBackend(backend, spec, journal, existing_claim=lease["existing_claim"])
+        wrapper = _ArbitratedBackend(backend, spec, journal, existing_claim=lease["existing_claim"],
+                                     confirmed_claim_id=lease["confirmed_claim_id"])
         try:
             result = run_booking(spec, wrapper, journal, now=now, log=log,
                                  on_add_not_sent=wrapper.on_add_not_sent, progress=progress,
@@ -472,7 +494,7 @@ def run_race(
                     # A real reservation appearing after queue dispatch needs
                     # explicit reconciliation on the next invocation.
                     return RaceResult("deadline", existing[0])
-                result = selected(lease, existing[0], existing_claim=True, grace_deadline=grace_end)
+                result = selected(lease, existing[0], observed_claim=observations[existing[0]], grace_deadline=grace_end)
                 if result is not None:
                     return result
                 continue
@@ -485,8 +507,7 @@ def run_race(
                 actual_visible = [spec for spec in specs if spec.course.id in observations
                           and spec.opens_at <= clock()
                           and observations[spec.course.id].available
-                          and (price := observations[spec.course.id].current_price) is not None
-                          and price <= spec.max_price]
+                          and _affordable(spec, observations[spec.course.id])]
                 actual = [spec for spec in actual_visible
                           if clock() >= cooldowns.get(spec.course.id, spec.opens_at)]
                 if actual:
@@ -512,7 +533,8 @@ def run_race(
                 return finish_queue(lease, queued[0], observations[queued[0]])
             choices = [spec.course.id for spec in specs
                        if clock() >= queue_cooldowns.get(spec.course.id, spec.opens_at) and spec.opens_at <= clock()
-                       and spec.course.id in observations and observations[spec.course.id].queue_available]
+                       and spec.course.id in observations and observations[spec.course.id].queue_available
+                       and _affordable(spec, observations[spec.course.id])]
             if not choices:
                 wait(2, until=grace_end)
                 continue
@@ -604,7 +626,8 @@ def run_race(
                    and current >= eager_cooldowns.get(spec.course.id, spec.opens_at)
                    and str(spec.course.id) not in records
                    and spec.course.id in observations
-                   and observations[spec.course.id].queue_available]
+                   and observations[spec.course.id].queue_available
+                   and _affordable(spec, observations[spec.course.id])]
         if not choices:
             return False, None
         course_id = choices[0]
@@ -706,7 +729,7 @@ def run_race(
             if len(existing) > 1:
                 raise BookingError("Usealla hyväksytyllä kurssilla on jo varaus. Uutta maksua ei tehdä.")
             if existing:
-                result = selected(lease, existing[0], existing_claim=True)
+                result = selected(lease, existing[0], observed_claim=observations[existing[0]])
                 if result is not None:
                     return result
                 continue
@@ -721,8 +744,7 @@ def run_race(
                        and current >= cooldowns.get(spec.course.id, spec.opens_at)
                        and spec.course.id in observations
                        and observations[spec.course.id].available
-                       and (price := observations[spec.course.id].current_price) is not None
-                       and price <= spec.max_price]
+                       and _affordable(spec, observations[spec.course.id])]
             if choices:
                 winner = choices[0].course.id
                 log(f"Kurssi {winner} saa yhteisen varausvuoron; muut polut jäävät seurantaan.")
@@ -736,7 +758,8 @@ def run_race(
                     continue
             future = [(spec.opens_at - current).total_seconds() for spec in specs if spec.opens_at > current]
             # Keep the final minute responsive while limiting pre-opening load.
-            wait(min(30, min(future) - 60) if future and min(future) > 60 else 2)
+            active = any(spec.opens_at <= current < spec.deadline for spec in specs)
+            wait(min(30, min(future) - 60) if not active and future and min(future) > 60 else 2)
         log("Määräaika saavutettu; yhdellekään kurssille ei vahvistettu uutta varausta.")
         emit("deadline")
         if allow_queue and queue_policy == "eager":

@@ -67,7 +67,7 @@ class Backend:
             self.hold()
 
     def hold(self):
-        self.observation = replace(self.observation, held=True, cart_empty=False)
+        self.observation = replace(self.observation, held=True, cart_empty=False, reservation_id="reservation-123")
 
     def checkout(self):
         self.checkouts.append(self.clock.now())
@@ -80,7 +80,7 @@ class Backend:
         self.observation = replace(
             self.observation, held=False, cart_empty=True, reservation_id="reservation-123",
             reservation_confirmed=True, receipt_id="new-receipt", receipt_closed=True,
-            receipt_total=Decimal(90),
+            receipt_total=Decimal(90), reservation_receipt_id="new-receipt",
         )
 
     def wait(self, seconds):
@@ -349,6 +349,92 @@ class BookingTests(unittest.TestCase):
         self.assertEqual((result.status, result.reservation_id, result.receipt_id), ("already_confirmed", "existing", None))
         self.assertEqual((self.backend.adds, self.backend.checkouts), ([], []))
         self.assertEqual(self.run_booking(), result)
+
+    def test_same_price_closed_receipt_without_a_reservation_link_is_pending(self):
+        def unlinked_receipt(target):
+            target.observation = replace(target.observation, held=False, cart_empty=True,
+                                         reservation_confirmed=True, receipt_closed=True,
+                                         receipt_total=Decimal(90), receipt_id="unrelated")
+        self.backend.on_checkout = unlinked_receipt
+        result = self.run_booking()
+        self.assertEqual(result.status, "deadline")
+        self.assertIsNone(result.receipt_id)
+        self.assertEqual(len(self.backend.checkouts), 1)
+
+    def test_confirmation_after_unpaid_add_never_claims_a_new_payment(self):
+        self.backend.on_add = lambda backend: backend.confirm()
+        result = self.run_booking(replace(self.spec, payment_mode="none", without_payment=True))
+        self.assertEqual((result.status, result.reservation_id, result.receipt_id),
+                         ("already_confirmed", "reservation-123", None))
+        self.assertEqual(self.backend.checkouts, [])
+
+    def test_confirmation_and_stale_cart_reconcile_before_any_payment_or_unpaid_result(self):
+        for mode in ("saldo", "none"):
+            clock = Clock()
+            backend = Backend(clock)
+            def snapshot(target):
+                if target.adds:
+                    target.confirm()
+                    still_visible = target.clock.now() < BASE + timedelta(seconds=6)
+                    target.observation = replace(target.observation, held=still_visible, cart_empty=not still_visible)
+            backend.on_snapshot = snapshot
+            result = run_booking(replace(self.spec, payment_mode=mode, without_payment=(mode == "none")),
+                                 backend, self.path.parent / f"stale-cart-{mode}", now=clock.now, log=lambda _: None)
+            with self.subTest(mode=mode):
+                self.assertEqual(backend.checkouts, [])
+                self.assertEqual((result.status, result.receipt_id), ("already_confirmed", None))
+                self.assertGreaterEqual(clock.now(), BASE + timedelta(seconds=6))
+
+    def test_seen_paid_reservation_cannot_be_charged_on_a_later_held_only_read(self):
+        def paid_with_stale_cart(target):
+            target.confirm()
+            target.observation = replace(target.observation, held=True, cart_empty=False)
+        self.backend.on_add = paid_with_stale_cart
+        short = replace(self.spec, deadline=BASE + timedelta(seconds=4))
+        self.assertEqual(self.run_booking(short).status, "deadline")
+        self.backend.observation = replace(self.backend.observation, reservation_confirmed=False)
+        self.assertEqual(self.run_booking().status, "deadline")
+        self.assertEqual(self.backend.checkouts, [])
+
+    def test_proven_unsent_checkout_honors_shop_retry_after(self):
+        def checkout(target):
+            if len(target.checkouts) == 1:
+                raise ActionNotSent("Payment methods are temporarily unavailable", retry_after=10)
+            target.confirm()
+        self.backend.on_checkout = checkout
+        result = self.run_booking()
+        self.assertEqual(result.status, "confirmed")
+        self.assertEqual(self.backend.checkouts, [BASE + timedelta(seconds=2), BASE + timedelta(seconds=12)])
+
+    def test_checkout_waits_for_an_identifiable_held_reservation(self):
+        def cart_only(target):
+            target.observation = replace(target.observation, held=True, cart_empty=False, reservation_id=None)
+        self.backend.on_add = cart_only
+        self.assertEqual(self.run_booking().status, "deadline")
+        self.assertEqual(self.backend.checkouts, [])
+
+    def test_payment_requires_same_reservation_and_attached_receipt_even_after_restart(self):
+        def wrong_evidence(target):
+            target.confirm()
+            target.observation = replace(target.observation, reservation_receipt_id="other-receipt")
+        self.backend.on_checkout = wrong_evidence
+        self.assertEqual(self.run_booking().status, "deadline")
+        self.backend.confirm()
+        self.backend.observation = replace(self.backend.observation, reservation_id="replacement")
+        later = replace(self.spec, deadline=self.clock.now() + timedelta(seconds=10))
+        self.assertEqual(self.run_booking(later).status, "deadline")
+        self.assertEqual(self.state()["reservation_id"], "reservation-123")
+        self.backend.confirm()
+        later = replace(self.spec, deadline=self.clock.now() + timedelta(seconds=10))
+        self.assertEqual(self.run_booking(later).receipt_id, "new-receipt")
+        self.assertEqual(len(self.backend.checkouts), 1)
+
+    def test_legacy_completed_journal_cannot_reassert_a_misattributed_receipt(self):
+        self.assertEqual(self.run_booking().status, "confirmed")
+        self.backend.observation = replace(self.backend.observation, reservation_receipt_id="other-receipt")
+        with self.assertRaises(BookingError):
+            self.run_booking()
+        self.assertEqual(len(self.backend.checkouts), 1)
 
     def test_completed_job_resume_rechecks_reservation_and_does_not_rebook_cancellation(self):
         self.assertEqual(self.run_booking().status, "confirmed")

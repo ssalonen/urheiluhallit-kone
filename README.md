@@ -6,6 +6,8 @@ Versiossa **0.5** on ohjattu käyttötila, jatkuvat tilaviestit sekä komennot a
 
 Ohjelma ei ole Urheiluhallien tai Enkoran virallinen tuote. **Oikealla asiakastilillä tehtävää varausta tai FastPay-maksua ei ole tehty tämän projektin testeissä.** Testikaupassa onnistuva ajo ei vielä osoita oikean kaupan kaikkien vaiheiden toimivan. Palvelun ruuhka tai loppuvat paikat voivat estää varaamisen.
 
+**Laadunvarmistus 22.11.2026:** oikean kaupan julkisen selainkoodin vertailu paljasti maksupyynnön muotoeron, jota simulaattori ei testannut. Lisäksi tarkastuksessa löytyi virheitä maksun vahvistamisessa ja häiriöistä palautumisessa. [Tarkastusraportti](docs/laadunvarmistus-2026-11-22.md) kertoo löydökset, korjaukset, testinäytön ja vielä todentamatta olevat vaiheet. Automaattisen maksun tuotantokelpoisuutta ei ole osoitettu.
+
 Interaktiivinen esimerkkiajo: [avaa HTML](docs/esimerkkiajo.html) (lataa tiedosto ja avaa selaimessa). Esimerkki toimii paikallisesti kuvitteellisilla kursseilla ja osallistujalla.
 Esimerkin ohjauspaneelissa voi valita myös pysähtymisen maksamattomaan ostoskoriin. HTML on itsenäinen havainnollistus eikä käynnistä komentoriviohjelmaa tai tee verkkopyyntöjä.
 
@@ -78,7 +80,7 @@ Jos useampi sopiva paikka on samalla tarkistuksella saatavilla, hallien toivejä
 
 **Kun varsinainen varauspyyntö on voinut lähteä, muut kurssien ostot lukitaan.** Valinta tallennetaan levylle ennen lähettämistä. Työkalu selvittää tämän varauksen ja sen maksun tuloksen ennen muuta etenemistä. Se ei käynnistä toisen kurssin ostoa pelkän aikakatkaisun tai tyhjän tilavastauksen perusteella. Maksua ei lähetetä uudelleen epäselvän vastauksen jälkeen.
 
-Onnistuminen edellyttää oikean osallistujan oikean kurssin vahvistettua varausta ja uuden maksun osalta suljettua kuittia oikealla summalla. Pelkkä ostoskoririvi, onnistumissivu tai ”Ei vahvistettu” -varaus ei riitä. Työkalu ei voi hallita käsin, toisella laitteella tai toisessa paikallisessa tilahakemistossa tehtyjä ostoksia.
+Onnistuminen edellyttää oikean osallistujan oikean kurssin vahvistettua, maksetuksi merkittyä varausta. Uuden maksun osalta suljetun ja oikeansummaiseksi tarkistetun kuitin pitää lisäksi liittyä samaan varaukseen. Pelkkä uusin samanhintainen kuitti, ostoskoririvi, onnistumissivu tai ”Ei vahvistettu” -varaus ei riitä. Jos kaupan vastaus ei todista varauksen ja kuitin yhteyttä, ohjelma jättää maksun vahvistamatta eikä lähetä uutta maksua. Oikean kirjautuneen rajapinnan kuittiyhteys on vielä todennettava; simulaattorin kenttä ei ole siitä todiste. Työkalu ei voi hallita käsin, toisella laitteella tai toisessa paikallisessa tilahakemistossa tehtyjä ostoksia.
 
 Oletusrajat ovat asetustiedostossa `asetukset.toml`. `haku` ja `vahti` eivät tee varauksia tai tarvitse kirjautumista:
 
@@ -139,6 +141,8 @@ Simulaattorin paikkamäärät ja avautumisajat muutetaan tarkoituksella paikalli
 
 **Simulaattori on tämän projektin oma toteutus.** Se ei ole Enkoran lisensoitu palvelinohjelmisto tai itse asennettu Nexus-kauppa. Urheiluhallien käyttämän alustan osoittavat [kaupan Nexus-sivu](https://kauppa.urheiluhallit.fi/nexus/) ja [Enkoran asiakasreferenssi](https://enkora.fi/fi/referenssit/urheiluhallit-oy/). Julkista itse asennettavaa Enkora-jakelua ei löytynyt. Toimittajan mahdollinen testiympäristö olisi selvitettävä erikseen.
 
+Testikaupan ulkoasu ja kirjautuminen ovat yksinkertaistettuja. Se soveltuu esimerkiksi aikakatkaisujen, jonojen ja uudelleenlähetyksen eston testaamiseen. Sen läpäisy ei todista oikean kaupan HTML-rakenteen, asynkronisen päivittymisen, lapsitilin vaatimusten tai maksupalvelun vastaavuutta. Myös `koeajo --monta 1` käyttää usean vaihtoehdon selainpohjaa; erillinen Chromium-smoke tarkistaa lisäksi yhden kurssin selainpohjan ja maksamattoman korin näyttämisen.
+
 ## Paikalliset tiedot ja julkinen repository
 
 Selainprofiili, kirjautumisistunto ja varausajon etenemistila tallennetaan oletuksena **lähdekansion ulkopuolelle**, hakemistoon `~/.local/state/uhkone` tai `$XDG_STATE_HOME/uhkone`. `--tilahakemisto` vaihtaa paikan. Valitse yksityinen hakemisto tämän repon ulkopuolelta. Profiili sisältää kirjautumisen ja etenemistila voi sisältää osallistujaan sekä varaukseen liittyviä tietoja. Älä jaa niitä.
@@ -168,6 +172,7 @@ Tarkista ennen ensimmäistä committia myös `git var GIT_AUTHOR_IDENT` ja `git 
 python -m pip install -e '.[test]'
 python -m playwright install chromium
 python -m pytest -q
+python scripts/smoke_browser.py
 python scripts/check_public_tree.py
 ```
 
@@ -176,5 +181,17 @@ Testit käyttävät kuvitteellisia osallistujia ja paikallisia kauppanäkymiä. 
 `client.py` lukee julkista kurssidataa. `booking.py` ja `multi.py` hallitsevat varaamista ja palautumista, selainliitännät käyttävät kaupan käyttöliittymää ja saman istunnon rajapintoja. `console.py` käsittelee ihmisen ohjauksen. `testshop.py` toteuttaa paikallisen simulaattorin ja `seed.py` rajaa julkaistavan kurssidatan.
 
 Todellinen kirjautuminen, tilikohtaiset osallistujavaatimukset ja maksupalvelun mahdollinen lisätunnistautuminen pitää vielä todentaa omassa työpöytäympäristössä. Tässä kehitysympäristössä ei ole käytetty oikeita asiakastunnuksia, tehty aitoja varauksia tai veloitettu korttia. TLS-varmenteiden tarkistusta ei poisteta käytöstä yhteysongelman korjaamiseksi.
+
+### Tarkista oikean kaupan julkinen sopimus
+
+```sh
+uv run --locked python scripts/check_live_shop.py
+```
+
+Tämä erillinen tarkistus lukee oikean kaupan julkista HTML:ää, JavaScriptiä ja kurssirajapintaa. Se käyttää nykyistä kurssijäsennintä ja tarkistaa automaation tarvitsemia julkisia rakenteita. Se käyttää vain GET-pyyntöjä eikä kirjaudu, tee varausta tai aloita maksua. Tulosteessa ovat tarkistusten yhteenveto ja lähteiden tarkistussummat; raakavastauksia ei tallenneta.
+
+Julkisen sopimuksen tarkistus ja paikallinen testijoukko ovat erillisiä. Sopimustarkistuksen voi ajaa myös GitHub Actionsin **Live public shop contract** -työnkulusta käsin. Ajoa ei ole ajastettu. CI käyttää paikallisille testeille komentoa `pytest -q --fail-on-skip`: ohitettu testi epäonnistuttaa ajon. CI ajaa lisäksi koko paikallisen Chromium-smoken, joka tarkistaa simuloidun varauksen palvelimen todellisista tapahtumista.
+
+**Julkisen tarkistuksen hyväksytty tulos ei ole päästä päähän tehty varaus- tai maksutesti.** Kirjautuneen tilin osallistujavalinta, varauksen ja kuitin yhteys sekä ulkoisen maksupalvelun paluu on varmennettava erikseen.
 
 Kurssin sopiva taso tarkistetaan [Urheiluhallien leikki-ikäisten uimakoulujen kuvauksesta](https://www.urheiluhallit.fi/palvelut/uimakoulut/leikki-ikaiset/). Ilmoittautuminen tapahtuu [Urheiluhallien omassa verkkokaupassa](https://kauppa.urheiluhallit.fi/webshop/).

@@ -4,6 +4,8 @@
 Uses bundled public course facts and fictional participants/money. Two queue
 entries are verified (including a lost response), then the third course opens.
 Exactly one FastPay purchase must complete, and resuming may not repeat it.
+A separate single-course browser must display an unpaid cart and resume it
+without starting payment or adding the course again.
 No catalogue update, external merchant request, or real card operation is used.
 """
 from __future__ import annotations
@@ -22,7 +24,8 @@ from typing import cast
 # Also support running this directly from an uninstalled source checkout.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from uhkone.booking import BookingError, BookingSpec
+from uhkone.booking import BookingError, BookingSpec, run_booking
+from uhkone.booking_browser import open_booking_browser
 from uhkone.cli import ranked
 from uhkone.client import ShopClient, parse_course
 from uhkone.config import Settings
@@ -123,13 +126,50 @@ def run_smoke(executable_path: str | None = None) -> dict:
                 "resume_without_new_writes": True}
 
 
+def run_single_unpaid_smoke(executable_path: str | None = None) -> dict:
+    """Exercise the single-course backend and visible unpaid cart over HTTP."""
+    with TestShop(_course_rows()[:1], opens_in=0) as shop, TemporaryDirectory(prefix="uhkone-unpaid-smoke-") as tmp:
+        if not is_local_test(shop.base_url):
+            raise AssertionError("Smoke-testi saa käyttää vain paikallista testikauppaa.")
+        with ShopClient(base_url=shop.base_url) as client:
+            course = client.get_course(shop.course_id)
+        assert course.price is not None
+        spec = BookingSpec(course, "Testilapsi", course.price, shop.opens_at,
+                           datetime.now(UTC) + timedelta(seconds=60), "none", without_payment=True)
+        state_path = Path(tmp) / "state.json"
+        with open_booking_browser(spec, Path(tmp) / "selain", executable_path=executable_path,
+                                  base_url=shop.base_url, headless=True) as backend:
+            first = run_booking(spec, backend, state_path, log=lambda message: None)
+            if first.status != "held_unpaid" or first.receipt_id is not None:
+                raise AssertionError("Yhden kurssin selainpolku ei pysähtynyt maksamattomaan koriin.")
+            backend.show_unpaid_cart()
+            # The real handoff method must render the cart, not merely return a
+            # state-machine success. No selector or network response is mocked.
+            backend.page.locator("#modal #usageTermsCheckbox").wait_for(state="visible")
+            before = shop.stats()
+            if (before["cart_posts"] != 1 or before["cart_items"] != 1
+                    or before["checkout_posts"] != 0 or before["receipts"] != 0
+                    or before["confirmed"] != 0 or before["fake_card_charges"] != 0):
+                raise AssertionError("Maksamattoman selainpolun palvelintila on virheellinen.")
+            resumed = run_booking(spec, backend, state_path, log=lambda message: None)
+            after = shop.stats()
+            if resumed.status != "held_unpaid" or resumed.receipt_id is not None:
+                raise AssertionError("Maksamaton varaus ei säilynyt jatkettaessa.")
+            if any(after[key] != before[key] for key in ("cart_posts", "checkout_posts", "writes", "receipts")):
+                raise AssertionError("Maksamattoman varauksen jatkaminen lähetti uuden kirjoituspyynnön.")
+        return {"test_only": True, "real_payment": False, "outcome": first.status,
+                "single_course_backend": True, "unpaid_cart_displayed": True,
+                "cart_posts": after["cart_posts"], "checkout_posts": after["checkout_posts"],
+                "receipts": after["receipts"], "resume_without_new_writes": True}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--selain", help="Chromen tai Chromiumin ohjelmapolku")
     args = parser.parse_args(argv)
     executable = args.selain or shutil.which("chromium") or shutil.which("chromium-browser")
     try:
-        result = run_smoke(executable)
+        result = {"multi_course": run_smoke(executable), "single_unpaid": run_single_unpaid_smoke(executable)}
     except (BookingError, OSError, AssertionError) as exc:
         print(f"Paikallinen Chromium-smoke epäonnistui: {exc}", file=sys.stderr)
         return 1

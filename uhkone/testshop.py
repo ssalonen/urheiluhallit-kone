@@ -301,6 +301,8 @@ class TestShop:
                     return self._queue(body)
                 if path.startswith("/webshop/call/"):
                     operation = path.removeprefix("/webshop/call/")
+                    if operation in {"cart/getreceiptinfo", "cart/islocked"} and body != "":
+                        raise _APIError("Testilukupyyntö edellyttää tyhjää sisältöä", 400)
                     reads = {"user/getcurrentuser": {"account_id": 10, "name": "Testihuoltaja", "linked_accounts": [{"account_id": 20, "name": "Testilapsi"}]},
                         "cart/getreceiptinfo": self._receipt(session_id), "cart/islocked": {"isLocked": False},
                         "cart/getonlinepaymenttypes": self._payment_types(),
@@ -410,9 +412,13 @@ class TestShop:
                 raise _APIError("Simuloitu testisaldo ei riitä tai summa ei täsmää")
             if method == 5 and (balance != 0 or self.scenario == "fastpay-kortti-puuttuu"):
                 raise _APIError("FastPay-testikortti puuttuu tai testimaksuun yritettiin yhdistää saldoa")
+            course_id = cart[0]["reservation_params"]["reservation_event_group_id"]
             for key, state in (("return_url", "success"), ("cancel_url", "cancel")):
                 target = urlsplit(options.get(key, ""))
-                if f"{target.scheme}://{target.netloc}" != self.base_url or not target.path.startswith(PREFIX) or parse_qs(target.query).get("doPayment") != [state]:
+                course_path = re.fullmatch(rf"{PREFIX}reservations/9/[0-9-]+/[0-9-]+/-/{course_id}/?", target.path)
+                if (target.scheme or target.netloc
+                        or (target.path not in {PREFIX, PREFIX.rstrip("/")} and not course_path)
+                        or parse_qs(target.query, keep_blank_values=True).get("doPayment") != [state]):
                     raise _APIError("Testimaksun paluuosoite on virheellinen")
             if method == 5 and self.scenario == "fastpay-hylatty":
                 raise _APIError("Simuloitu FastPay-korttiveloitus hylättiin. Maksua ei tallennettu.", 402)

@@ -30,4 +30,6 @@ jobs:
       - name: Install local test browser
         run: uv run python -m playwright install --with-deps chromium
       - name: Test with synthetic participants and local pages
-        run: PYTHONPATH=. uv run pytest -q
+        run: PYTHONPATH=. uv run --locked pytest -q --fail-on-skip
+      - name: Run the loopback browser smoke with synthetic participants
+        run: uv run --locked python scripts/smoke_browser.py

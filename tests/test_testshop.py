@@ -38,7 +38,7 @@ class TestShopHTTPTests(unittest.TestCase):
             headers["Content-Type"] = "application/x-www-form-urlencoded" if rpc else "application/json"
             body = urlencode({"input_format": "json", "output_format": "json", "content": json.dumps(payload)}).encode() if rpc else json.dumps(payload).encode()
         elif rpc:
-            body = urlencode({"content": "null"}).encode()
+            body = urlencode({"content": '""'}).encode()
         if client is None:
             if shop not in self._clients:
                 self._clients[shop] = httpx.Client(trust_env=False, timeout=5)
@@ -51,9 +51,10 @@ class TestShopHTTPTests(unittest.TestCase):
                    "reservation_event_group_id": 123, "quantity": 1, "price": 7600, "title": "Testi", "campaign_code": None}
         return self.request(shop, "/webshop/reservations2/apicart", payload | changes, client=client)
 
-    def checkout(self, shop, *, method=4, balance=7600, client=None):
-        options = {"return_url": shop.base_url + "/webshop/reservations2/?doPayment=success",
-            "cancel_url": shop.base_url + "/webshop/reservations2/?doPayment=cancel",
+    def checkout(self, shop, *, method=4, balance=7600, course_id=123, client=None):
+        path = f"/webshop/reservations2/reservations/9/2/6/-/{course_id}"
+        options = {"return_url": path + "?doPayment=success",
+            "cancel_url": path + "?doPayment=cancel",
             "balance_amount": balance, "payment_type_id": str(method), "service_group_id": 9}
         return self.request(shop, "/webshop/call/cart/externalpaymentstart", [options], rpc=True, client=client)
 
@@ -165,7 +166,7 @@ class TestShopHTTPTests(unittest.TestCase):
             self.assertEqual(self.checkout(shop, client=first)[0], 200)
             receipt = self.request(shop, "/webshop/call/cart/getreceiptinfo", rpc=True, client=first)[2]["result"]
             self.assertEqual(self.add(shop, client=second, reservation_event_group_id=124, fare_product_id=4322, price=8400)[0], 200)
-            self.assertEqual(self.checkout(shop, balance=8400, client=second)[0], 200)
+            self.assertEqual(self.checkout(shop, balance=8400, course_id=124, client=second)[0], 200)
             other_receipt = self.request(shop, "/webshop/call/cart/getreceiptinfo", rpc=True, client=second)[2]["result"]
             self.assertNotEqual(receipt["receipt_id"], other_receipt["receipt_id"])
             self.assertEqual(other_receipt["total_amount"], 8400)
