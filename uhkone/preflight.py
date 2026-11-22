@@ -11,10 +11,9 @@ from pathlib import Path
 from typing import Any
 
 from .browser import BrowserError, _browser, _ensure_login, _PreparationGuard
-from .client import BASE_URL, ClientError, parse_course
+from .client import BASE_URL, HELSINKI, ClientError, parse_course
 from .linked_accounts import _integer, linked_child_names
 from .origin import validate_base_url
-from .timeutils import HELSINKI
 
 
 def validate_preflight_snapshot(*, user: Any, cart: Any, reservations: Any,
