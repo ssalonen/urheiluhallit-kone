@@ -282,3 +282,28 @@ def test_opening_time_with_temporary_429_degrades_without_early_or_duplicate_wri
 
     with ThreadPoolExecutor(max_workers=1) as executor:
         executor.submit(run_scenario).result(timeout=85)
+
+
+def test_start_button_remains_disabled_while_booking_worker_is_running(chromium, tmp_path):
+    started = threading.Event()
+    release = threading.Event()
+
+    def waiting_runner(state, _directory, _executable):
+        try:
+            started.set()
+            assert release.wait(timeout=10)
+        finally:
+            with state.lock:
+                state.running = False
+
+    with PanelServer(tmp_path, runner=waiting_runner) as host, chromium.new_context() as context:
+        page = context.new_page()
+        page.goto(host.url)
+        page.locator("#child").fill("Testilapsi")
+        try:
+            page.locator("#start").click()
+            assert started.wait(timeout=5)
+            expect(page.locator("#start")).to_be_disabled()
+            assert page.request.get(host.url + "api/status").json()["running"]
+        finally:
+            release.set()
