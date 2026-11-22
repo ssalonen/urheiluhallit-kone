@@ -6,7 +6,7 @@ Huoli simuloidun kaupan erilaisuudesta oli perusteltu. Paikallinen testikauppa o
 
 Myös tilakoneessa oli virheitä: uusi samanhintainen kuitti saattoi kelvata maksun todisteeksi ilman yhteyttä oikeaan varaukseen, ja ristiriitaiset peräkkäiset lukuvastaukset saattoivat johtaa tarpeettomaan maksuyritykseen. Korjaushaara tiukentaa näitä ehtoja ja lisää regressiotestit.
 
-**Automaattisen maksun tuotantokelpoisuutta ei ole tällä tarkastuksella osoitettu.** Oikean kirjautuneen tilin varaus–kuitti-yhteys, osallistujan valinta ja maksupalvelun koko ketju ovat edelleen todentamatta. Tarkastuksessa ei tehty oikeita varauksia, jonoon liittymisiä tai maksuja.
+**Automaattisen maksun tuotantokelpoisuutta ei ole tällä tarkastuksella osoitettu.** Repon automaation kirjautunut varausajo, lapsitilin valinta, varaus–kuitti-yhteys ja maksupalvelun koko ketju ovat edelleen todentamatta. Erillisessä oikean kaupan käyttöliittymäkokeessa 22.11.2026 tehtiin yksi aikuisen maksamaton testivaraus ja poistettiin se onnistuneesti. Jonoon ei liitytty eikä maksua aloitettu. Kokeen tarkka rajaus ja havainnot ovat jäljempänä.
 
 ## Mitä lähtötilanteen testit todistivat?
 
@@ -146,12 +146,30 @@ Haaran ajantasaiset portit ovat [luonnos-PR:n tarkistuksissa](https://github.com
 
 ## Jäljellä olevat rajat
 
-- Oikean kirjautuneen tilin osallistujavalinta, ostoskorin vastausrakenteet, jonotus, maksu ja varaus–kuitti-yhteys vaativat erikseen todennettavan integraation. Julkinen GET-tarkistus ei kata niitä.
+- Repon oman automaation kirjautunut varausajo, lapsitilin valinta, ostoskorin vastausrakenteet, jonotus, maksu ja varaus–kuitti-yhteys vaativat erikseen todennettavan integraation. Julkinen GET-tarkistus ja erillinen aikuisen käyttöliittymäkoe eivät kata niitä.
 - Maksun varmistukseen vaadittu kuittiviite voi puuttua oikeasta vastauksesta tai kuulua eri tunnistejoukkoon. Todentamaton numeroyhtäläisyys ei kelpaa tuotannon maksutodisteeksi. Työkalu ei saa päätellä puuttuvasta vahvistuksesta maksun epäonnistuneen ja lähettää maksua uudelleen.
 - Testikauppa on tarkoituksella yksinkertaistettu. Sen ulkoasun yhtenäistäminen ei yksin poistaisi riippumattoman rajapinta- ja selainnäytön tarvetta.
 - `koeajo --monta 1` käyttää edelleen monen kurssin poolia, kun varsinainen yhden kurssin ajo käyttää omaa selainadapteria. Uusi smoke kattaa tämän adapterin ja maksamattoman korin näyttämisen erikseen. Koko ohjatun CLI:n läpikäynti ei kuulu siihen.
 - Vanha yhteinen varaustallenne estää ehdokasjoukon vaihtamisen myös sellaisen päättyneen ajon jälkeen, jossa ei lähetetty yhtään kirjoitusta. Tätä käytettävyyshaittaa ei muutettu tässä maksuturvallisuuden korjauksessa. Epäselviä varaus- tai maksutallenteita ei pidä poistaa uuden yrityksen saamiseksi.
 - Selainympäristön, istunnon tai tuotannon vastauksen poikkeama voi edelleen pysäyttää etenemisen. Korjauksissa epäselvyys painotetaan havaitun varauksen säilyttämiseen ja uuden maksun estämiseen.
+
+## Oikean kaupan maksamaton käyttöliittymäkoe 22.11.2026
+
+Koe tehtiin oikeassa Urheiluhallien kaupassa käyttäjän itse avaamalla kirjautuneella istunnolla. Selainkäyttöliittymää ohjattiin suoraan; repon Python-ohjelmaa, selainadapteria tai maksupyyntöjen verkkovartijaa ei ajettu tässä kokeessa. Kohteena oli avoin maksullinen kurssi palveluryhmässä **Kurssit**, osallistujana tilin oma aikuinen. Alkuperäiset kohdeuimakoulut eivät vielä olleet varattavissa. Repon selainadapteri rajaa kurssiosoitteet Uimakoulut-palveluun, joten toisen palveluryhmän koe ei osoita sen tuotantotoimivuutta.
+
+| Vaihe | Käyttöliittymästä havaittu tulos |
+| --- | --- |
+| Lähtötilanne | Saman kirjautuneen sivun renderöity ostoskoripaneeli näytti 0 tuotetta ja 0 €. Paneeli oli tyhjänä piilotettu. Testikurssilla oli 8 vapaata paikkaa. |
+| Osallistujavalinta | Oikean kurssin valintaikkunassa valittiin oma aikuistili. Kurssin ajankohta, paikka ja 35 euron hinta tarkistettiin ennen lisäystä. |
+| Korilisäys | **Siirrä ostoskoriin** valittiin kerran. Asynkronisen päivityksen jälkeen ostoskorissa näkyi yksi kurssirivi ja 35 euron kokonaishinta. |
+| Syntynyt varaus | Kurssin omassa osallistujataulukossa näkyi valittu osallistuja tilassa **Ei vahvistettu**. Vapaita paikkoja oli 7. Pelkkään koririviin ei tyydytty varauksen todisteena. |
+| Maksuraja | Käyttöehtojen hyväksyntä jäi valitsematta. Verkkomaksua, FastPayta tai muuta maksutoimintoa ei käynnistetty. Maksupyyntöjen lukumäärää ei mitattu verkkotasolla. |
+| Siivous | Vain testirivin **Poista** valittiin. Kauppa ilmoitti, ettei korissa ole tuotteita, ja keskeneräinen varaus poistui kurssin osallistujataulukosta. |
+| Tarkistus uudelleenlatauksen jälkeen | Kirjautuminen säilyi, ostoskorissa oli 0 tuotetta ja 0 €, testivarausta ei näkynyt ja vapaiden paikkojen määrä palautui kahdeksaan. |
+
+**Tulos: oikean kaupan maksamaton kurssivaraus ja sen poistaminen toimivat tässä käyttöliittymäkokeessa.** Testistä ei jäänyt kurssipaikkaa varatuksi. Varaus oli väliaikainen ja vahvistamaton; maksettua tai lopullisesti vahvistettua kurssipaikkaa ei muodostettu tässä kokeessa.
+
+Koe ei osoita, palauttaako kirjautunut kurssirajapinta adapterin vaatiman nimenomaisen `is_paid=false`-kentän tai todennettavan kuittiviitteen. Tilateksti **Ei vahvistettu** on käyttöliittymähavainto. Myös lapsitilin valinta, jonotus, avautumishetken kilpailu ja repon `--ilman-maksua`-ajon `held_unpaid`-tulos jäävät erikseen testattaviksi. Henkilötietoja, tilin tai varauksen tunnisteita, raakavastauksia ja kuvakaappauksia ei sisällytetty repositoryyn.
 
 ## Tarkistuksen toistaminen
 
@@ -166,4 +184,4 @@ uv run --locked python scripts/check_public_tree.py
 uv run --locked python scripts/check_live_shop.py
 ```
 
-Viimeinen komento käyttää julkista tuotantokauppaa. Muut testiajot käyttävät paikallisia sivuja ja kuvitteellisia osallistujia. Julkisen lähdepuun tarkistin lukee Git-indexin, joten julkaistavat muutokset pitää tarkastaa myös staging-vaiheessa.
+Viimeinen komento käyttää julkista tuotantokauppaa. Listan muut testikomennot käyttävät paikallisia sivuja ja kuvitteellisia osallistujia. Yllä kuvattu kirjautunut käyttöliittymäkoe oli erillinen kertakoe, eikä sitä ajeta näillä komennoilla tai CI:ssä. Julkisen lähdepuun tarkistin lukee Git-indexin, joten julkaistavat muutokset pitää tarkastaa myös staging-vaiheessa.

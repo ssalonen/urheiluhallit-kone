@@ -4,7 +4,7 @@ Paikallinen komentoriviohjelma, joka ohjaa **oikeaa näkyvää Chromium-selainta
 
 Versiossa **0.5** on ohjattu käyttötila, jatkuvat tilaviestit sekä komennot ajon pysäyttämiseen ja jatkamiseen. Tavoitteena on yksi vahvistettu kurssipaikka. Haluttaessa ohjelma liittyy myös sopivien kurssien jonoihin varsinaisen paikan etsimisen aikana.
 
-Ohjelma ei ole Urheiluhallien tai Enkoran virallinen tuote. **Oikealla asiakastilillä tehtävää varausta tai FastPay-maksua ei ole tehty tämän projektin testeissä.** Testikaupassa onnistuva ajo ei vielä osoita oikean kaupan kaikkien vaiheiden toimivan. Palvelun ruuhka tai loppuvat paikat voivat estää varaamisen.
+Ohjelma ei ole Urheiluhallien tai Enkoran virallinen tuote. **Repon automaatiolla ei ole vielä todennettu varausta tai FastPay-maksua oikealla asiakastilillä.** Oikean kaupan käyttöliittymässä tehty erillinen maksamaton varauskoe läpäisi 22.11.2026: aikuisen oma osallistujavalinta, yksi kurssi ostoskoriin, keskeneräinen varaus ja testivarauksen poistaminen varmistettiin. Tämä koe ei käyttänyt repon selainadapteria eikä testannut lapsitiliä tai maksamista. Testikaupassa onnistuva ajo ei vielä osoita oikean kaupan kaikkien vaiheiden toimivan. Palvelun ruuhka tai loppuvat paikat voivat estää varaamisen.
 
 **Laadunvarmistus 22.11.2026:** oikean kaupan julkisen selainkoodin vertailu paljasti maksupyynnön muotoeron, jota simulaattori ei testannut. Lisäksi tarkastuksessa löytyi virheitä maksun vahvistamisessa ja häiriöistä palautumisessa. [Tarkastusraportti](docs/laadunvarmistus-2026-11-22.md) kertoo löydökset, korjaukset, testinäytön ja vielä todentamatta olevat vaiheet. Automaattisen maksun tuotantokelpoisuutta ei ole osoitettu.
 
