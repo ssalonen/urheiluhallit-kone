@@ -41,8 +41,9 @@ def chromium():
 
 
 class PanelServer:
-    def __init__(self, directory: Path, runner=None, port=0):
+    def __init__(self, directory: Path, runner=None, port=0, child_loader=None):
         self.directory, self.runner, self.port = directory, runner, port
+        self.child_loader = child_loader
         self.stop = threading.Event()
         self.url: str = ""
         self.thread: threading.Thread | None = None
@@ -54,7 +55,7 @@ class PanelServer:
         def serving():
             try:
                 serve_panel(self.directory, port=self.port, open_browser=False,
-                            runner=self.runner, stop_event=self.stop,
+                            runner=self.runner, child_loader=self.child_loader, stop_event=self.stop,
                             on_listening=addresses.put)
             except BaseException as exc:  # noqa: BLE001 - Propagate worker failures to tests.
                 self.failures.put(exc)
@@ -170,3 +171,43 @@ def test_panel_button_runs_simulated_unpaid_booking_without_checkout(chromium, t
             assert stats["checkout_posts"] == 0
             assert stats["receipts"] == 0
             assert stats["fake_card_charges"] == 0
+
+def test_panel_child_picker_uses_linked_account_names_not_ids(chromium, tmp_path):
+    calls = []
+
+    def listed(directory, executable):
+        calls.append((directory, executable))
+        return ["Testilapsi", "Toinen testilapsi"]
+
+    with PanelServer(tmp_path, child_loader=listed) as host, chromium.new_context() as context:
+        page = context.new_page()
+        page.goto(host.url)
+        page.locator("#children").click()
+        expect(page.locator("#child-select option")).to_have_count(3)
+        page.locator("#child-select").select_option(label="Toinen testilapsi")
+        expect(page.locator("#child")).to_have_value("Toinen testilapsi")
+        page.locator("#save").click()
+        expect(page.locator("#message")).to_contain_text("tallennettu")
+        state = page.request.get(host.url + "api/status").json()
+        assert state["has_child"]
+        assert "Toinen testilapsi" not in json.dumps(state, ensure_ascii=False)
+        assert "account_id" not in page.locator("#child-select").inner_html()
+        assert len(calls) == 1
+        page.reload()
+        expect(page.locator("#child")).to_have_value("Toinen testilapsi")
+
+
+def test_logged_in_simulator_children_are_read_only(chromium, tmp_path):
+    from uhkone.linked_accounts import load_linked_children
+
+    with TestShop([course_row()], opens_in=0) as shop:
+        assert urlsplit(shop.base_url).hostname == "127.0.0.1"
+        before = shop.stats()
+        names = load_linked_children(tmp_path / "test-child-profile", base_url=shop.base_url,
+                                     headless=True)
+        after = shop.stats()
+        assert names == ["Testilapsi"]
+        assert before["writes"] == after["writes"]
+        assert after["cart_posts"] == 0
+        assert after["checkout_posts"] == 0
+        assert after["queue_posts"] == 0
