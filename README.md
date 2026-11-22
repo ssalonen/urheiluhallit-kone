@@ -15,6 +15,20 @@ Ohjelma ei ole Urheiluhallien tai Enkoran virallinen tuote. **Repon automaatioll
 Interaktiivinen esimerkkiajo: [avaa HTML](docs/esimerkkiajo.html) (lataa tiedosto ja avaa selaimessa). Esimerkki toimii paikallisesti kuvitteellisilla kursseilla ja osallistujalla.
 Esimerkin ohjauspaneelissa voi valita myös pysähtymisen maksamattomaan ostoskoriin. HTML on itsenäinen havainnollistus eikä käynnistä komentoriviohjelmaa tai tee verkkopyyntöjä.
 
+## Paikallinen web-varauspaneeli (maksuton)
+
+Käynnistä omalla tietokoneella, jolla Chromium voidaan avata:
+
+```sh
+uhkone paneeli
+```
+
+Komento avaa vain tietokoneella näkyvän osoitteen `http://127.0.0.1:PORTTI/` (satunnainen vapaa portti). Paneelissa näkyvät antamasi kurssit etusijajärjestyksessä, jokaisen tilatiedot, kurssin JSON-vastauksesta luettu ilmoittautumisen avautumisaika sekä Suomen nykyinen kellonaika. Kurssitunnuksia voi järjestellä uudelleen, enimmäishintaa muuttaa ja lapsen nimen antaa ennen käynnistystä. Kurssitietoja tarkistetaan **vain antamillesi tunnuksille**, eikä ohjelma etsi muita ehdokkaita. Lapsen nimi pysyy vain ohjelmaprosessin muistissa, eikä sitä näytetä web-vastauksissa tai tallenneta asetuksiin; tarkista lapsitili silti ennen ajoa oikeasta kaupasta.
+
+Valitse **Käynnistä ennen klo 7.00**; ohjelma avaa oman näkyvän Chromium-profiilinsa ja odottaa kunkin valitun kurssin `public_reservation_start`-arvoa, esimerkiksi 24.11.2026 klo 07.00 Suomen aikaa. Paikallinen paneeli näyttää saatavuustietoja ja sallii tauon, jatkamisen ja pysäytyksen. Ohjelman maksuton varaus pysähtyy maksamattomaan ostoskoriin; **web-paneelissa ei ole maksutoimintoa eikä jonoon liittymistä**. Tarkista ostoskori oikeassa selainikkunassa. Maksamattoman korin paikka voi vanhentua. Paneeli ei voi muuttaa jo lähetettyä varausta tai peruuttaa sitä. Älä sulje ohjelmaa ennen selvitystä, jos varauspyyntö on voinut lähteä.
+
+Paneeli kuuntelee vain `127.0.0.1`-osoitteessa, tarkistaa muokkauspyyntöjen alkuperän ja käyttää kertakäynnistykselle luotua CSRF-tunnusta. Älä välitä paneeliporttia internetiin tai jaa sen osoitetta. Tämä on ensimmäinen tuotantoselainintegraation käyttöliittymä; oikealla lapsitilillä tehtyä varausta ei ole vielä todennettu.
+
 ## Käyttöönotto
 
 Tarvitset Python 3.11:n tai uudemman sekä graafisen työpöytäympäristön.
