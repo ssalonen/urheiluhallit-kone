@@ -8,10 +8,17 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .booking_browser import _integer
-from .browser import BrowserError, _PreparationGuard, _browser, _ensure_login
+from .browser import BrowserError, _browser, _ensure_login, _PreparationGuard
 from .client import BASE_URL
 from .origin import validate_base_url
+
+
+def _integer(value: Any) -> int | None:
+    if type(value) is int:
+        return value
+    if isinstance(value, str) and value.isascii() and value.isdecimal():
+        return int(value)
+    return None
 
 
 def linked_child_names(user: Any) -> list[str]:
