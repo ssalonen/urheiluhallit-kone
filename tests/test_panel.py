@@ -84,6 +84,29 @@ class PanelTests(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaises(BrowserError):
                 linked_child_names(bad)
 
+    def test_health_states_distinguish_rush_and_pending_reservation(self):
+        state = self.panel.public()
+        self.assertEqual(state["health"], "valmis")
+        self.panel.progress("candidate", {"course_id": 110980, "available": False})
+        normal = self.panel.public()
+        self.assertEqual(normal["health"], "seurataan")
+        self.assertIsNotNone(normal["last_checked"])
+        self.panel.progress("retry", {"retry_after": 7, "private_info": "SECRET"})
+        overloaded = self.panel.public()
+        self.assertEqual(overloaded["health"], "ruuhka")
+        self.assertNotIn("SECRET", repr(overloaded))
+        self.panel.progress("reservation_pending", {"course_id": 110980})
+        self.assertEqual(self.panel.public()["health"], "varaus_epavarma")
+        self.panel.progress("held", {"course_id": 110980})
+        self.assertEqual(self.panel.public()["health"], "maksamaton_kori")
+
+    def test_sensitive_exception_is_replaced_with_safe_action(self):
+        from uhkone.booking import BookingError
+        self.panel.record_failure(BookingError("Kirjautuminen ei ole enää voimassa. salainen data"))
+        state = self.panel.public()
+        self.assertEqual(state["health"], "kirjaudu_uudelleen")
+        self.assertNotIn("salainen", repr(state))
+
     def test_stop_checkpoint_refuses_to_restart_actions(self):
         from uhkone.console import StopRequested
         self.panel.stop_requested = True
