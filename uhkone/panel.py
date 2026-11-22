@@ -29,7 +29,7 @@ section,.card{background:#fff;border:1px solid #dae2eb;border-radius:12px;paddin
 .card h3{font-size:19px;margin:8px 0}.muted{color:#5b6c7c}.row{display:flex;gap:8px;flex-wrap:wrap}
 button{padding:11px 16px;border:0;border-radius:8px;background:#1156a9;color:white;cursor:pointer;font:inherit;font-weight:600}
 button:disabled{opacity:.4;cursor:not-allowed}button.alt{background:#eaf0f8;color:#19334f}button.stop{background:#943b3b}
-input{width:100%;padding:11px;margin:6px 0 13px;border:1px solid #b9c6d5;border-radius:8px;font:inherit}
+input,select{width:100%;padding:11px;margin:6px 0 13px;border:1px solid #b9c6d5;border-radius:8px;font:inherit}
 label{font-weight:600}#message{min-height:1.5em}.warning{border-left:3px solid #c88b27;padding-left:10px}
 </style>
 <h1>Uimakoulun varauspaneeli</h1>
@@ -40,7 +40,10 @@ label{font-weight:600}#message{min-height:1.5em}.warning{border-left:3px solid #
 <form id="form"><label for="ids">Kurssi-ID:t etusijajärjestyksessä</label>
 <input id="ids" value="110980 110962 110970" required autocomplete="off">
 <label for="price">Enimmäishinta (€)</label><input id="price" value="76" required autocomplete="off">
-<label for="child">Lapsen tarkka nimi</label><input id="child" autocomplete="off" placeholder="Tallennetaan vain tämän selaimen localStorageen"><small>Nimi, kurssit ja hintaraja säilyvät tässä selaimessa myös uudelleenkäynnistyksen jälkeen.</small>
+<label for="child">Lapsen tarkka nimi</label><input id="child" autocomplete="off" placeholder="Valitse tililtä tai kirjoita nimi">
+<div class="row"><button type="button" class="alt" id="children">Hae alitilit kirjautuneesta kaupasta</button></div>
+<label for="child-select">Valitse lapsitili</label><select id="child-select" aria-label="Lapsitilit"><option value="">Hae alitilit ensin</option></select>
+<small>Nimi, kurssit ja hintaraja säilyvät tässä selaimessa myös uudelleenkäynnistyksen jälkeen.</small>
 <div class="row"><button id="save">Tallenna tämän ajon asetukset</button></div></form></section>
 <section><h2>Ohjaus</h2><div class="row">
 <button id="start">Käynnistä ennen klo 7.00</button>
@@ -64,12 +67,19 @@ $('cards').replaceChildren(...s.ids.map((id,i)=>{let d=s.details[String(id)]||{}
 e.append(el('small','VAIHTOEHTO '+(i+1)),el('h3',d.location?d.location+' · '+d.time:'Kurssi '+id),el('p','ID '+id,'muted'),
 el('p',d.opens_at?'Ilmoittautuminen '+new Date(d.opens_at).toLocaleString('fi-FI'):'Avausaika tarkistetaan käynnistettäessä','muted'),
 el('strong',d.phase|| (d.held?'Ostoskorissa':d.available?'Vapaana':d.confirmed?'Vahvistettu':'Odottaa')));return e}));
-for(let k of ['ids','price','child','save'])$(k).disabled=s.running;
+for(let k of ['ids','price','child','child-select','children','save'])$(k).disabled=s.running;
 $('start').disabled=s.running;$('pause').disabled=!s.running||s.paused;$('resume').disabled=!s.running||!s.paused;$('stop').disabled=!s.running}
 async function refresh(){try{draw(await req('/api/status'))}catch(e){$('message').textContent='Yhteys paneeliin katkesi'}}
 $('form').onsubmit=async e=>{e.preventDefault();try{let ids=$('ids').value.trim().split(/[\s,;]+/).map(Number);
 const values={ids,max_price:$('price').value,child:$('child').value};
 const saved=await req('/api/settings',values);draw(saved);storePrefs({ids:saved.ids,max_price:saved.max_price,child:values.child});$('message').textContent='Asetukset tallennettu tähän selaimeen'}catch(err){$('message').textContent=err.message}};
+$('child-select').onchange=()=>{if($('child-select').value)$('child').value=$('child-select').value};
+$('children').onclick=async()=>{try{$('message').textContent='Avaan kirjautumisikkunan ja luen alitilit...';const result=await req('/api/children',{});const sel=$('child-select');sel.replaceChildren();
+sel.append(new Option('Valitse lapsitili', ''));
+for(const name of result.children)sel.append(new Option(name,name));
+if(result.children.includes($('child').value))sel.value=$('child').value;
+$('message').textContent=result.children.length+' alitiliä löytyi. Valitse lapsi ja tallenna asetukset.';
+}catch(err){$('message').textContent=err.message}};
 for(let action of ['start','pause','resume','stop'])$(action).onclick=async()=>{try{draw(await req('/api/'+action,{}));$('message').textContent=''}catch(err){$('message').textContent=err.message}};
 async function initialize(){try{let s=await req('/api/status');const prefs=savedPrefs();
 if(prefs){$('ids').value=prefs.ids.join(' ');$('price').value=prefs.max_price;$('child').value=prefs.child;
@@ -216,7 +226,8 @@ def _run(state: PanelState, directory: Path, executable: str | None):
 def serve_panel(directory: Path, *, port: int = 8765, executable: str | None = None,
                 open_browser: bool = True, runner: Callable[[PanelState, Path, str | None], None] | None = None,
                 on_listening: Callable[[str], None] | None = None,
-                stop_event: threading.Event | None = None):
+                stop_event: threading.Event | None = None,
+                child_loader: Callable[[Path, str | None], list[str]] | None = None):
     state = PanelState()
     csrf = secrets.token_urlsafe(32)
 
@@ -268,6 +279,16 @@ def serve_panel(directory: Path, *, port: int = 8765, executable: str | None = N
                 payload = json.loads(self.rfile.read(size))
                 if self.path == "/api/settings":
                     state.configure(payload)
+                elif self.path == "/api/children":
+                    if payload != {}:
+                        raise PanelError("Virheellinen pyyntö")
+                    with state.lock:
+                        if state.running:
+                            raise PanelError("Alitilejä ei voi hakea varausajon aikana")
+                    from .linked_accounts import load_linked_children
+                    names = (child_loader or load_linked_children)(directory / "selain", executable)
+                    self.answer({"children": names})
+                    return
                 elif self.path in {"/api/start", "/api/pause", "/api/resume", "/api/stop"}:
                     if payload != {}:
                         raise PanelError("Virheellinen pyyntö")
@@ -297,6 +318,8 @@ def serve_panel(directory: Path, *, port: int = 8765, executable: str | None = N
                 self.answer(state.public())
             except (PanelError, ValueError, UnicodeError):
                 self.answer({"error": "Virheelliset asetukset tai pyyntö"}, 400)
+            except Exception:  # noqa: BLE001 - Never expose browser/identity details to HTTP clients.
+                self.answer({"error": "Alitilien haku ei onnistunut. Tarkista kirjautuminen ja selainikkuna."}, 503)
 
     with ThreadingHTTPServer(("127.0.0.1", port), Handler) as server:
         port_holder['value'] = server.server_port
