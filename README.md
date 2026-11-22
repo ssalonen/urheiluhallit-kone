@@ -80,9 +80,9 @@ uhkone varaa-yksi KURSSITUNNUS --lapsi "Lapsen tarkka nimi" --enintaan 76 --ilma
 Valitsin toimii myös `varaa`-komennossa. Ohjatussa tilassa valitse maksutavan sijaan "pysähdy maksamattomaan ostoskoriin". Työkalu avaa tarkistetun ostoskorin näkyvään selaimeen ja odottaa, että suljet ikkunan; tämän ajon selainverkkoesto estää maksupyynnöt myös ostoskorin näkymässä. Samaa ajoa voi jatkaa samalla selainprofiililla ja tilahakemistolla ostoskorin tilanteen tarkistamiseksi; tämä tila ei muutu myöhemmässä ajossa automaattisesti maksulliseksi.
 Tässä tilassa jonoihin ei liitytä oletuksena; `--jono` sallii sen erikseen.
 
-`varaa-yksi` hyväksyy useita etukäteen valittuja kurssiosoitteita tai tunnuksia. Ohjelma avaa niille erilliset välilehdet samassa selainprofiilissa. Julkisia kurssitietoja luetaan rinnakkain rajatulla määrällä pyyntöjä. Varsinaiset varaus- ja maksutoiminnot käyttävät yhteistä vuoroa.
+`varaa-yksi` hyväksyy useita etukäteen valittuja kurssiosoitteita tai tunnuksia **antamassasi etusijajärjestyksessä**. Mitään muita kursseja ei haeta ehdokkaiksi. Annettujen tunnusten kurssitiedot tarkistetaan palvelusta, ja kurssitason, hallin sekä aloitusajan hakuehdot ovat edelleen turvarajoja. Ohjelma avaa niille erilliset välilehdet samassa selainprofiilissa. Julkisia kurssitietoja luetaan rinnakkain rajatulla määrällä pyyntöjä. Varsinaiset varaus- ja maksutoiminnot käyttävät yhteistä vuoroa.
 
-Jos useampi sopiva paikka on samalla tarkistuksella saatavilla, hallien toivejärjestys ratkaisee. Pelkästään Kallion paikan ollessa valmis sitä voidaan tavoitella heti. Ohjelma ei odota mahdollista myöhempää Mäkelänrinteen paikkaa.
+Jos useampi sopiva paikka on samalla tarkistuksella saatavilla, **syöttämäsi kurssilistan järjestys** ratkaisee. Pelkästään Kallion paikan ollessa valmis sitä voidaan tavoitella heti. Ohjelma ei odota mahdollista myöhempää Mäkelänrinteen paikkaa.
 
 **Kun varsinainen varauspyyntö on voinut lähteä, muut kurssien ostot lukitaan.** Valinta tallennetaan levylle ennen lähettämistä. Työkalu selvittää tämän varauksen ja sen maksun tuloksen ennen muuta etenemistä. Se ei käynnistä toisen kurssin ostoa pelkän aikakatkaisun tai tyhjän tilavastauksen perusteella. Maksua ei lähetetä uudelleen epäselvän vastauksen jälkeen.
 
