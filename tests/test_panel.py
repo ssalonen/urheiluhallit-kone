@@ -53,6 +53,27 @@ class PanelTests(unittest.TestCase):
         self.assertTrue(public["details"]["110980"]["available"])
         self.assertNotIn("DO NOT LEAK", repr(public))
 
+
+    def test_linked_accounts_names_validate_payer_and_unique_child(self):
+        from uhkone.browser import BrowserError
+        from uhkone.linked_accounts import linked_child_names
+        valid = {"account_id": 10, "linked_accounts": [
+            {"account_id": 20, "name": "Testilapsi"},
+            {"account_id": 30, "name": "Toinen testilapsi"},
+        ]}
+        self.assertEqual(linked_child_names(valid), ["Testilapsi", "Toinen testilapsi"])
+        for bad in (
+            {**valid, "account_id": None},
+            {**valid, "linked_accounts": [{"account_id": 10, "name": "Oma tili"}]},
+            {**valid, "linked_accounts": [{"account_id": 20, "name": "Sama"},
+                                          {"account_id": 30, "name": "sama"}]},
+            {**valid, "linked_accounts": [{"account_id": 20, "name": "Yksi"},
+                                          {"account_id": 20, "name": "Kaksi"}]},
+            {**valid, "linked_accounts": [{"account_id": 20, "name": ""}]},
+        ):
+            with self.subTest(bad=bad), self.assertRaises(BrowserError):
+                linked_child_names(bad)
+
     def test_stop_checkpoint_refuses_to_restart_actions(self):
         from uhkone.console import StopRequested
         self.panel.stop_requested = True
