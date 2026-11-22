@@ -17,6 +17,9 @@ Esimerkin ohjauspaneelissa voi valita myös pysähtymisen maksamattomaan ostosko
 
 ## Paikallinen web-varauspaneeli (maksuton)
 
+Paneelin **Hae alitilit kirjautuneesta kaupasta** -painike avaa Urheiluhallien oman kirjautuneen selainprofiilin tarvittaessa kirjautumista varten. Se lukee vain `user/getcurrentuser`-vastauksen `linked_accounts`-tilit ja esittää niiden nimet valintalistassa. Valinta siirtää nimen kenttään; paina **Tallenna asetukset**, jolloin valittu nimi säilyy tämän selaimen `localStorage`-muistissa. Alitilien `account_id`-tunnuksia ei palauteta web-paneeliin. Jos nimet ovat epäselviä tai päällekkäisiä, paneeli ei tee valintaa automaattisesti. Varausadapteri tarkistaa valitun lapsen tilitunnuksen vielä ennen varauspyyntöä. Alitilejä voi hakea vain, kun varausajo ei ole käynnissä. Haku ei lähetä varaus-, jono- eikä maksupyyntöjä.
+
+
 Käynnistä omalla tietokoneella, jolla Chromium voidaan avata:
 
 ```sh
