@@ -8,8 +8,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .browser import BrowserError, _browser, _ensure_login, _PreparationGuard
 from .booking_browser import _integer
+from .browser import BrowserError, _PreparationGuard, _browser, _ensure_login
 from .client import BASE_URL
 from .origin import validate_base_url
 
