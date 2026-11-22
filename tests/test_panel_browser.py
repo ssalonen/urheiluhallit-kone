@@ -245,3 +245,34 @@ def test_child_lookup_blocks_competing_booking_start(chromium, tmp_path):
             release.set()
         expect(page.locator("#child-select option")).to_have_count(2)
         assert not page.request.get(host.url + "api/status").json()["children_loading"]
+
+
+def test_opening_time_with_temporary_429_degrades_without_early_or_duplicate_write(tmp_path):
+    """Real browser against loopback: delayed opening, 429, and one unpaid hold."""
+    from uhkone.panel import PanelState
+
+    with TestShop([course_row()], opens_in=3, scenario="avausruuhka") as shop:
+        assert urlsplit(shop.base_url).hostname == "127.0.0.1"
+        with ShopClient(base_url=shop.base_url) as client:
+            course = client.get_course(shop.course_id)
+        spec = BookingSpec(
+            course=course, child_name="Testilapsi", max_price=Decimal(76),
+            opens_at=shop.opens_at, deadline=shop.opens_at + timedelta(seconds=35),
+            payment_mode="none", without_payment=True,
+        )
+        state = PanelState()
+        with open_booking_pool([spec], tmp_path / "opening-profile",
+                               base_url=shop.base_url, headless=True) as pool:
+            result = run_race([spec], pool, tmp_path / "opening-journal",
+                              allow_queue=False, progress=state.progress,
+                              log=lambda _: None, checkpoint=lambda: state.checkpoint(pool.wait))
+        stats = shop.stats()
+        assert result.status == "held_unpaid"
+        assert stats["opening_429s"] == 2
+        assert stats["cart_posts"] == 1
+        assert stats["queue_posts"] == 0
+        assert stats["checkout_posts"] == 0
+        assert stats["receipts"] == 0
+        first_post = datetime.fromisoformat(stats["first_cart_at"])
+        latency = (first_post - shop.opens_at).total_seconds()
+        assert 0 <= latency < 20, f"Ensimmäinen varauspyyntö viivästyi {latency:.1f} s"
