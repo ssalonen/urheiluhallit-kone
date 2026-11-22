@@ -1,6 +1,6 @@
 # Urheiluhallien ilmoittautumiskone
 
-Paikallinen komentoriviohjelma, joka ohjaa **oikeaa näkyvää Chromium-selainta** ja pitää ihmisen mukana varaamisessa. Ohjelma kertoo etenemisestään, odottaa ilmoittautumisen avautumista ja tavoittelee yhtä maksettua kurssipaikkaa etukäteen valituista vaihtoehdoista. Oletushaku on leikki-ikäisten jatkouimakoulu: ensin Mäkelänrinne, sitten Kallio, arkipäivisin aloitus aikaisintaan 17.30 ja viikonloppuisin aikaisintaan 9.30.
+Paikallinen komentoriviohjelma, joka ohjaa **oikeaa näkyvää Chromium-selainta** ja pitää ihmisen mukana varaamisessa. Ohjelma kertoo etenemisestään, odottaa ilmoittautumisen avautumista ja tavoittelee yhtä maksettua kurssipaikkaa etukäteen valituista vaihtoehdoista. Oletushaku on leikki-ikäisten jatkouimakoulu: ensin Mäkelänrinne, sitten Kallio, arkipäivisin aloitus aikaisintaan 17.20 ja viikonloppuisin aikaisintaan 9.30.
 
 Versiossa **0.5** on ohjattu käyttötila, jatkuvat tilaviestit sekä komennot ajon pysäyttämiseen ja jatkamiseen. Tavoitteena on yksi vahvistettu kurssipaikka. Haluttaessa ohjelma liittyy myös sopivien kurssien jonoihin varsinaisen paikan etsimisen aikana.
 
