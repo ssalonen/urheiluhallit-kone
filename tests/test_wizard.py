@@ -176,6 +176,18 @@ class WizardTests(unittest.TestCase):
         self.assertFalse(parsed.kysy_toiminnot)
         self.assertIn("Valitse 1–12 yllä näkyvää", self.output.getvalue())
 
+    def test_manual_course_ids_preserve_explicit_priority_without_catalogue_search(self):
+        alternatives = [
+            replace(BASE_COURSE, id=43, location="Kallio"),
+            replace(BASE_COURSE, id=44, location="Kallio", start=datetime(2030, 1, 9, 18, tzinfo=UTC)),
+            BASE_COURSE,
+        ]
+        self.client = Client(alternatives)
+        self.assertEqual(self.run_conversation(self.booking_answers(selection="43 44 42")), 7)
+        self.assertEqual(self.client.calls, [43, 44, 42])
+        self.assertEqual(self.runs[0][1].kohteet, [43, 44, 42])
+        self.assertNotIn("courses", self.client.calls)
+
     def test_search_without_matching_courses_never_asks_personal_questions(self):
         self.client = Client([])
         self.assertEqual(self.run_conversation(["1"]), 0)
