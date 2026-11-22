@@ -225,7 +225,7 @@ def serve_panel(directory: Path, *, port: int = 0, executable: str | None = None
             self.wfile.write(body)
 
         def valid_host(self):
-            return self.headers.get("Host") == f"127.0.0.1:{port_holder["value"]}"
+            return self.headers.get("Host") == f"127.0.0.1:{port_holder['value']}"
 
         def do_GET(self):
             if not self.valid_host():
@@ -239,7 +239,7 @@ def serve_panel(directory: Path, *, port: int = 0, executable: str | None = None
                 self.answer({"error": "Ei löytynyt"}, 404)
 
         def do_POST(self):
-            origin = f"http://127.0.0.1:{port_holder["value"]}"
+            origin = f"http://127.0.0.1:{port_holder['value']}"
             if (not self.valid_host() or self.headers.get("Origin") != origin
                     or not secrets.compare_digest(self.headers.get("X-Panel-Token", ""), csrf)):
                 self.answer({"error": "Pyyntö estetty"}, 403)
@@ -285,7 +285,7 @@ def serve_panel(directory: Path, *, port: int = 0, executable: str | None = None
                 self.answer({"error": "Virheelliset asetukset tai pyyntö"}, 400)
 
     with ThreadingHTTPServer(("127.0.0.1", port), Handler) as server:
-        port_holder["value"] = server.server_port
+        port_holder['value'] = server.server_port
         server.daemon_threads = True
         url = f"http://127.0.0.1:{server.server_port}/"
         print("Paikallinen varauspaneeli:", url, "\nEi maksuja. Sulje Ctrl+C.")
