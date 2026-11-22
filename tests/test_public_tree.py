@@ -18,6 +18,34 @@ spec.loader.exec_module(guard)
 
 
 class PublicTreeTests(unittest.TestCase):
+    def test_only_reviewed_local_template_and_assets_are_publishable(self):
+        root = Path(__file__).resolve().parents[1]
+        for path in ("uhkone/testshop_templates.html", "uhkone/testshop.js", "uhkone/testshop.css"):
+            with self.subTest(path=path):
+                self.assertEqual(guard.check_blob(path, (root / path).read_bytes()), [])
+        self.assertFalse(guard.allowed_path("uhkone/captured_shop.html"))
+        self.assertFalse(guard.allowed_path("uhkone/vendor.js"))
+
+    def test_template_guard_rejects_captured_values_and_executable_attributes(self):
+        path = "uhkone/testshop_templates.html"
+        safe = (Path(__file__).resolve().parents[1] / path).read_text()
+        for unsafe in (
+            safe.replace('data-name=""', 'data-name="Fictional captured participant"', 1),
+            safe.replace('value=""', 'value="1234567"', 1),
+            safe.replace('data-slot="title" tabindex="0"></h4>',
+                         'data-slot="title" tabindex="0">Fictional captured participant</h4>', 1),
+            safe.replace('<button class="close"', '<button onclick="alert(1)" class="close"', 1),
+            safe + '<img src="https://foreign.invalid/resource">',
+            safe.replace('"url":', '"url": "Fictional captured participant", "url":', 1),
+            safe.replace('"template__cartitem":',
+                         '"template__cartitem": "Fictional captured participant", "template__cartitem":', 1),
+        ):
+            self.assertNotEqual(unsafe, safe)
+            findings = guard.check_blob(path, unsafe.encode())
+            self.assertTrue(findings)
+            self.assertNotIn("Fictional captured participant", str(findings))
+            self.assertNotIn("1234567", str(findings))
+
     def test_public_sources_and_synthetic_examples_are_allowed(self):
         for path in ("README.md", "uhkone/console.py", "tests/test_console.py", ".githooks/pre-commit",
                      ".github/dependabot.yml", "docs/esimerkkiajo.html",

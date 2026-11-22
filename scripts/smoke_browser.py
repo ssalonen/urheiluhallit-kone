@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import sys
 from dataclasses import replace
@@ -20,6 +21,8 @@ from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import cast
+
+from playwright.sync_api import expect
 
 # Also support running this directly from an uninstalled source checkout.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -143,13 +146,26 @@ def run_single_unpaid_smoke(executable_path: str | None = None) -> dict:
             if first.status != "held_unpaid" or first.receipt_id is not None:
                 raise AssertionError("Yhden kurssin selainpolku ei pysähtynyt maksamattomaan koriin.")
             backend.show_unpaid_cart(first.reservation_id)
-            # The real handoff method must render the cart, not merely return a
-            # state-machine success. No selector or network response is mocked.
-            backend.page.locator("#modal #usageTermsCheckbox").wait_for(state="visible")
+            modal = backend.page.locator("#modal")
+            item = modal.locator("#cartItems tbody tr")
+            expect(item).to_have_count(1)
+            expect(item).to_be_visible()
+            expect(item).to_contain_text(course.name)
+            amount = format(course.price, ".2f").replace(".", ",")
+            expect(item).to_contain_text(re.compile(rf"(?<!\d){re.escape(amount)}\s*€"))
+            terms = modal.locator("#usageTermsCheckbox")
+            expect(terms).to_be_visible()
+            expect(terms).not_to_be_checked()
+            modal.locator(".continueShopping").click()
+            pending = backend.page.locator(".eventgroup tr").filter(has_text=spec.child_name).filter(has_text="Ei vahvistettu")
+            expect(pending).to_be_visible()
+            backend.page.locator("#cart .buy").click()
+            expect(item).to_be_visible()
             before = shop.stats()
             if (before["cart_posts"] != 1 or before["cart_items"] != 1
                     or before["checkout_posts"] != 0 or before["receipts"] != 0
-                    or before["confirmed"] != 0 or before["fake_card_charges"] != 0):
+                    or before["confirmed"] != 0 or before["fake_card_charges"] != 0
+                    or before["reservations"] != 1 or before["participant_ids"] != [backend.child_id]):
                 raise AssertionError("Maksamattoman selainpolun palvelintila on virheellinen.")
             resumed = run_booking(spec, backend, state_path, log=lambda message: None)
             after = shop.stats()

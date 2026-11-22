@@ -26,6 +26,15 @@ SCENARIOS = frozenset({"normaali", "ruuhka", "varaus-vastaus-katoaa", "maksu-vas
                        "jono", "jono-vastaus-katoaa", "jono-taynna"})
 PREFIX = "/webshop/reservations2/"
 SESSION_COOKIE = "uhkone_test_session"
+_ASSETS = {
+    "/webshop/resource/testshop/testshop.js": ("testshop.js", "text/javascript"),
+    "/webshop/resource/testshop/testshop.css": ("testshop.css", "text/css"),
+    "/webshop/resource/testshop/templates.html": ("testshop_templates.html", "text/html"),
+}
+_CONTENT_POLICY = (
+    "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; "
+    "form-action 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'"
+)
 
 
 class _APIError(Exception):
@@ -176,10 +185,12 @@ class TestShop:
             def log_message(self, format: str, *args: object) -> None:
                 pass
 
-            def reply(self, status, value, *, html=False, retry_after=None):
-                body = value.encode("utf-8") if html else json.dumps(value, ensure_ascii=False).encode("utf-8")
+            def reply(self, status, value, *, content_type="application/json; charset=utf-8", retry_after=None):
+                body = value if isinstance(value, bytes) else json.dumps(value, ensure_ascii=False).encode("utf-8")
                 self.send_response(status)
-                self.send_header("Content-Type", "text/html; charset=utf-8" if html else "application/json; charset=utf-8")
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Security-Policy", _CONTENT_POLICY)
+                self.send_header("X-Content-Type-Options", "nosniff")
                 self.send_header("Cache-Control", "no-store")
                 self.send_header("Content-Length", str(len(body)))
                 if retry_after is not None:
@@ -199,10 +210,19 @@ class TestShop:
                     session_id, is_new = shop._session(self.headers.get("Cookie"))
                     self._new_session_id = session_id if is_new else None
                     path = urlsplit(self.path).path
-                    if (self.command == "GET" and path in {"/", "/webshop", "/webshop/", "/webshop/reservations2", "/webshop/reservations2/"}) or (
-                            self.command == "GET" and re.fullmatch(r"/webshop/reservations2/reservations/\d+/[\d-]+/[\d-]+/-/\d+/?", path)):
-                        self.reply(200, Path(__file__).with_name("testshop.html").read_text(encoding="utf-8"), html=True)
-                        return
+                    if self.command == "GET":
+                        resource = _ASSETS.get(path)
+                        if path in {"/", "/webshop", "/webshop/", PREFIX, PREFIX.rstrip("/")} or re.fullmatch(
+                                r"/webshop/reservations2/reservations/\d+/[\d-]+/[\d-]+/-/\d+/?", path):
+                            resource = "testshop.html", "text/html"
+                        if resource is not None:
+                            filename, media_type = resource
+                            try:
+                                content = Path(__file__).with_name(filename).read_bytes()
+                            except FileNotFoundError:
+                                raise _APIError("Testikaupan resurssia ei löytynyt", 404) from None
+                            self.reply(200, content, content_type=f"{media_type}; charset=utf-8")
+                            return
                     body = None
                     if self.command == "POST":
                         length = int(self.headers.get("Content-Length", "0"))
@@ -301,6 +321,8 @@ class TestShop:
                     return self._queue(body)
                 if path.startswith("/webshop/call/"):
                     operation = path.removeprefix("/webshop/call/")
+                    if operation == "cart/deleteCartItem":
+                        return self._delete_cart_item(body, session_id=session_id)
                     if operation in {"cart/getreceiptinfo", "cart/islocked"} and body != "":
                         raise _APIError("Testilukupyyntö edellyttää tyhjää sisältöä", 400)
                     reads = {"user/getcurrentuser": {"account_id": 10, "name": "Testihuoltaja", "linked_accounts": [{"account_id": 20, "name": "Testilapsi"}]},
@@ -355,6 +377,36 @@ class TestShop:
         if lost:
             raise _APIError("Simuloitu vastauskatko: varaus tallennettiin", 503, retry_after=1)
         return self._cart(session_id)
+
+    def _delete_cart_item(self, data, *, session_id):
+        self._db.execute("INSERT INTO requests(kind) VALUES('delete')")
+        if (not isinstance(data, list) or len(data) != 1 or not isinstance(data[0], dict)
+                or set(data[0]) != {"item_id", "fare_product_id"}):
+            raise _APIError("Vain yhden testikoririvin voi poistaa kerrallaan", 400)
+        item_id = _int(data[0]["item_id"])
+        product_id = _int(data[0]["fare_product_id"])
+        if not (0 < item_id <= 2**63 - 1 and 0 < product_id <= 2**63 - 1):
+            raise _APIError("Testikoririvin tai myyntituotteen tunnus on virheellinen", 400)
+
+        self._db.execute("BEGIN IMMEDIATE")
+        try:
+            target = self._db.execute("""
+                SELECT r.id FROM cart c
+                JOIN reservations r ON r.id = c.reservation_id
+                JOIN courses p ON p.id = r.course_id
+                WHERE c.item_id = ? AND c.session_id = ? AND p.product_id = ?
+                    AND r.status = 7 AND r.is_paid = 0 AND r.receipt_id IS NULL
+            """, (item_id, session_id, product_id)).fetchone()
+            if target is None:
+                raise _APIError("Istunnon maksamatonta testikoririviä ei löytynyt")
+            self._db.execute("DELETE FROM cart WHERE item_id = ?", (item_id,))
+            self._db.execute("DELETE FROM reservations WHERE id = ?", (target["id"],))
+            self._db.execute("COMMIT")
+        except Exception:
+            if self._db.in_transaction:
+                self._db.execute("ROLLBACK")
+            raise
+        return {"result": True}
 
     def _queue(self, data):
         self._db.execute("INSERT INTO requests(kind) VALUES('queue')")
@@ -453,6 +505,7 @@ class TestShop:
             return {"testshop": True, "scenario": self.scenario, "course_id": self.course_id,
                 "base_url": self.base_url if self._server else None, "opens_at": self.opens_at.isoformat(),
                 "cart_posts": counts.get("cart", 0), "add_posts": counts.get("cart", 0),
+                "delete_posts": counts.get("delete", 0),
                 "queue_posts": counts.get("queue", 0), "queued": sum(row["reservation_status_id"] in (1, 3) for row in own),
                 "queue_capacity": self._db.execute("SELECT sum(queue_capacity) FROM courses").fetchone()[0],
                 "checkout_posts": counts.get("checkout", 0), "writes": sum(counts.values()),

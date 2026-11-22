@@ -143,7 +143,11 @@ Simulaattorin paikkamäärät ja avautumisajat muutetaan tarkoituksella paikalli
 
 **Simulaattori on tämän projektin oma toteutus.** Se ei ole Enkoran lisensoitu palvelinohjelmisto tai itse asennettu Nexus-kauppa. Urheiluhallien käyttämän alustan osoittavat [kaupan Nexus-sivu](https://kauppa.urheiluhallit.fi/nexus/) ja [Enkoran asiakasreferenssi](https://enkora.fi/fi/referenssit/urheiluhallit-oy/). Julkista itse asennettavaa Enkora-jakelua ei löytynyt. Toimittajan mahdollinen testiympäristö olisi selvitettävä erikseen.
 
-Testikaupan ulkoasu ja kirjautuminen ovat yksinkertaistettuja. Se soveltuu esimerkiksi aikakatkaisujen, jonojen ja uudelleenlähetyksen eston testaamiseen. Sen läpäisy ei todista oikean kaupan HTML-rakenteen, asynkronisen päivittymisen, lapsitilin vaatimusten tai maksupalvelun vastaavuutta. Myös `koeajo --monta 1` käyttää usean vaihtoehdon selainpohjaa; erillinen Chromium-smoke tarkistaa lisäksi yhden kurssin selainpohjan ja maksamattoman korin näyttämisen.
+Testikaupan kurssi-, osallistuja-, varaustila- ja korinäkymät käyttävät oikean kaupan julkisesta HTML:stä poimittuja, puhdistettuja malleja. Kahdeksan lähdemallin tunnisteet ja tarkistussummat ovat tiedostossa `uhkone/testshop_templates.html`. Poimija säilyttää valittujen elementtien hierarkian, poistaa muuttuvat arvot ja korvaa ne paikallisilla tietopaikoilla. Kurssilisäys avaa korin, kurssilla näkyy osallistujan **Ei vahvistettu** -rivi, ja **Poista** vapauttaa testipaikan. Maksutavat ja saldo päivittyvät erillisinä vastauksina kuten kaupan selainkoodissa.
+
+Tyylit ja palvelin ovat omia paikallisia toteutuksia. Kirjautuminen, henkilötiedot ja maksut ovat kuvitteellisia; kaupan JavaScriptiä, kuvia, fontteja tai muita ulkoisia resursseja ei ladata. CSP rajaa myös käsin avatun testikaupan resurssit paikalliseen palvelimeen. Testikaupan läpäisy ei yksin todista oikean kirjautuneen rajapinnan vastausten tai maksupalvelun vastaavuutta. Myös `koeajo --monta 1` käyttää usean vaihtoehdon selainpohjaa; erillinen Chromium-smoke tarkistaa lisäksi yhden kurssin selainpohjan, näkyvän maksamattoman koririvin ja osallistujan varaustilan.
+
+Mallit voi poimia uudelleen anonyymisti tallennetusta julkisesta sivusta komennolla `python scripts/extract_shop_templates.py /tmp/kauppa-julkinen.html --output uhkone/testshop_templates.html`. Pidä raakatallenne lähdekansion ulkopuolella. Muuttunut rakenne pysäyttää poiminnan; tarkista tulos ja suorita julkisen puun tarkistin ennen julkaisemista.
 
 ## Paikalliset tiedot ja julkinen repository
 

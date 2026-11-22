@@ -171,6 +171,50 @@ Koe tehtiin oikeassa Urheiluhallien kaupassa käyttäjän itse avaamalla kirjaut
 
 Koe ei osoita, palauttaako kirjautunut kurssirajapinta adapterin vaatiman nimenomaisen `is_paid=false`-kentän tai todennettavan kuittiviitteen. Tilateksti **Ei vahvistettu** on käyttöliittymähavainto. Myös lapsitilin valinta, jonotus, avautumishetken kilpailu ja repon `--ilman-maksua`-ajon `held_unpaid`-tulos jäävät erikseen testattaviksi. Henkilötietoja, tilin tai varauksen tunnisteita, raakavastauksia ja kuvakaappauksia ei sisällytetty repositoryyn.
 
+## Oikeasta HTML:stä poimittu simulaattori ja uusi erovertailu
+
+Käyttäjän pyynnöstä simulaattorin näkymät muutettiin käyttämään oikean kaupan julkisesta HTML:stä poimittuja rakenteita. Lähde on anonyymi `https://kauppa.urheiluhallit.fi/webshop/reservations2/` -tallenne. Käytetyn sivun SHA-256 on `d135fdb5f6cd46f5a8777074fabbb3eece206af984e13eeeda54b38d8ef51a27`, ja julkisen JavaScriptin `1e15bbdd38036f6145ec39a3fe21957b03fece9c5df57076134271f044dd2320`.
+
+`scripts/extract_shop_templates.py` muuntaa tallenteen kahdeksaksi inertiksi HTML-malliksi. Se säilyttää tarkistettujen elementtien alkuperäiset esi-isät ja turvalliset attribuutit, korvaa dynaamisen sisällön tietopaikoilla sekä poistaa muut ehdolliset haarat. Mallien omat lähdetiivisteet tallennetaan tuotettuun `uhkone/testshop_templates.html`-tiedostoon. Poiminta samasta lähteestä tuottaa tavulleen saman tiedoston. Testi muuttaa synteettisen lähteen otsikon ympärillä olevaa elementtiä ja osoittaa muutoksen säilyvän tuloksessa; puuttuva tai suoritettavaa sisältöä sisältävä malli hylätään. Tarkistin hylkää myös malliin jääneen osallistujan nimen, tunnisteen, tapahtumakäsittelijän tai ulkoisen resurssin.
+
+| Lähdemalli | Simulaattorissa käytettävä rakenne |
+| --- | --- |
+| `template_eventgroup` | Kurssikortti, otsikko, tietojen ja varausten paikat, hinta sekä osto- ja jonopainikkeet. |
+| `template__eventgroup_details` | Halli, ajanjakso ja viikkoaikataulu. |
+| `template__eventgroup_buy` | Osallistujavalinnan ikkuna ja vahvistuslinkki. |
+| `template__participant_select` | Oma tili, lapsilistan avaava valinta ja olemassa olevat lapsitilit. |
+| `template__eventgroup_reservations` | Osallistuja ja kurssivarauksen tila taulukkona. |
+| `template_cart` | Korin taulukko, hintayhteenveto, saldo, ehdot ja maksutapojen alue. |
+| `template__cartitem` | Tuotteen nimi, ALV, hinta ja Poista-painike. |
+| `template_cartwidget` | Piilossa oleva tyhjä kori sekä tuotemäärä ja summa. |
+
+### Todennetut erot ja tehdyt korjaukset
+
+| Ero tai virhe | Vaikutus ja korjaus |
+| --- | --- |
+| Vanha simulaattori näytti korilisäyksen jälkeen vain tekstiviestin. | Kori avautuu onnistuneen lisäyksen palauttamista riveistä, kuten kaupan `addEventGroup`-polussa. Pelkkä käyttöehtojen valintaruutu ei enää kelpaa korinäkymän testiksi. |
+| Kurssin osallistujan varaustila ja todelliset koririvit puuttuivat. | Näkymät täyttyvät paikallisen palvelimen oikeasta tilasta. Testi tarkistaa saman kurssin, osallistujan, hinnan ja **Ei vahvistettu** -tilan. |
+| Lapsilistan avauskenttä kuului simulaattorissa osallistujaradioiden ryhmään. | Poimittu rakenne säilyttää oikean kaupan kentän ilman `name=participant`-attribuuttia. Pelkkä listan avaaminen poistaa aikuisen valinnan eikä lähetä varausta. |
+| Koririvin poistamista ei voinut testata. | Paikallinen `cart/deleteCartItem` hyväksyy vain tarkan istunnon, tuotteen ja maksamattoman koririvin. Poisto vapauttaa varauksen atomisesti. Väärä tuote, toinen istunto, maksettu rivi ja vanhan poiston toisto eivät muuta varausta. |
+| Toisen kurssin sivulta avattu kori muodosti maksupaluun väärän kurssin osoitteeseen. | Testipalvelin hylkäsi maksupyynnön, vaikka korin sisältö oli oikea. Paluuosoite on nyt yhteinen paikallisen kaupan osoite. Kahden kurssin regressio tarkistaa, että maksetaan korin kurssi eikä näkyvää toista kurssia. |
+| Maksutavat ja saldo eivät aiemmin valmistuneet omina korin uudelleenrenderöinteinä. | Molemmat aidot paikalliset HTTP-lukupyynnöt voivat valmistua eri järjestyksissä. Selainregressiot tarkistavat, että adapteri odottaa molemmat ennen simuloitua FastPay- tai saldomaksua. |
+| Korin avaaminen olisi voinut jäädä myöhemmän kurssiluvun onnistumisen varaan. | Onnistuneen POST-vastauksen koririvi avataan heti. Seuraavan GET-pyynnön 503 ei saa piilottaa sitä eikä aiheuttaa uutta korilisäystä. |
+| Aloituksen epäonnistunut koriluku saattoi peittää jo ladatut kurssit eikä korilukua uusittu. | Kurssinäkymä säilytetään, ja alkuperäinen koritila luetaan uudelleen. Regressio palauttaa ensimmäiseen korilukuun 503:n ja edellyttää toipumista ilman sivun uudelleenlatausta. |
+| Vanha osallistujavalinnan callback ja päällekkäiset lukuvastaukset saattoivat korvata uudemman näkymän. | Modal-päivitys tarkistaa edelleen omistavansa näkymän. Kurssi- ja koriluvuilla on järjestysnumerot, joten vanhempi vastaus ei korvaa uudempaa tilaa. |
+| Käsin avattu simulaattori ei asettanut selaimen sisältöturvakäytäntöä. | CSS, JavaScript ja mallit tarjoillaan täsmällisistä paikallisista osoitteista. CSP, `nosniff`, resurssireittien testit ja erillisen selaimen ulkoisten pyyntöjen valvonta täydentävät nykyistä Host/Origin-tarkistusta. |
+
+Lapsilistan epäiltyä asynkronista latausbugia **ei vahvistettu**: julkisessa asiakaskoodissa olemassa olevat lapsiradiot syntyvät samalla renderöinnillä kuin listan avauskenttä. `_select_child`-toimintoa ei muutettu kuvitteellisen viiveen takia. Myöskään vahvistetun varauksen tai kuitin todistusvaatimuksia ei heikennetty.
+
+Paikallinen koko testijoukko läpäisi tämän lisäyksen yhteydessä **408 testiä ja 345 alitestiä**. **15 Chromium-testiä ohitettiin** ympäristön selainkäynnistyseston takia. Ruff, ty, JavaScriptin syntaksitarkistus, resurssien paketointi ja mallien toistettava poiminta tarkistettiin erikseen. Uusi Chromium-kokonaisuus tarkistaa normaalin lisäys–poisto–uudelleenlataus-polun, kurssiluvun 503-virheen lisäyksen jälkeen molemmat maksutietojen valmistumisjärjestykset, toisen kurssin sivulta maksamisen sekä aloituksen epäonnistuneen koriluvun toipumisen. Niiden suoritus on CI:n pakollinen, ohitukset hylkäävä portti; tämän lisäyksen CI-tulos kirjataan tarkistuksen valmistuttua.
+
+Riippumaton katselmointi löysi puuttuvan saatavuuskohdan hyväksymisen poimijassa, toisen kurssin paluuosoitevirheen ja aloituksen koriluvun toipumisvirheen. Kohdennettu uusintakatselmointi hyväksyi korjaukset eikä jättänyt P1/P2-havaintoja avoimeksi. Lisäksi provenance-kommentin päällekkäiset JSON-avaimet estettiin ensin epäonnistuneella regressiolla. Ei-estäväksi käytettävyyshavainnoksi jäi modaali-ikkunan näppäimistökohdistuksen siirtäminen ja palauttaminen.
+
+### Mitä poiminta ei todista
+
+CSS on paikallinen toteutus, eikä koko kaupan teemaa, fontteja, kuvia tai JavaScript-pakettia kopioida. Uusien lapsitilien luonti, lahjakortit, kaikki suodattimet, muiden palveluryhmien näkymät ja ulkoiset maksupalvelut eivät kuulu jäljiteltyyn polkuun. Kori ei näytä osallistujaa tuotteen omana tietona, koska oikeakin kauppa näyttää sen kurssin varausrivillä. ALV-erittely on ilmoitettua testidataa.
+
+Poimittu HTML parantaa rakenteen ja käyttöliittymän vaiheiden vastaavuutta. Se ei osoita kirjautuneen tuotantorajapinnan `is_paid`- tai kuittikenttien saatavuutta. Aiempi oikean kaupan maksamaton käyttöliittymäkoe pysyy erillisenä näyttönä; tässä lisäyksessä ei tehdä uutta oikeaa varausta tai maksua.
+
 ## Tarkistuksen toistaminen
 
 ```sh

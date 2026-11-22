@@ -63,6 +63,10 @@ class TestShopHTTPTests(unittest.TestCase):
                    "reservation_event_group_id": 123, "reservation_status_id": 1}
         return self.request(shop, "/webshop/reservations2/apiusereventgroups", payload | changes, client=client)
 
+    def delete_cart_item(self, shop, item, *, client=None):
+        payload = {key: item[key] for key in ("item_id", "fare_product_id")}
+        return self.request(shop, "/webshop/call/cart/deleteCartItem", [payload], rpc=True, client=client)
+
     def test_waitlist_reservation_is_shared_by_account_without_cart_payment_or_receipt(self):
         with TestShop([course_row()], opens_in=0, scenario="jono") as shop, httpx.Client(trust_env=False) as other:
             row = self.request(shop, "/webshop/reservations2/apieventgroups/123")[2]
@@ -207,6 +211,105 @@ class TestShopHTTPTests(unittest.TestCase):
             self.assertEqual(source, original)
             self.assertIn("TESTIKAUPPA", self.request(shop, "/webshop/reservations2/")[2])
             self.assertIn("SIMULOITU MAKSU", self.request(shop, "/webshop/reservations2/reservations/9/2/6/-/123")[2])
+
+    def test_page_content_policy_only_allows_same_origin_resources(self):
+        with TestShop([course_row()], opens_in=0) as shop:
+            for path in ("/webshop/reservations2/", "/webshop/reservations2/reservations/9/2/6/-/123"):
+                with self.subTest(path=path):
+                    status, headers, _ = self.request(shop, path)
+                    self.assertEqual(status, 200)
+                    self.assertEqual(headers.get("X-Content-Type-Options"), "nosniff")
+                    self.assertEqual(set(headers.get("Content-Security-Policy", "").split("; ")), {
+                        "default-src 'none'", "script-src 'self'", "style-src 'self'", "connect-src 'self'",
+                        "img-src 'self'", "form-action 'none'", "base-uri 'none'", "object-src 'none'",
+                        "frame-ancestors 'none'",
+                    })
+
+    def test_fixed_simulator_assets_are_served_with_their_mime_types(self):
+        resource_path = "/webshop/resource/testshop/"
+        package = Path(__file__).resolve().parents[1] / "uhkone"
+        assets = (
+            ("testshop.js", "testshop.js", "text/javascript"),
+            ("testshop.css", "testshop.css", "text/css"),
+            ("templates.html", "testshop_templates.html", "text/html"),
+        )
+        with TestShop([course_row()], opens_in=0) as shop:
+            for route, source, content_type in assets:
+                with self.subTest(asset=route):
+                    status, headers, body = self.request(shop, resource_path + route)
+                    self.assertEqual(status, 200)
+                    self.assertEqual(headers["Content-Type"], content_type + "; charset=utf-8")
+                    self.assertEqual(headers.get("X-Content-Type-Options"), "nosniff")
+                    self.assertEqual(body, (package / source).read_bytes().decode("utf-8"))
+            for unknown in ("testshop.py", "testshop_templates.html", "testshop.js/", "%2e%2e/testshop.js"):
+                with self.subTest(unknown=unknown):
+                    self.assertEqual(self.request(shop, resource_path + unknown)[0], 404)
+
+    def test_cart_delete_rejects_malformed_payloads_and_wrong_products(self):
+        with TestShop([course_row()], opens_in=0) as shop:
+            status, _, cart = self.add(shop)
+            self.assertEqual(status, 200)
+            item = {key: cart[0][key] for key in ("item_id", "fare_product_id")}
+            own = self.request(shop, "/webshop/reservations2/apiusereventgroups")[2]
+            malformed = (item, [], [item, item], [{"item_id": item["item_id"]}],
+                         [item | {"extra": 1}], [item | {"item_id": True}], [item | {"item_id": 10**20}])
+            for payload in malformed:
+                with self.subTest(payload=payload):
+                    status, _, result = self.request(shop, "/webshop/call/cart/deleteCartItem", payload, rpc=True)
+                    self.assertEqual(status, 400)
+                    self.assertIs(result["result"], False)
+            self.assertEqual(self.delete_cart_item(shop, item | {"fare_product_id": 9999})[0], 409)
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apicart")[2], cart)
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apiusereventgroups")[2], own)
+
+    def test_cart_delete_only_removes_the_exact_item_in_its_session(self):
+        rows = [course_row() | {"reservation_event_group_id": course_id} for course_id in (123, 124, 125)]
+        with TestShop(rows, opens_in=0) as shop, httpx.Client(trust_env=False) as other:
+            self.assertEqual(self.add(shop)[0], 200)
+            status, _, cart = self.add(shop, reservation_event_group_id=124)
+            self.assertEqual(status, 200)
+            target = next(item for item in cart if item["reservation_params"]["reservation_event_group_id"] == 123)
+            status, _, other_cart = self.add(shop, client=other, reservation_event_group_id=125)
+            self.assertEqual(status, 200)
+            self.assertEqual(self.delete_cart_item(shop, target, client=other)[0], 409)
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apicart")[2], cart)
+            status, _, result = self.delete_cart_item(shop, target)
+            self.assertEqual((status, result), (200, {"result": True}))
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apicart")[2], [item for item in cart if item != target])
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apicart", client=other)[2], other_cart)
+            own = self.request(shop, "/webshop/reservations2/apiusereventgroups")[2]
+            self.assertEqual([row["reservation_event_group_id"] for row in own], [124, 125])
+            stats = self.request(shop, "/_test/status")[2]
+            self.assertEqual((stats["delete_posts"], stats["writes"], stats["checkout_posts"], stats["receipts"]), (2, 5, 0, 0))
+
+    def test_cart_delete_releases_last_place_and_repeat_leaves_replacement_untouched(self):
+        with TestShop([course_row()], opens_in=0, scenario="viimeinen-paikka") as shop:
+            status, _, cart = self.add(shop)
+            self.assertEqual(status, 200)
+            course_path = "/webshop/reservations2/apieventgroups/123"
+            self.assertEqual(self.request(shop, course_path)[2]["free"], 0)
+            self.assertEqual(self.delete_cart_item(shop, cart[0])[0], 200)
+            self.assertEqual(self.request(shop, course_path)[2]["free"], 1)
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apiusereventgroups")[2], [])
+            status, _, replacement = self.add(shop)
+            self.assertEqual(status, 200)
+            self.assertNotEqual(replacement[0]["item_id"], cart[0]["item_id"])
+            self.assertEqual(self.delete_cart_item(shop, cart[0])[0], 409)
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apicart")[2], replacement)
+            self.assertEqual(self.request(shop, course_path)[2]["free"], 0)
+
+    def test_cart_delete_preserves_nonpending_rows_even_if_an_old_cart_link_remains(self):
+        for reservation_status, paid in ((4, 1), (1, 0), (7, 1)):
+            with self.subTest(reservation_status=reservation_status, paid=paid), TestShop([course_row()], opens_in=0) as shop:
+                status, _, cart = self.add(shop)
+                self.assertEqual(status, 200)
+                # Model a stale cart link in a persisted simulator database.
+                with shop._lock:
+                    shop._db.execute("UPDATE reservations SET status=?, is_paid=?", (reservation_status, paid))
+                previous = self.request(shop, "/webshop/reservations2/apiusereventgroups")[2]
+                self.assertEqual(self.delete_cart_item(shop, cart[0])[0], 409)
+                self.assertEqual(self.request(shop, "/webshop/reservations2/apicart")[2], cart)
+                self.assertEqual(self.request(shop, "/webshop/reservations2/apiusereventgroups")[2], previous)
 
     def test_real_http_add_and_checkout_are_atomic_and_only_confirm_exact_child(self):
         with TestShop([course_row()], opens_in=0) as shop:
