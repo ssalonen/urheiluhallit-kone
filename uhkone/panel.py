@@ -15,8 +15,8 @@ from decimal import Decimal, InvalidOperation
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from zoneinfo import ZoneInfo
 from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo
 
 from .browser import BrowserError, _validate_course_url
 from .origin import PRODUCTION_URL, is_local_test
