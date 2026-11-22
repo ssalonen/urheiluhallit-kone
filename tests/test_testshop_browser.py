@@ -54,7 +54,7 @@ def test_child_cart_remove_and_reload_stay_on_loopback(chromium):
                 window.reportForeignResource(new URL(event.blockedURI).origin);
             }
         });""")
-        context.expose_function("reportForeignResource", foreign_origins.append)
+        context.expose_function("reportForeignResource", lambda origin: foreign_origins.append(origin))
         page = context.new_page()
         context.on("page", lambda popup: popups.append(popup))
         page.on("pageerror", lambda error: errors.append(str(error)))
