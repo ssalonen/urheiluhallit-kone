@@ -34,8 +34,9 @@ async function api(path, content, rpc = false) {
     options.body = rpc ? new URLSearchParams({input_format:'json', output_format:'json', content:JSON.stringify(content)}) : JSON.stringify(content);
   }
   const response = await fetch(path, options), data = await response.json();
-  if (!response.ok || data.errors || data.user_errors) {
-    throw Error((data.errors || data.user_errors || ['Testipalvelu vastasi ' + response.status]).join(', '));
+  const errors = [data.errors, data.user_errors].flatMap(group => group || []);
+  if (!response.ok || errors.length) {
+    throw Error(errors.join(', ') || 'Testipalvelu vastasi ' + response.status);
   }
   return rpc ? data.result : data;
 }
