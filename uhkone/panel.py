@@ -173,7 +173,9 @@ class PanelState:
                 row.pop("manual_url", None)
                 try:
                     uri = course.url
-                    base = f"{urlsplit(uri).scheme}://{urlsplit(uri).netloc}" if is_local_test(uri) else PRODUCTION_URL
+                    parsed = urlsplit(uri)
+                    origin = f"{parsed.scheme}://{parsed.netloc}"
+                    base = origin if is_local_test(origin) else PRODUCTION_URL
                     row["manual_url"] = _validate_course_url(course, base_url=base)
                 except (AttributeError, BrowserError, TypeError, ValueError):
                     pass
