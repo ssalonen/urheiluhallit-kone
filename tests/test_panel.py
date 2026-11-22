@@ -127,8 +127,12 @@ class PanelTests(unittest.TestCase):
     def test_preflight_rejects_existing_cart_and_duplicate_child_bookings(self):
         from uhkone.preflight import validate_preflight_snapshot
 
-        course = {"reservation_event_group_id": 110980, "public_reservation_start": "2026-11-24 07:00:00",
-                  "price": 7600, "free": 10, "is_reservable": False}
+        course = {"reservation_event_group_id": 110980, "service_id": 9, "location_id": 2,
+                  "reservation_group_id": 6, "name": "Leikki-ikäisten jatkouimakoulu",
+                  "location": "Mäkelänrinne", "start": "2027-01-13 17:50:00",
+                  "public_reservation_start": "2026-11-24 07:00:00",
+                  "fare_products": [{"fare_product_id": 4321, "price": 7600}],
+                  "free": 10, "is_reservable": False}
         user = {"account_id": 10, "linked_accounts": [{"account_id": 20, "name": "Testilapsi"}]}
         result = validate_preflight_snapshot(user=user, cart=[], reservations=[],
                                              courses=[course], ids=[110980], child="Testilapsi",
