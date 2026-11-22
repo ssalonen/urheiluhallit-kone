@@ -81,7 +81,11 @@ for(const name of result.children)sel.append(new Option(name,name));
 if(result.children.includes($('child').value))sel.value=$('child').value;
 $('message').textContent=result.children.length+' alitiliä löytyi. Valitse lapsi ja tallenna asetukset.';
 }catch(err){$('message').textContent=err.message}};
-for(let action of ['start','pause','resume','stop'])$(action).onclick=async()=>{try{draw(await req('/api/'+action,{}));$('message').textContent=''}catch(err){$('message').textContent=err.message}};
+function currentSettings(){return {ids:$('ids').value.trim().split(/[\\s,;]+/).map(Number),max_price:$('price').value,child:$('child').value}}
+$('start').onclick=async()=>{try{$('start').disabled=true;const values=currentSettings();const saved=await req('/api/settings',values);
+storePrefs({ids:saved.ids,max_price:saved.max_price,child:values.child});draw(await req('/api/start',{}));$('message').textContent='Ajo käynnistetty tallennetuilla asetuksilla';
+}catch(err){$('message').textContent=err.message;await refresh()}finally{$('start').disabled=false}};
+for(let action of ['pause','resume','stop'])$(action).onclick=async()=>{try{draw(await req('/api/'+action,{}));$('message').textContent=''}catch(err){$('message').textContent=err.message}};
 async function initialize(){try{let s=await req('/api/status');const prefs=savedPrefs();
 if(prefs){$('ids').value=prefs.ids.join(' ');$('price').value=prefs.max_price;$('child').value=prefs.child;
 if(!s.running){s=await req('/api/settings',prefs)}}
@@ -143,8 +147,7 @@ class PanelState:
             if self.running:
                 raise PanelError("Asetuksia ei voi muuttaa kesken varausajon")
             self.ids, self.max_price = list(ids), str(price)
-            if child.strip():
-                self.child = child.strip()
+            self.child = child.strip()
             self.details = {}
             self.note = "Asetukset hyväksytty. Ei maksuja eikä jonotusta."
 
