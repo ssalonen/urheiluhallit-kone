@@ -154,8 +154,7 @@ def test_panel_button_runs_simulated_unpaid_booking_without_checkout(chromium, t
             page.locator("#ids").fill(str(course.id))
             page.locator("#price").fill("76")
             page.locator("#child").fill("Testilapsi")
-            page.locator("#save").click()
-            expect(page.locator("#message")).to_contain_text("tallennettu")
+            # The start button must save the visible fields even without clicking Save.
             page.locator("#start").click()
             expect(page.locator("#phase")).to_have_text("HELD_UNPAID", timeout=55000)
             assert outcomes.get(timeout=3) == "held_unpaid"
