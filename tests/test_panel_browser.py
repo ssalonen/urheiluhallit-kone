@@ -124,7 +124,7 @@ def test_panel_button_runs_simulated_unpaid_booking_without_checkout(chromium, t
             try:
                 state.course_info([course])
                 spec = BookingSpec(
-                    course=course, child_name="Testilapsi", max_price=Decimal("76"),
+                    course=course, child_name="Testilapsi", max_price=Decimal(76),
                     opens_at=shop.opens_at,
                     deadline=datetime.now(UTC) + timedelta(seconds=55),
                     payment_mode="none", without_payment=True,
@@ -147,27 +147,26 @@ def test_panel_button_runs_simulated_unpaid_booking_without_checkout(chromium, t
                 with state.lock:
                     state.running = False
 
-        with PanelServer(tmp_path, runner=run_simulator) as host:
-            with chromium.new_context() as context:
-                page = context.new_page()
-                page.goto(host.url)
-                page.locator("#ids").fill(str(course.id))
-                page.locator("#price").fill("76")
-                page.locator("#child").fill("Testilapsi")
-                page.locator("#save").click()
-                expect(page.locator("#message")).to_contain_text("tallennettu")
-                page.locator("#start").click()
-                expect(page.locator("#phase")).to_have_text("HELD_UNPAID", timeout=55000)
-                assert outcomes.get(timeout=3) == "held_unpaid"
-                row = page.request.get(host.url + "api/status").json()
-                assert row["ids"] == [course.id]
-                assert row["details"][str(course.id)]["location"] == course.location
-                assert row["details"][str(course.id)]["opens_at"] is not None
-                assert "Testilapsi" not in json.dumps(row, ensure_ascii=False)
-                stats = shop.stats()
-                assert stats["cart_posts"] == 1
-                assert stats["cart_items"] == 1
-                assert stats["reservations"] == 1
-                assert stats["checkout_posts"] == 0
-                assert stats["receipts"] == 0
-                assert stats["fake_card_charges"] == 0
+        with PanelServer(tmp_path, runner=run_simulator) as host, chromium.new_context() as context:
+            page = context.new_page()
+            page.goto(host.url)
+            page.locator("#ids").fill(str(course.id))
+            page.locator("#price").fill("76")
+            page.locator("#child").fill("Testilapsi")
+            page.locator("#save").click()
+            expect(page.locator("#message")).to_contain_text("tallennettu")
+            page.locator("#start").click()
+            expect(page.locator("#phase")).to_have_text("HELD_UNPAID", timeout=55000)
+            assert outcomes.get(timeout=3) == "held_unpaid"
+            row = page.request.get(host.url + "api/status").json()
+            assert row["ids"] == [course.id]
+            assert row["details"][str(course.id)]["location"] == course.location
+            assert row["details"][str(course.id)]["opens_at"] is not None
+            assert "Testilapsi" not in json.dumps(row, ensure_ascii=False)
+            stats = shop.stats()
+            assert stats["cart_posts"] == 1
+            assert stats["cart_items"] == 1
+            assert stats["reservations"] == 1
+            assert stats["checkout_posts"] == 0
+            assert stats["receipts"] == 0
+            assert stats["fake_card_charges"] == 0
