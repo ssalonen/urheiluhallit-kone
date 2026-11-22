@@ -25,6 +25,12 @@ class PanelTests(unittest.TestCase):
         self.assertTrue(state["has_child"])
         self.assertNotIn("Testiosallistuja", repr(state))
 
+    def test_clearing_child_name_never_reuses_previous_selection(self):
+        self.panel.configure({"ids": [110980], "max_price": "76", "child": "Vanha testilapsi"})
+        self.panel.configure({"ids": [110962], "max_price": "76", "child": ""})
+        self.assertFalse(self.panel.public()["has_child"])
+        self.assertEqual(self.panel.child, "")
+
     def test_rejects_bad_or_duplicated_course_ids(self):
         for ids in ([], [1, 1], [0], [-1], ["1"], [True], list(range(13))):
             with self.subTest(ids=ids), self.assertRaises(PanelError):
