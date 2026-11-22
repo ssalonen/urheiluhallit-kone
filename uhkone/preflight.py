@@ -32,7 +32,7 @@ def validate_preflight_snapshot(*, user: Any, cart: Any, reservations: Any,
     if not isinstance(courses, list) or len(courses) != len(ids):
         raise ValueError("Valittujen kurssien tiedot ovat puutteelliset.")
     if not isinstance(user, dict):
-        raise ValueError("Kirjautunut huoltajatili ei ole vahvistettavissa.")
+        raise ValueError("Kirjautunut huoltajatili ei ole vahvistettavissa.")  # noqa: TRY004
     names = linked_child_names(user)
     wanted = " ".join(child.casefold().split())
     if sum(" ".join(name.casefold().split()) == wanted for name in names) != 1:
