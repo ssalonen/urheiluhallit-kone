@@ -16,6 +16,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
+from urllib.parse import urlsplit
+
+from .browser import BrowserError, _validate_course_url
+from .origin import PRODUCTION_URL, is_local_test
 
 HELSINKI = ZoneInfo("Europe/Helsinki")
 DEFAULT_IDS = [110980, 110962, 110970]
@@ -159,9 +163,6 @@ class PanelState:
             self.note = "Asetukset hyväksytty. Ei maksuja eikä jonotusta."
 
     def course_info(self, courses):
-        from .browser import BrowserError, _validate_course_url
-        from .origin import PRODUCTION_URL, is_local_test
-        from urllib.parse import urlsplit
         with self.lock:
             for course in courses:
                 row = self.details.setdefault(course.id, {})
