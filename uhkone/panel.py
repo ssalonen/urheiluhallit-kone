@@ -39,7 +39,7 @@ label{font-weight:600}#message{min-height:1.5em}.warning{border-left:3px solid #
 <form id="form"><label for="ids">Kurssi-ID:t etusijajärjestyksessä</label>
 <input id="ids" value="110980 110962 110970" required autocomplete="off">
 <label for="price">Enimmäishinta (€)</label><input id="price" value="76" required autocomplete="off">
-<label for="child">Lapsen tarkka nimi</label><input id="child" autocomplete="off" placeholder="Ei tallenneta levylle">
+<label for="child">Lapsen tarkka nimi</label><input id="child" autocomplete="off" placeholder="Tallennetaan vain tämän selaimen localStorageen"><small>Nimi, kurssit ja hintaraja säilyvät tässä selaimessa myös uudelleenkäynnistyksen jälkeen.</small>
 <div class="row"><button id="save">Tallenna tämän ajon asetukset</button></div></form></section>
 <section><h2>Ohjaus</h2><div class="row">
 <button id="start">Käynnistä ennen klo 7.00</button>
@@ -48,6 +48,12 @@ label{font-weight:600}#message{min-height:1.5em}.warning{border-left:3px solid #
 <p class="warning">Ei maksuja eikä jonoja. Maksamattoman ostoskorin tarkistus ja mahdollinen myöhempi maksaminen tapahtuvat oikean kaupan kautta erikseen. Paikka voi vanhentua.</p></section></main>
 <script>
 const token=__TOKEN__, $=x=>document.getElementById(x);let init=true;
+const PREF_KEY="uhkone.panel.preferences.v1";
+function savedPrefs(){try{const p=JSON.parse(localStorage.getItem(PREF_KEY)||"null");
+if(!p||!Array.isArray(p.ids)||typeof p.max_price!=="string"||typeof p.child!=="string")return null;
+return {ids:p.ids,max_price:p.max_price,child:p.child};}catch(_){return null}}
+function storePrefs(p){try{localStorage.setItem(PREF_KEY,JSON.stringify({ids:p.ids,max_price:p.max_price,child:p.child}))}catch(_){}}
+
 async function req(path,data){const opts=data===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json','X-Panel-Token':token},body:JSON.stringify(data)};
 const r=await fetch(path,{...opts,cache:'no-store'});const v=await r.json();if(!r.ok)throw Error(v.error||'Pyyntö epäonnistui');return v}
 function el(tag,t,cls){let x=document.createElement(tag);x.textContent=t;if(cls)x.className=cls;return x}
@@ -61,9 +67,14 @@ for(let k of ['ids','price','child','save'])$(k).disabled=s.running;
 $('start').disabled=s.running;$('pause').disabled=!s.running||s.paused;$('resume').disabled=!s.running||!s.paused;$('stop').disabled=!s.running}
 async function refresh(){try{draw(await req('/api/status'))}catch(e){$('message').textContent='Yhteys paneeliin katkesi'}}
 $('form').onsubmit=async e=>{e.preventDefault();try{let ids=$('ids').value.trim().split(/[\s,;]+/).map(Number);
-draw(await req('/api/settings',{ids,max_price:$('price').value,child:$('child').value}));$('child').value='';$('message').textContent='Asetukset hyväksytty'}catch(err){$('message').textContent=err.message}};
+const values={ids,max_price:$('price').value,child:$('child').value};
+const saved=await req('/api/settings',values);draw(saved);storePrefs({ids:saved.ids,max_price:saved.max_price,child:values.child});$('message').textContent='Asetukset tallennettu tähän selaimeen'}catch(err){$('message').textContent=err.message}};
 for(let action of ['start','pause','resume','stop'])$(action).onclick=async()=>{try{draw(await req('/api/'+action,{}));$('message').textContent=''}catch(err){$('message').textContent=err.message}};
-refresh();setInterval(refresh,1000);
+async function initialize(){try{let s=await req('/api/status');const prefs=savedPrefs();
+if(prefs){$('ids').value=prefs.ids.join(' ');$('price').value=prefs.max_price;$('child').value=prefs.child;
+if(!s.running){s=await req('/api/settings',prefs)}}
+draw(s)}catch(e){$('message').textContent='Tallennettujen asetusten lataus epäonnistui: '+e.message}}
+initialize();setInterval(refresh,1000);
 </script></html>"""
 
 
