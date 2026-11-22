@@ -49,6 +49,7 @@ label{font-weight:600}#message{min-height:1.5em}.warning{border-left:3px solid #
 <label for="child-select">Valitse lapsitili</label><select id="child-select" aria-label="Lapsitilit"><option value="">Hae alitilit ensin</option></select>
 <small>Nimi, kurssit ja hintaraja säilyvät tässä selaimessa myös uudelleenkäynnistyksen jälkeen.</small>
 <div class="row"><button id="save">Tallenna tämän ajon asetukset</button></div></form></section>
+<section><h2>Tuotantokaupan esitarkistus</h2><p>Varmista kirjautuminen, lapsitili, kolme kurssia, avausajat ja ostoskori turvallisilla lukupyynnöillä ennen varausajoa. Tarkistus ei varaa, jonota eikä maksa.</p><button type="button" class="alt" id="preflight">Esitarkista ennen varausta</button><p id="preflight-result" role="status">Ei vielä tarkistettu.</p></section>
 <section><h2>Manuaalinen varatie</h2><p>Jos automaatio ei voi jatkaa, pysäytä ajo ja tarkista ensin alkuperäisen Chromium-ikkunan ostoskori ja varaukset. Alla oleva linkki avaa kurssin julkisen verkkokauppasivun; eri selainprofiililla ostoskori ei välttämättä ole sama. Älä tee uutta varausta, jos edellinen on voinut onnistua.</p><div id="manual-links" class="row"></div></section>
 <section><h2>Ohjaus</h2><div class="row">
 <button id="start">Käynnistä ennen klo 7.00</button>
@@ -73,7 +74,8 @@ e.append(el('small','VAIHTOEHTO '+(i+1)),el('h3',d.location?d.location+' · '+d.
 el('p',d.opens_at?'Ilmoittautuminen '+new Date(d.opens_at).toLocaleString('fi-FI'):'Avausaika tarkistetaan käynnistettäessä','muted'),
 el('strong',d.phase==='held'?'Ostoskorissa (maksamatta)':d.phase==='adding'?'Varausyritys':d.phase==='reservation_pending'?'Varauksen tilaa selvitetään':d.confirmed?'Vahvistettu':d.held?'Ostoskorissa (maksamatta)':d.available?'Vapaa paikka':d.available===false?'Ei varattavissa':'Odottaa'));return e}));
 for(let k of ['ids','price','child','child-select','children','save'])$(k).disabled=s.running;
-$('start').disabled=s.running||s.children_loading;$('children').disabled=s.running||s.children_loading;
+$('start').disabled=s.running||s.children_loading||s.preflight_loading;$('children').disabled=s.running||s.children_loading||s.preflight_loading;
+$('preflight').disabled=s.running||s.children_loading||s.preflight_loading;
 const manual=$('manual-links');manual.replaceChildren();
 if(!s.running)for(const id of s.ids){const d=s.details[String(id)]||{};if(d.manual_url){const a=el('a','Avaa kurssi '+id+' kaupassa');a.href=d.manual_url;a.target='_blank';a.rel='noopener noreferrer';manual.append(a)}}
 else manual.append(el('span','Pysäytä varausajo ennen manuaalista siirtymistä.'));
@@ -83,6 +85,11 @@ $('form').onsubmit=async e=>{e.preventDefault();try{let ids=$('ids').value.trim(
 const values={ids,max_price:$('price').value,child:$('child').value};
 const saved=await req('/api/settings',values);draw(saved);storePrefs({ids:saved.ids,max_price:saved.max_price,child:values.child});$('message').textContent='Asetukset tallennettu tähän selaimeen'}catch(err){$('message').textContent=err.message}};
 $('child-select').onchange=()=>{if($('child-select').value)$('child').value=$('child-select').value};
+$('preflight').onclick=async()=>{try{$('preflight').disabled=true;const values=currentSettings();
+const saved=await req('/api/settings',values);storePrefs({ids:saved.ids,max_price:saved.max_price,child:values.child});
+const result=await req('/api/preflight',{});$('preflight-result').textContent=result.ready?'Esitarkistus valmis: tili, kurssit ja tyhjä ostoskori vahvistettu. Tarkistus ei takaa vapaita paikkoja avaushetkellä.':
+'Esitarkistus estää käynnistämisen ilman tarkistusta: '+result.issues.join(', ');
+await refresh()}catch(err){$('preflight-result').textContent='Esitarkistus epäonnistui. Tarkista kirjautuminen ja ostoskori. '+err.message}finally{await refresh()}};
 $('children').onclick=async()=>{try{$('message').textContent='Avaan kirjautumisikkunan ja luen alitilit...';const result=await req('/api/children',{});const sel=$('child-select');sel.replaceChildren();
 sel.append(new Option('Valitse lapsitili', ''));
 for(const name of result.children)sel.append(new Option(name,name));
@@ -119,6 +126,8 @@ class PanelState:
         self.paused = False
         self.stop_requested = False
         self.children_loading = False
+        self.preflight_loading = False
+        self.preflight: dict | None = None
         self.health = "valmis"
         self.last_checked: str | None = None
 
@@ -131,6 +140,8 @@ class PanelState:
                 "details": {str(k): dict(v) for k, v in self.details.items()},
                 "running": self.running, "paused": self.paused,
                 "children_loading": self.children_loading,
+                "preflight_loading": self.preflight_loading,
+                "preflight": dict(self.preflight) if self.preflight is not None else None,
                 "now": datetime.now(HELSINKI).isoformat(timespec="seconds"),
             }
 
@@ -155,11 +166,12 @@ class PanelState:
         if not isinstance(child, str) or len(child) > 160:
             raise PanelError("Virheellinen osallistuja")
         with self.lock:
-            if self.running:
-                raise PanelError("Asetuksia ei voi muuttaa kesken varausajon")
+            if self.running or self.preflight_loading:
+                raise PanelError("Asetuksia ei voi muuttaa kesken varausajon tai esitarkistuksen")
             self.ids, self.max_price = list(ids), str(price)
             self.child = child.strip()
             self.details = {}
+            self.preflight = None
             self.note = "Asetukset hyväksytty. Ei maksuja eikä jonotusta."
 
     def course_info(self, courses):
@@ -282,7 +294,8 @@ def serve_panel(directory: Path, *, port: int = 8765, executable: str | None = N
                 open_browser: bool = True, runner: Callable[[PanelState, Path, str | None], None] | None = None,
                 on_listening: Callable[[str], None] | None = None,
                 stop_event: threading.Event | None = None,
-                child_loader: Callable[[Path, str | None], list[str]] | None = None):
+                child_loader: Callable[[Path, str | None], list[str]] | None = None,
+                preflight_loader: Callable[[Path, str | None, list[int], str, str], dict] | None = None):
     state = PanelState()
     csrf = secrets.token_urlsafe(32)
 
@@ -338,7 +351,7 @@ def serve_panel(directory: Path, *, port: int = 8765, executable: str | None = N
                     if payload != {}:
                         raise PanelError("Virheellinen pyyntö")
                     with state.lock:
-                        if state.running or state.children_loading:
+                        if state.running or state.children_loading or state.preflight_loading:
                             raise PanelError("Alitilejä ei voi hakea toisen selainoperaation aikana")
                         state.children_loading = True
                     try:
@@ -349,14 +362,45 @@ def serve_panel(directory: Path, *, port: int = 8765, executable: str | None = N
                             state.children_loading = False
                     self.answer({"children": names})
                     return
+                elif self.path == "/api/preflight":
+                    if payload != {}:
+                        raise PanelError("Virheellinen pyyntö")
+                    with state.lock:
+                        if state.running or state.children_loading or state.preflight_loading or not state.child:
+                            raise PanelError("Esitarkistus vaatii valitun lapsen ja vapaan selainprofiilin")
+                        state.preflight_loading = True
+                        ids, child, max_price = list(state.ids), state.child, state.max_price
+                    try:
+                        from .preflight import run_readonly_preflight
+                        if preflight_loader is None:
+                            report = run_readonly_preflight(directory / "selain", executable,
+                                ids=ids, child=child, max_price=max_price)
+                        else:
+                            report = preflight_loader(directory / "selain", executable, ids, child, max_price)
+                        with state.lock:
+                            state.preflight = report
+                            if report.get("ready"):
+                                for row in report.get("courses", []):
+                                    if row.get("id") in state.ids:
+                                        state.details.setdefault(row["id"], {}).update({
+                                            "location": row.get("location"), "time": row.get("time"),
+                                            "opens_at": row.get("opens_at"),
+                                        })
+                            else:
+                                state.health = "toimenpide_tarvitaan"
+                        self.answer(report)
+                    finally:
+                        with state.lock:
+                            state.preflight_loading = False
+                    return
                 elif self.path in {"/api/start", "/api/pause", "/api/resume", "/api/stop"}:
                     if payload != {}:
                         raise PanelError("Virheellinen pyyntö")
                     action = self.path.removeprefix("/api/")
                     with state.lock:
                         if action == "start":
-                            if state.running or state.children_loading or not state.child:
-                                raise PanelError("Ajo jo käynnissä, alitilihaku kesken tai lapsen nimi puuttuu")
+                            if state.running or state.children_loading or state.preflight_loading or not state.child:
+                                raise PanelError("Ajo jo käynnissä, esitarkistus tai alitilihaku kesken, tai lapsen nimi puuttu")
                             state.running = True
                             state.stop_requested = False
                             state.paused = False
