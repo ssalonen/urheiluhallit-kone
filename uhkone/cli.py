@@ -390,7 +390,8 @@ def run_reservation(args, filters: SearchFilters, directory: Path, client) -> in
         if course.price is None or course.price > args.enintaan:
             raise ConfigError(f"Kurssin {target} hinta puuttuu tai ylittää enimmäissumman.")
         selected.append(course)
-    selected = ranked(selected, replace(filters, available_only=False))
+    # Caller-provided course IDs are already in strict priority order.
+    # Do not re-rank by hall, date or time.
     now = datetime.now(HELSINKI)
     specs = []
     for course in selected:
@@ -406,7 +407,7 @@ def run_reservation(args, filters: SearchFilters, directory: Path, client) -> in
     print_courses(selected, details=True)
     print(f"Tavoitteena yksi kurssi {len(specs)} vaihtoehdosta. Enimmäishinta {args.enintaan} €. "
           + ("Pysähdytään maksamattomaan ostoskoriin." if args.ilman_maksua else f"Maksutapa: {args.maksutapa}."), flush=True)
-    print("Samalla tarkistuksella valmiista vaihtoehdoista valitaan hallien toivejärjestyksessä. Muulloin ensimmäinen valmis polku saa varausvuoron.", flush=True)
+    print("Kurssit ovat antamassasi etusijajärjestyksessä. Samalla tarkistuksella valmiista valitaan listan ensimmäinen; muulloin ensimmäinen valmis saa varausvuoron.", flush=True)
     if not args.ilman_maksua:
         print(LIVE_PAYMENT_LIMIT, flush=True)
     if args.jono:
