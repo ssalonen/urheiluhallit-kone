@@ -191,7 +191,7 @@ def _run(state: PanelState, directory: Path, executable: str | None):
     except KeyboardInterrupt:
         with state.lock:
             state.phase, state.note = "pysäytetty", "Ajo pysäytetty. Tarkista mahdollinen keskeneräinen varaus."
-    except Exception:
+    except Exception:  # noqa: BLE001 - Never expose backend errors through local HTTP.
         with state.lock:
             state.phase, state.note = "virhe", "Varausajo epäonnistui. Katso paikallisen ohjelman tuloste."
     finally:
