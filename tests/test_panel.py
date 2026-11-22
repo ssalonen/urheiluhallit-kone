@@ -124,6 +124,37 @@ class PanelTests(unittest.TestCase):
         )])
         self.assertNotIn("manual_url", self.panel.public()["details"]["110962"])
 
+    def test_preflight_rejects_existing_cart_and_duplicate_child_bookings(self):
+        from uhkone.preflight import validate_preflight_snapshot
+
+        course = {"reservation_event_group_id": 110980, "public_reservation_start": "2026-11-24 07:00:00",
+                  "price": 7600, "free": 10, "is_reservable": False}
+        user = {"account_id": 10, "linked_accounts": [{"account_id": 20, "name": "Testilapsi"}]}
+        result = validate_preflight_snapshot(user=user, cart=[], reservations=[],
+                                             courses=[course], ids=[110980], child="Testilapsi",
+                                             max_price="76")
+        self.assertTrue(result["ready"])
+        self.assertEqual(result["courses"][0]["id"], 110980)
+        self.assertEqual(result["courses"][0]["opens_at"], "2026-11-24T07:00:00+02:00")
+        self.assertNotIn("Testilapsi", repr(result))
+        self.assertFalse(validate_preflight_snapshot(
+            user=user, cart=[{"item_id": 1}], reservations=[],
+            courses=[course], ids=[110980], child="Testilapsi", max_price="76")["ready"])
+        self.assertFalse(validate_preflight_snapshot(
+            user=user, cart=[], reservations=[{"reservation_account_id": 20,
+                    "reservation_event_group_id": 110980, "reservation_status_id": 7}],
+            courses=[course], ids=[110980], child="Testilapsi", max_price="76")["ready"])
+
+    def test_preflight_fails_closed_on_unknown_or_wrong_course(self):
+        from uhkone.preflight import validate_preflight_snapshot
+
+        with self.assertRaises(ValueError):
+            validate_preflight_snapshot(
+                user={"account_id": 10, "linked_accounts": [{"account_id": 20, "name": "Testilapsi"}]},
+                cart=[], reservations=[],
+                courses=[{"reservation_event_group_id": 999, "price": 7600}],
+                ids=[110980], child="Testilapsi", max_price="76")
+
     def test_stop_checkpoint_refuses_to_restart_actions(self):
         from uhkone.console import StopRequested
         self.panel.stop_requested = True
