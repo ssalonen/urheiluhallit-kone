@@ -71,8 +71,8 @@
 **Files:** `README.md`, uusi `docs/laadunvarmistus-2026-11-22.md`.
 
 - [x] Kirjaa jokainen varmistettu löydös, korjaus, sitä todistava testi ja jäljellä oleva raja. Erottele julkinen sopimustarkistus, paikalliset simulaatiot ja todentamaton kirjautunut ketju.
-- [ ] Teetä riippumaton katselmointi koko korjaushaaralle, korjaa olennaiset löydökset ja aja lopulliset portit.
-- [ ] Tarkista koko staged-puu ja julkaistavien tekstien yksityisyys. Tallenna työ korjaushaaraan ja luo katselmoitava luonnos-PR, jos repo-yhteys sallii sen. Älä yhdistä mainiin tämän tarkastuksen osana.
+- [x] Teetä riippumaton katselmointi koko korjaushaaralle, korjaa olennaiset löydökset ja aja lopulliset portit.
+- [x] Tarkista koko staged-puu ja julkaistavien tekstien yksityisyys. Tallenna työ korjaushaaraan ja luo katselmoitava luonnos-PR, jos repo-yhteys sallii sen. Älä yhdistä mainiin tämän tarkastuksen osana.
 
 ### Katselmoinnin tuottama yhtenäinen korjausaalto
 
@@ -87,4 +87,8 @@ Riippumaton katselmointi commitille `599c8de` (etähaaran sama lähdepuu `8a251e
 - [x] Kiristä julkisen kurssitarkistimen tuote-, hinta-, aikataulu- ja reittiarvojen tarkistuksia; pelkkä avaimen olemassaolo ei riitä.
 - [x] Testaa maksutapojen ja saldon erilliset, kummassakin järjestyksessä valmistuvat renderöinnit aidolla selainfixturellä.
 - [x] Rajaa lähetetyn maksupyynnön paluuosoitteen kysely tarkasti ja kuvaa paikallisen smoken jatkaminen/restart täsmällisesti.
-- [ ] Tee yksi kohdennettu korjausaallon uusintakatselmointi ja tarkista lopullisen lähdepuun GitHub-ajo.
+- [x] Tee yksi kohdennettu korjausaallon uusintakatselmointi ja tarkista lopullisen lähdepuun GitHub-ajo.
+
+## Toteutuksen lopputulos
+
+Korjaushaara on luonnos-PR:ssä #7. Riippumaton katselmointi ja yksi kohdennettu uusintakatselmointi tehtiin; viimeinen yhteisen tilaluvun uusintaviive korjattiin toistavalla testillä. Lopullisen lähdekoodin CI-ajo 44998010031 läpäisi 399 testiä ja 323 alitestiä ilman ohituksia sekä molemmat paikalliset Chromium-smoket. Julkinen tuotantotarkistus läpäisi 143 kurssia. Oikean kaupan kirjautunut maksuketju ja kuittiyhteys ovat edelleen todentamatta. Mainiin ei yhdistetty.
