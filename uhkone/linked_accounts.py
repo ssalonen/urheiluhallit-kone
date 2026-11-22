@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .browser import BrowserError, _browser, _ensure_login, _PreparationGuard
+from .booking_browser import _integer
 from .client import BASE_URL
 from .origin import validate_base_url
 
@@ -17,8 +18,8 @@ def linked_child_names(user: Any) -> list[str]:
     """Only unambiguous real child accounts; never return payer IDs or raw JSON."""
     if not isinstance(user, dict):
         raise BrowserError("Kirjautuneen tilin tietomuoto ei vastaa odotettua.")
-    payer = user.get("account_id")
-    if type(payer) is not int or payer <= 0:
+    payer = _integer(user.get("account_id"))
+    if payer is None or payer <= 0:
         raise BrowserError("Huoltajan tilitunnusta ei voitu vahvistaa.")
     linked = user.get("linked_accounts")
     if not isinstance(linked, (dict, list)):
@@ -30,8 +31,8 @@ def linked_child_names(user: Any) -> list[str]:
     for entry in entries:
         if not isinstance(entry, dict):
             raise BrowserError("Alitilin tiedot eivät vastaa odotettua.")
-        child_id, name = entry.get("account_id"), entry.get("name")
-        if (type(child_id) is not int or child_id <= 0 or child_id == payer
+        child_id, name = _integer(entry.get("account_id")), entry.get("name")
+        if (child_id is None or child_id <= 0 or child_id == payer
                 or not isinstance(name, str) or not name.strip() or len(name) > 160):
             raise BrowserError("Alitilillä ei ole yksilöitävissä olevaa nimeä tai tunnistetta.")
         label = " ".join(name.split())
