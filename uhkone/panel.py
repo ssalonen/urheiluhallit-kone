@@ -81,7 +81,7 @@ for(const name of result.children)sel.append(new Option(name,name));
 if(result.children.includes($('child').value))sel.value=$('child').value;
 $('message').textContent=result.children.length+' alitiliä löytyi. Valitse lapsi ja tallenna asetukset.';
 }catch(err){$('message').textContent=err.message}};
-function currentSettings(){return {ids:$('ids').value.trim().split(/[\\s,;]+/).map(Number),max_price:$('price').value,child:$('child').value}}
+function currentSettings(){return {ids:$('ids').value.trim().split(/[\s,;]+/).map(Number),max_price:$('price').value,child:$('child').value}}
 $('start').onclick=async()=>{try{$('start').disabled=true;const values=currentSettings();const saved=await req('/api/settings',values);
 storePrefs({ids:saved.ids,max_price:saved.max_price,child:values.child});draw(await req('/api/start',{}));$('message').textContent='Ajo käynnistetty tallennetuilla asetuksilla';
 }catch(err){$('message').textContent=err.message;await refresh()}finally{$('start').disabled=false}};
