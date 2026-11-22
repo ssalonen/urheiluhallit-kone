@@ -66,9 +66,10 @@ if(init){$('ids').value=s.ids.join(' ');$('price').value=s.max_price;init=false}
 $('cards').replaceChildren(...s.ids.map((id,i)=>{let d=s.details[String(id)]||{},e=el('article','');e.className='card';
 e.append(el('small','VAIHTOEHTO '+(i+1)),el('h3',d.location?d.location+' · '+d.time:'Kurssi '+id),el('p','ID '+id,'muted'),
 el('p',d.opens_at?'Ilmoittautuminen '+new Date(d.opens_at).toLocaleString('fi-FI'):'Avausaika tarkistetaan käynnistettäessä','muted'),
-el('strong',d.phase|| (d.held?'Ostoskorissa':d.available?'Vapaana':d.confirmed?'Vahvistettu':'Odottaa')));return e}));
+el('strong',d.phase==='held'?'Ostoskorissa (maksamatta)':d.phase==='adding'?'Varausyritys':d.phase==='reservation_pending'?'Varauksen tilaa selvitetään':d.confirmed?'Vahvistettu':d.held?'Ostoskorissa (maksamatta)':d.available?'Vapaa paikka':d.available===false?'Ei varattavissa':'Odottaa'));return e}));
 for(let k of ['ids','price','child','child-select','children','save'])$(k).disabled=s.running;
-$('start').disabled=s.running;$('pause').disabled=!s.running||s.paused;$('resume').disabled=!s.running||!s.paused;$('stop').disabled=!s.running}
+$('start').disabled=s.running||s.children_loading;$('children').disabled=s.running||s.children_loading;
+$('pause').disabled=!s.running||s.paused;$('resume').disabled=!s.running||!s.paused;$('stop').disabled=!s.running}
 async function refresh(){try{draw(await req('/api/status'))}catch(e){$('message').textContent='Yhteys paneeliin katkesi'}}
 $('form').onsubmit=async e=>{e.preventDefault();try{let ids=$('ids').value.trim().split(/[\s,;]+/).map(Number);
 const values={ids,max_price:$('price').value,child:$('child').value};
@@ -105,6 +106,7 @@ class PanelState:
         self.running = False
         self.paused = False
         self.stop_requested = False
+        self.children_loading = False
 
     def public(self):
         with self.lock:
@@ -113,6 +115,7 @@ class PanelState:
                 "has_child": bool(self.child), "phase": self.phase, "note": self.note,
                 "details": {str(k): dict(v) for k, v in self.details.items()},
                 "running": self.running, "paused": self.paused,
+                "children_loading": self.children_loading,
                 "now": datetime.now(HELSINKI).isoformat(timespec="seconds"),
             }
 
@@ -176,6 +179,7 @@ class PanelState:
                 "reservation_pending": "Selvitetään lähetetyn varauspyynnön tulos.",
                 "retry": "Palvelin ei vastannut. Odotetaan ja yritetään uudelleen.",
                 "deadline": "Varausyrityksen määräaika saavutettu.",
+                "held_unpaid": "Maksamaton ostoskorivaraus. Ei maksettu eikä lopullisesti vahvistettu.",
             }
             self.note = messages.get(phase, self.note)
 
@@ -207,8 +211,8 @@ def _run(state: PanelState, directory: Path, executable: str | None):
             outcome = run_reservation(args, get_filters(args, load_settings().filters),
                                       directory, client, dashboard=state)
         with state.lock:
-            state.phase = "valmis" if outcome == 0 else "epäonnistui"
-            state.note = ("Ostoskori avattu Chromiumissa; maksua ei käynnistetty."
+            state.phase = "ostoskori_suljettu" if outcome == 0 else "epäonnistui"
+            state.note = ("Maksamaton ostoskori tarkistettu, selain suljettu. Paikkaa ei ole maksettu eikä vahvistettu."
                           if outcome == 0 else "Varaus ei vahvistunut. Tarkista selain.")
     except KeyboardInterrupt:
         with state.lock:
@@ -283,10 +287,15 @@ def serve_panel(directory: Path, *, port: int = 8765, executable: str | None = N
                     if payload != {}:
                         raise PanelError("Virheellinen pyyntö")
                     with state.lock:
-                        if state.running:
-                            raise PanelError("Alitilejä ei voi hakea varausajon aikana")
-                    from .linked_accounts import load_linked_children
-                    names = (child_loader or load_linked_children)(directory / "selain", executable)
+                        if state.running or state.children_loading:
+                            raise PanelError("Alitilejä ei voi hakea toisen selainoperaation aikana")
+                        state.children_loading = True
+                    try:
+                        from .linked_accounts import load_linked_children
+                        names = (child_loader or load_linked_children)(directory / "selain", executable)
+                    finally:
+                        with state.lock:
+                            state.children_loading = False
                     self.answer({"children": names})
                     return
                 elif self.path in {"/api/start", "/api/pause", "/api/resume", "/api/stop"}:
@@ -295,8 +304,8 @@ def serve_panel(directory: Path, *, port: int = 8765, executable: str | None = N
                     action = self.path.removeprefix("/api/")
                     with state.lock:
                         if action == "start":
-                            if state.running or not state.child:
-                                raise PanelError("Ajo jo käynnissä tai lapsen nimi puuttuu")
+                            if state.running or state.children_loading or not state.child:
+                                raise PanelError("Ajo jo käynnissä, alitilihaku kesken tai lapsen nimi puuttuu")
                             state.running = True
                             state.stop_requested = False
                             state.paused = False
