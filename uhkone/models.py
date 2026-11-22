@@ -164,6 +164,7 @@ class SearchFilters:
     target: str = DEFAULT_TARGET
     locations: tuple[str, ...] = ()
     weekdays: tuple[int, ...] = ()
+    preferred_slots: tuple[tuple[str, int, str], ...] = ()
     earliest_time: str | None = None
     latest_time: str | None = None
     weekday_earliest_time: str | None = None
@@ -178,6 +179,11 @@ class SearchFilters:
             raise ValueError("Kurssin hakunimi ei saa olla tyhjä.")
         if any(type(day) is not int or day not in range(1, 8) for day in self.weekdays):
             raise ValueError("Viikonpäivien on oltava kokonaislukuja 1–7 (ma–su).")
+        for hall, day, start in self.preferred_slots:
+            if not isinstance(hall, str) or not normalize_location(hall) or type(day) is not int or day not in range(1, 8) or _parse_time(start) is None:
+                raise ValueError("Hyväksytyn vuoron halli, viikonpäivä tai aloitusaika on virheellinen.")
+        if len({(normalize_location(h), d, t) for h, d, t in self.preferred_slots}) != len(self.preferred_slots):
+            raise ValueError("Hyväksytyissä vuoroissa on päällekkäisiä arvoja.")
         for label, value in (
             ("Aikaisin aloitusaika", self.earliest_time),
             ("Myöhäisin aloitusaika", self.latest_time),
@@ -254,6 +260,13 @@ class SearchFilters:
                 if earliest_time is not None and start_time < earliest_time:
                     return False
 
+        if self.preferred_slots:
+            meetings = _meeting_start_times(course)
+            if meetings is None or not meetings:
+                return False
+            accepted = {(normalize_location(h), d, _parse_time(t)) for h, d, t in self.preferred_slots}
+            if any((normalize_location(course.location), d, start) not in accepted for d, start in meetings):
+                return False
         if self.available_only and not course.available:
             return False
         return not (self.max_price is not None and (
