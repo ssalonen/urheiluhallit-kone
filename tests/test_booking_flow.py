@@ -48,21 +48,55 @@ function participants() {
 function cartModal() {
   modal.hidden = false;
   modal.innerHTML = `<input type="checkbox" id="usageTermsCheckbox">
-    <input type="checkbox" id="useBalanceCheckbox">
-    <a href="#" class="buyWithBalance" payment-type-id="4">Maksa saldolla</a>`;
-  document.querySelector('.buyWithBalance').onclick = async event => {
+    <input type="checkbox" id="useBalanceCheckbox">`;
+  const view = {collection: R2.cart, methodsReady: false};
+  R2.app.modal.currentView = view;
+  window.cartRenderOrder = [];
+  function complete(kind) {
+    if (kind === 'balance') view.balance = 10000;
+    if (kind === 'methods') view.methodsReady = true;
+    window.cartRenderOrder.push(kind);
+    renderPaymentOptions(view);
+  }
+  setTimeout(() => complete(window.firstRender), 70);
+  setTimeout(() => complete(window.firstRender === 'methods' ? 'balance' : 'methods'), 450);
+}
+function renderPaymentOptions(view) {
+  const fastpay = window.useFastPay;
+  modal.innerHTML = `<input type="checkbox" id="usageTermsCheckbox">
+    <input type="checkbox" id="useBalanceCheckbox">`;
+  if (!view.methodsReady) return;
+  modal.insertAdjacentHTML("beforeend", fastpay
+    ? `<div class="btn-group-dropdown-top-left"><button class="dropdown-toggle">Maksutavat</button>
+         <a hidden href="#" class="buyCart" payment-type-id="5">FastPay</a></div>`
+    : `<a href="#" class="buyWithBalance" payment-type-id="4">Maksa saldolla</a>`);
+  const action = modal.querySelector(fastpay ? '.buyCart' : '.buyWithBalance');
+  if (fastpay) {
+    modal.querySelector('.dropdown-toggle').onclick = event => {
+      event.stopPropagation();
+      action.hidden = false;
+    };
+  }
+  action.onclick = async event => {
     event.preventDefault();
+    if (window.cartRenderOrder.length !== 2) throw Error("Submitted before both cart renders");
     if (!document.querySelector('#usageTermsCheckbox').checked ||
-        !document.querySelector('#useBalanceCheckbox').checked) throw Error('Terms or balance missing');
-    const options = {return_url:location.origin+'/webshop/reservations2/?doPayment=success',
-      cancel_url:location.origin+'/webshop/reservations2/?doPayment=cancel',
-      balance_amount:7600, payment_type_id:'4', service_group_id:9};
+        document.querySelector('#useBalanceCheckbox').checked === fastpay) throw Error('Terms or balance missing');
+    const options = {return_url:location.pathname+'?doPayment=success',
+      cancel_url:location.pathname+'?doPayment=cancel',
+      balance_amount:fastpay ? null : 7600, payment_type_id:fastpay ? '5' : '4', service_group_id:9};
     const form = new URLSearchParams({input_format:'json', output_format:'json', content:JSON.stringify([options])});
     await fetch('/webshop/call/cart/externalpaymentstart', {method:'POST', body:form});
     modal.hidden = true;
   };
 }
+document.addEventListener('click', () => {
+  const action = modal.querySelector('.buyCart');
+  if (action) action.hidden = true;
+});
+window.Enkora = {getNexusParameter: name => name === "balance payments enabled"};
 window.R2 = {
+  app:{modal:{currentView:null}},
   session:{isAuthenticated:()=>true}, user:{get:key=>key==='account_id'?10:null}, service_group_id:9,
   eventgroups:{length:1, get:id=>Number(id)===123?{set:row=>window.modelRefreshes++}:null},
   cart:{fetch:async()=>{window.cartRows=await fetch('/webshop/reservations2/apicart').then(r=>r.json());},
@@ -99,24 +133,30 @@ class BookingFlowTests(unittest.TestCase):
     def test_without_payment_stops_after_exact_child_cart_write(self):
         self._exercise_flow(without_payment=True)
 
-    def _exercise_flow(self, *, without_payment):
+    def test_delayed_fastpay_dropdown_preserves_terms_before_submit(self):
+        self._exercise_flow(without_payment=False, fastpay=True, first_render="methods")
+
+    def _exercise_flow(self, *, without_payment, fastpay=False, first_render="balance"):
         row = {"reservation_event_group_id": 123, "service_id": 9, "location_id": 2,
                "reservation_group_id": 6, "name": "Leikki-ikäisten jatkouimakoulu",
                "location": "Mäkelänrinne", "start": "2030-01-10 10:00:00",
                "end": "2030-02-10 10:30:00", "free": 3, "is_reservable": 1,
                "fare_products": [{"fare_product_id": 4321, "price": 7600}]}
-        moment = datetime(2030, 1, 1, tzinfo=UTC)
+        moment = datetime.now(UTC)
         opening = moment + timedelta(seconds=6)
-        spec = BookingSpec(parse_course(row), "Aino Esimerkki", Decimal(80), opening,
-                           opening + timedelta(seconds=40), "none" if without_payment else "saldo", without_payment=without_payment)
-        server: dict[str, Any] = {"cart": [], "own": [], "receipt": {
+        payment_mode = "none" if without_payment else "fastpay" if fastpay else "saldo"
+        fixture_origin = "http://127.0.0.1:43210"
+        spec = BookingSpec(parse_course(row, base_url=fixture_origin), "Aino Esimerkki", Decimal(80), opening,
+                           opening + timedelta(seconds=40), payment_mode, without_payment=without_payment)
+        server: dict[str, Any] = {"cart": [], "own": [], "proof": [], "receipt": {
             "receipt_id": 77, "total_amount": 7600, "is_closed": 1, "is_pay_later": 0}}
         writes = []
         context = self.browser.new_context()
         self.addCleanup(context.close)
         page = context.new_page()
+        page.add_init_script(f"window.useFastPay = {json.dumps(fastpay)}; window.firstRender = {json.dumps(first_render)};")
         page.set_default_timeout(3000)
-        guard = _BookingGuard(context, spec)
+        guard = _BookingGuard(context, spec, base_url=fixture_origin)
         guard.allow_login = False
 
         def fulfill(route):
@@ -127,18 +167,25 @@ class BookingFlowTests(unittest.TestCase):
                 if path == "/webshop/reservations2/apicart":
                     payload = json.loads(request.post_data)
                     self.assertEqual(int(payload["account"]["account_id"]), 20)
-                    server["cart"] = [{"item_id": 11, "fare_product_id": 4321, "quantity": 1,
-                        "price": 7600, "reservation_params": {"reservation_event_group_id": 123,
-                                                              "reservation_account_id": 20}}]
+                    server["cart"] = [{"item_id": 0, "fare_product_id": 4321, "quantity": 1,
+                        "price": 7600, "bundle_price": None, "payment_event_id": None,
+                        "reservation_params": {"reservation_event_group_id": 123, "reservation_account_id": 20}}]
+                    server["own"] = [{"reservation_id": 456, "reservation_event_group_id": 123,
+                        "reservation_account_id": 20, "reservation_status_id": 7}]
+                    server["proof"] = [{"reservation_id": 456, "reservation_status_id": 7,
+                        "is_paid": 0, "receipt_event_id": None}]
                     response = server["cart"]
                 else:
                     self.assertEqual(path, "/webshop/call/cart/externalpaymentstart")
                     options = json.loads(parse_qs(request.post_data)["content"][0])[0]
-                    self.assertEqual((int(options["payment_type_id"]), options["balance_amount"]), (4, 7600))
+                    expected_payment = (5, None) if fastpay else (4, 7600)
+                    self.assertEqual((int(options["payment_type_id"]), options["balance_amount"]), expected_payment)
                     self.assertEqual(server["cart"][0]["reservation_params"]["reservation_account_id"], 20)
                     server["cart"] = []
                     server["own"] = [{"reservation_id": 456, "reservation_event_group_id": 123,
-                        "reservation_account_id": 20, "reservation_status_id": 4, "is_paid": 1}]
+                        "reservation_account_id": 20, "reservation_status_id": 4}]
+                    server["proof"] = [{"reservation_id": 456, "reservation_status_id": 4,
+                        "is_paid": 1, "receipt_event_id": 78}]
                     server["receipt"] = server["receipt"] | {"receipt_id": 78}
                     response = {"result": {"payment_succeeded": True}}
                 route.fulfill(status=200, content_type="application/json", body=json.dumps(response))
@@ -155,18 +202,23 @@ class BookingFlowTests(unittest.TestCase):
 
         context.route("**/*", routed)
         context.on("response", guard.response)
-        backend = BookingBrowser(spec, context, page, guard)
+        backend = BookingBrowser(spec, context, page, guard, base_url=fixture_origin)
 
         def read(path, *, rpc=False, content=None):
             if path == "user/getcurrentuser":
                 return {"account_id": 10, "linked_accounts": [{"account_id": 20, "name": spec.child_name}]}
+            if path == "/_test/reservation-proof":
+                self.assertFalse(without_payment)
+                return {"testshop": True, "reservations": deepcopy(server["proof"])}
             values = {f"/webshop/reservations2/apieventgroups/{spec.course.id}": row,
                 "/webshop/reservations2/apicart": server["cart"],
                 "/webshop/reservations2/apiusereventgroups": server["own"],
                 "cart/getreceiptinfo": server["receipt"], "cart/islocked": {"isLocked": False},
                 "cart/checkcurrentuserbalance": {"balance": 10000},
-                "cart/getonlinepaymenttypes": [{"payment_type_id": 4, "is_disabled": 0,
-                                               "is_pay_later": 0, "is_balance": 1}]}
+                "cart/getonlinepaymenttypes": [
+                    {"payment_type_id": 5, "is_disabled": 0, "is_pay_later": 0, "is_balance": 0, "name": "FastPay"}
+                    if fastpay else {"payment_type_id": 4, "is_disabled": 0, "is_pay_later": 0, "is_balance": 1}
+                ]}
             return deepcopy(values[path])
 
         def wait(seconds):
@@ -180,12 +232,14 @@ class BookingFlowTests(unittest.TestCase):
             result = run_booking(spec, backend, Path(directory) / "state.json",
                                  now=lambda: moment, log=lambda message: None)
             if without_payment:
-                backend.show_unpaid_cart()
+                backend.show_unpaid_cart(result.reservation_id)
                 self.assertTrue(page.locator("#modal #usageTermsCheckbox").is_visible())
         if without_payment:
             self.assertEqual((result.status, result.receipt_id), ("held_unpaid", None))
             self.assertEqual([path for path, _ in writes], ["/webshop/reservations2/apicart"])
         else:
+            self.assertEqual(page.evaluate("window.cartRenderOrder"),
+                             [first_render, "balance" if first_render == "methods" else "methods"])
             self.assertEqual((result.status, result.reservation_id, result.receipt_id), ("confirmed", "456", "78"))
             self.assertEqual([path for path, _ in writes], ["/webshop/reservations2/apicart",
                                                           "/webshop/call/cart/externalpaymentstart"])

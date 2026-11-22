@@ -8,7 +8,6 @@ choice; independent waitlist entries leave other actual course options open.
 """
 from __future__ import annotations
 
-import time
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -22,10 +21,8 @@ from .booking_browser import (
     _BookingGuard,
     _cart_match,
     _flag,
-    _fresh_course,
     _integer,
     _money,
-    _observation,
     _preflight_page,
     _retry_preflight,
 )
@@ -206,7 +203,9 @@ class BookingPool:
         reader = self._reader()
         self._bind(reader._user())
         cart = reader._read("/webshop/reservations2/apicart")
-        reservations = reader._read("/webshop/reservations2/apiusereventgroups")
+        reservations = reader._reservations({
+            course_id for course_id, backend in self.backends.items() if not backend.spec.without_payment
+        })
         receipt = reader._read("cart/getreceiptinfo", rpc=True)
         locked = reader._read("cart/islocked", rpc=True)
         if (not isinstance(cart, list) or any(not isinstance(item, dict) for item in cart)
@@ -228,7 +227,8 @@ class BookingPool:
                      and _integer(item["reservation_account_id"]) == reader.child_id
                      and _integer(item["reservation_status_id"]) not in {1, 3, 6} for item in reservations)
         self._shared_cart, self._candidate_activity = cart, active
-        self.selection_clear = not cart and _flag(locked["isLocked"]) is False and not active
+        self.selection_clear = (not cart and _flag(locked["isLocked"]) is False and not active
+                                and not any(backend.payment_conflict for backend in self.backends.values()))
         return cart, reservations, receipt, locked
 
     def _courses(self) -> dict[int, dict | TransientBookingError]:
@@ -258,12 +258,7 @@ class BookingPool:
                 result[course_id] = row
                 continue
             backend = self.backends[course_id]
-            observation = _observation(backend.spec, backend.child_id, row, cart, reservations, receipt, locked,
-                                       base_url=self.base_url)
-            backend._course = _fresh_course(backend.spec, row, base_url=self.base_url)
-            backend._cart, backend._last_observation = cart, observation
-            backend._observed_at = time.monotonic()
-            result[course_id] = observation
+            result[course_id] = backend._observe(row, cart, reservations, receipt, locked)
         return result
 
     def activate(self, course_id: int) -> BookingBrowser:
@@ -283,8 +278,8 @@ class BookingPool:
         if not successes:
             raise next(value for value in initial.values() if isinstance(value, TransientBookingError))
         candidate_cart = (len(self._shared_cart) == 1
-                          and any(_cart_match(self._shared_cart[0], course_id, self._reader().child_id)
-                                  for course_id in self.backends))
+                          and any(_cart_match(self._shared_cart[0], backend.spec.course, backend.child_id)
+                                  for backend in self.backends.values()))
         if self._shared_cart and not candidate_cart:
             raise BookingError("Yhteisessä ostoskorissa on muu tuote. Vaihtoehtoja ei osteta automaattisesti.")
         existing = (candidate_cart or self._candidate_activity

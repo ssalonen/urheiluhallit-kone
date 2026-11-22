@@ -26,6 +26,15 @@ SCENARIOS = frozenset({"normaali", "ruuhka", "varaus-vastaus-katoaa", "maksu-vas
                        "jono", "jono-vastaus-katoaa", "jono-taynna"})
 PREFIX = "/webshop/reservations2/"
 SESSION_COOKIE = "uhkone_test_session"
+_ASSETS = {
+    "/webshop/resource/testshop/testshop.js": ("testshop.js", "text/javascript"),
+    "/webshop/resource/testshop/testshop.css": ("testshop.css", "text/css"),
+    "/webshop/resource/testshop/templates.html": ("testshop_templates.html", "text/html"),
+}
+_CONTENT_POLICY = (
+    "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; "
+    "form-action 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'"
+)
 
 
 class _APIError(Exception):
@@ -176,10 +185,12 @@ class TestShop:
             def log_message(self, format: str, *args: object) -> None:
                 pass
 
-            def reply(self, status, value, *, html=False, retry_after=None):
-                body = value.encode("utf-8") if html else json.dumps(value, ensure_ascii=False).encode("utf-8")
+            def reply(self, status, value, *, content_type="application/json; charset=utf-8", retry_after=None):
+                body = value if isinstance(value, bytes) else json.dumps(value, ensure_ascii=False).encode("utf-8")
                 self.send_response(status)
-                self.send_header("Content-Type", "text/html; charset=utf-8" if html else "application/json; charset=utf-8")
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Security-Policy", _CONTENT_POLICY)
+                self.send_header("X-Content-Type-Options", "nosniff")
                 self.send_header("Cache-Control", "no-store")
                 self.send_header("Content-Length", str(len(body)))
                 if retry_after is not None:
@@ -199,10 +210,19 @@ class TestShop:
                     session_id, is_new = shop._session(self.headers.get("Cookie"))
                     self._new_session_id = session_id if is_new else None
                     path = urlsplit(self.path).path
-                    if (self.command == "GET" and path in {"/", "/webshop", "/webshop/", "/webshop/reservations2", "/webshop/reservations2/"}) or (
-                            self.command == "GET" and re.fullmatch(r"/webshop/reservations2/reservations/\d+/[\d-]+/[\d-]+/-/\d+/?", path)):
-                        self.reply(200, Path(__file__).with_name("testshop.html").read_text(encoding="utf-8"), html=True)
-                        return
+                    if self.command == "GET":
+                        resource = _ASSETS.get(path)
+                        if path in {"/", "/webshop", "/webshop/", PREFIX, PREFIX.rstrip("/")} or re.fullmatch(
+                                r"/webshop/reservations2/reservations/\d+/[\d-]+/[\d-]+/-/\d+/?", path):
+                            resource = "testshop.html", "text/html"
+                        if resource is not None:
+                            filename, media_type = resource
+                            try:
+                                content = Path(__file__).with_name(filename).read_bytes()
+                            except FileNotFoundError:
+                                raise _APIError("Testikaupan resurssia ei löytynyt", 404) from None
+                            self.reply(200, content, content_type=f"{media_type}; charset=utf-8")
+                            return
                     body = None
                     if self.command == "POST":
                         length = int(self.headers.get("Content-Length", "0"))
@@ -249,24 +269,47 @@ class TestShop:
         free = max(0, stored["capacity"] - occupied)
         row["_test"] = {"simulated": True, "scenario": self.scenario, "original_availability": {
             key: deepcopy(row.get(key)) for key in ("free", "capacity", "is_reservable", "public_reservation_start", "queue_capacity", "queue", "free_queue")}}
-        row.update(free=free, capacity=stored["capacity"], is_reservable=datetime.now(UTC) >= self.opens_at,
+        row.update(free=free, reserved=occupied, capacity=stored["capacity"], is_reservable=datetime.now(UTC) >= self.opens_at,
                    queue_capacity=stored["queue_capacity"], queue=queued, free_queue=max(0, stored["queue_capacity"] - queued),
                    public_reservation_start=self.opens_at.isoformat())
         return row
 
     def _cart(self, session_id):
         rows = self._db.execute("SELECT c.item_id,r.*,p.product_id FROM cart c JOIN reservations r ON r.id=c.reservation_id JOIN courses p ON p.id=r.course_id WHERE c.session_id=?", (session_id,)).fetchall()
-        return [{"item_id": row["item_id"], "fare_product_id": row["product_id"], "quantity": 1, "price": row["price"],
-                 "reservation_params": {"reservation_event_group_id": row["course_id"], "reservation_account_id": row["child_id"]}} for row in rows]
+        return [{"item_id": row["item_id"], "fare_product_id": row["product_id"], "quantity": 1,
+                 "price": row["price"], "bundle_price": None, "payment_event_id": None,
+                 "reservation_event_group_id": row["course_id"],
+                 "reservation_params": {"reservation_event_group_id": row["course_id"],
+                                        "reservation_account_id": row["child_id"], "tags": None}} for row in rows]
 
     def _own(self):
-        return [{"reservation_id": row["id"], "reservation_event_group_id": row["course_id"], "reservation_account_id": row["child_id"],
-                 "reserving_account_id": 10, "reservation_status_id": row["status"], "is_paid": row["is_paid"], "receipt_event_id": row["receipt_id"], "queue_number": row["queue_number"]}
-                for row in self._db.execute("SELECT * FROM reservations ORDER BY id")]
+        rows = self._db.execute("SELECT r.*, c.raw FROM reservations r JOIN courses c ON c.id=r.course_id ORDER BY r.id")
+        result = []
+        for row in rows:
+            course = json.loads(row["raw"])
+            reservation = {
+                "reservation_id": row["id"], "reservation_event_group_id": row["course_id"],
+                "reservation_account_id": row["child_id"], "reservation_account_name": "Testilapsi",
+                "reservation_status_id": row["status"], "name": course.get("name"),
+                "start": course.get("start"), "end": course.get("end"), "is_course": course.get("is_course", 1),
+                "instructors": "Testiohjaaja", "event_number": course.get("event_number"),
+                "location_id": course.get("location_id"), "location": course.get("location"),
+                "payment_label": None, "payment_label_class": None,
+            }
+            if row["status"] in {1, 3}:
+                reservation["queue_number"] = row["queue_number"]
+            result.append(reservation)
+        return result
+
+    def _reservation_proof(self):
+        return {"testshop": True, "reservations": [dict(row) for row in self._db.execute("""
+            SELECT id AS reservation_id, status AS reservation_status_id, is_paid, receipt_id AS receipt_event_id
+            FROM reservations ORDER BY id
+        """)]}
 
     def _receipt(self, session_id):
         row = self._db.execute("SELECT id,total_amount,payment_type_id FROM receipts WHERE session_id=? ORDER BY id DESC LIMIT 1", (session_id,)).fetchone()
-        return dict(row, receipt_id=row["id"], is_closed=1, is_pay_later=0) if row else None
+        return dict(row, receipt_id=row["id"], is_closed=1, is_pay_later=0) if row else False
 
     def _payment_types(self):
         return [{"payment_type_id": 4, "name": "Simuloitu testisaldo", "is_balance": True, "is_pay_later": False, "is_disabled": False},
@@ -278,6 +321,8 @@ class TestShop:
             if method == "GET":
                 if path == "/_test/status":
                     return self.stats()
+                if path == "/_test/reservation-proof":
+                    return self._reservation_proof()
                 if path == PREFIX + "apicart":
                     return self._cart(session_id)
                 if path == PREFIX + "apiusereventgroups":
@@ -301,8 +346,14 @@ class TestShop:
                     return self._queue(body)
                 if path.startswith("/webshop/call/"):
                     operation = path.removeprefix("/webshop/call/")
+                    if operation == "cart/deleteCartItem":
+                        return self._delete_cart_item(body, session_id=session_id)
+                    if operation in {"cart/getreceiptinfo", "cart/islocked"}:
+                        if body != "":
+                            raise _APIError("Testilukupyyntö edellyttää tyhjää sisältöä", 400)
+                        result = self._receipt(session_id) if operation == "cart/getreceiptinfo" else {"isLocked": False}
+                        return {"result": result, "errors": []}
                     reads = {"user/getcurrentuser": {"account_id": 10, "name": "Testihuoltaja", "linked_accounts": [{"account_id": 20, "name": "Testilapsi"}]},
-                        "cart/getreceiptinfo": self._receipt(session_id), "cart/islocked": {"isLocked": False},
                         "cart/getonlinepaymenttypes": self._payment_types(),
                         "cart/checkcurrentuserbalance": {"balance": int(self._meta("balance"))}}
                     if operation in reads:
@@ -353,6 +404,36 @@ class TestShop:
         if lost:
             raise _APIError("Simuloitu vastauskatko: varaus tallennettiin", 503, retry_after=1)
         return self._cart(session_id)
+
+    def _delete_cart_item(self, data, *, session_id):
+        self._db.execute("INSERT INTO requests(kind) VALUES('delete')")
+        if (not isinstance(data, list) or len(data) != 1 or not isinstance(data[0], dict)
+                or set(data[0]) != {"item_id", "fare_product_id"}):
+            raise _APIError("Vain yhden testikoririvin voi poistaa kerrallaan", 400)
+        item_id = _int(data[0]["item_id"])
+        product_id = _int(data[0]["fare_product_id"])
+        if not (0 < item_id <= 2**63 - 1 and 0 < product_id <= 2**63 - 1):
+            raise _APIError("Testikoririvin tai myyntituotteen tunnus on virheellinen", 400)
+
+        self._db.execute("BEGIN IMMEDIATE")
+        try:
+            target = self._db.execute("""
+                SELECT r.id FROM cart c
+                JOIN reservations r ON r.id = c.reservation_id
+                JOIN courses p ON p.id = r.course_id
+                WHERE c.item_id = ? AND c.session_id = ? AND p.product_id = ?
+                    AND r.status = 7 AND r.is_paid = 0 AND r.receipt_id IS NULL
+            """, (item_id, session_id, product_id)).fetchone()
+            if target is None:
+                raise _APIError("Istunnon maksamatonta testikoririviä ei löytynyt")
+            self._db.execute("DELETE FROM cart WHERE item_id = ?", (item_id,))
+            self._db.execute("DELETE FROM reservations WHERE id = ?", (target["id"],))
+            self._db.execute("COMMIT")
+        except Exception:
+            if self._db.in_transaction:
+                self._db.execute("ROLLBACK")
+            raise
+        return {"result": True}
 
     def _queue(self, data):
         self._db.execute("INSERT INTO requests(kind) VALUES('queue')")
@@ -410,9 +491,13 @@ class TestShop:
                 raise _APIError("Simuloitu testisaldo ei riitä tai summa ei täsmää")
             if method == 5 and (balance != 0 or self.scenario == "fastpay-kortti-puuttuu"):
                 raise _APIError("FastPay-testikortti puuttuu tai testimaksuun yritettiin yhdistää saldoa")
+            course_id = cart[0]["reservation_params"]["reservation_event_group_id"]
             for key, state in (("return_url", "success"), ("cancel_url", "cancel")):
                 target = urlsplit(options.get(key, ""))
-                if f"{target.scheme}://{target.netloc}" != self.base_url or not target.path.startswith(PREFIX) or parse_qs(target.query).get("doPayment") != [state]:
+                course_path = re.fullmatch(rf"{PREFIX}reservations/9/[0-9-]+/[0-9-]+/-/{course_id}/?", target.path)
+                if (target.scheme or target.netloc
+                        or (target.path not in {PREFIX, PREFIX.rstrip("/")} and not course_path)
+                        or parse_qs(target.query, keep_blank_values=True).get("doPayment") != [state]):
                     raise _APIError("Testimaksun paluuosoite on virheellinen")
             if method == 5 and self.scenario == "fastpay-hylatty":
                 raise _APIError("Simuloitu FastPay-korttiveloitus hylättiin. Maksua ei tallennettu.", 402)
@@ -441,12 +526,18 @@ class TestShop:
     def stats(self) -> dict:
         with self._lock:
             counts = dict(self._db.execute("SELECT kind,count(*) FROM requests GROUP BY kind"))
-            own = self._own()
+            own = [dict(row) for row in self._db.execute("""
+                SELECT id AS reservation_id, course_id AS reservation_event_group_id,
+                       child_id AS reservation_account_id, 10 AS reserving_account_id,
+                       status AS reservation_status_id, is_paid, receipt_id AS receipt_event_id, queue_number
+                FROM reservations ORDER BY id
+            """)]
             receipts = [dict(row) for row in self._db.execute("SELECT id,total_amount,payment_type_id FROM receipts ORDER BY id")]
             card_charges = [row for row in receipts if row["payment_type_id"] == 5]
             return {"testshop": True, "scenario": self.scenario, "course_id": self.course_id,
                 "base_url": self.base_url if self._server else None, "opens_at": self.opens_at.isoformat(),
                 "cart_posts": counts.get("cart", 0), "add_posts": counts.get("cart", 0),
+                "delete_posts": counts.get("delete", 0),
                 "queue_posts": counts.get("queue", 0), "queued": sum(row["reservation_status_id"] in (1, 3) for row in own),
                 "queue_capacity": self._db.execute("SELECT sum(queue_capacity) FROM courses").fetchone()[0],
                 "checkout_posts": counts.get("checkout", 0), "writes": sum(counts.values()),

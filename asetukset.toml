@@ -4,7 +4,7 @@ kurssi = "Leikki-ikäisten jatkouimakoulu"
 hallit = ["Mäkelänrinne", "Kallio"]
 # Tyhjä lista: kaikki viikonpäivät. Numerot: ma=1 ... su=7.
 viikonpaivat = []
-arki_aikaisintaan = "17:30"
+arki_aikaisintaan = "17:20"
 viikonloppu_aikaisintaan = "09:30"
 # Voit lisätä rajoitukset myöhemmin:
 # aikaisintaan = "15:00"

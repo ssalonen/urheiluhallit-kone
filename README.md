@@ -1,10 +1,16 @@
 # Urheiluhallien ilmoittautumiskone
 
-Paikallinen komentoriviohjelma, joka ohjaa **oikeaa näkyvää Chromium-selainta** ja pitää ihmisen mukana varaamisessa. Ohjelma kertoo etenemisestään, odottaa ilmoittautumisen avautumista ja tavoittelee yhtä maksettua kurssipaikkaa etukäteen valituista vaihtoehdoista. Oletushaku on leikki-ikäisten jatkouimakoulu: ensin Mäkelänrinne, sitten Kallio, arkipäivisin aloitus aikaisintaan 17.30 ja viikonloppuisin aikaisintaan 9.30.
+Paikallinen komentoriviohjelma, joka ohjaa **oikeaa näkyvää Chromium-selainta** ja pitää ihmisen mukana varaamisessa. Ohjelma kertoo etenemisestään, odottaa ilmoittautumisen avautumista ja tavoittelee yhtä maksettua kurssipaikkaa etukäteen valituista vaihtoehdoista. Oletushaku on leikki-ikäisten jatkouimakoulu: ensin Mäkelänrinne, sitten Kallio, arkipäivisin aloitus aikaisintaan 17.20 ja viikonloppuisin aikaisintaan 9.30.
 
 Versiossa **0.5** on ohjattu käyttötila, jatkuvat tilaviestit sekä komennot ajon pysäyttämiseen ja jatkamiseen. Tavoitteena on yksi vahvistettu kurssipaikka. Haluttaessa ohjelma liittyy myös sopivien kurssien jonoihin varsinaisen paikan etsimisen aikana.
 
-Ohjelma ei ole Urheiluhallien tai Enkoran virallinen tuote. **Oikealla asiakastilillä tehtävää varausta tai FastPay-maksua ei ole tehty tämän projektin testeissä.** Testikaupassa onnistuva ajo ei vielä osoita oikean kaupan kaikkien vaiheiden toimivan. Palvelun ruuhka tai loppuvat paikat voivat estää varaamisen.
+Ohjelma ei ole Urheiluhallien tai Enkoran virallinen tuote. **Repon automaatiolla ei ole vielä todennettu varausta tai FastPay-maksua oikealla asiakastilillä.** Oikean kaupan käyttöliittymässä tehty erillinen maksamaton varauskoe läpäisi 22.11.2026: aikuisen oma osallistujavalinta, yksi kurssi ostoskoriin, keskeneräinen varaus ja testivarauksen poistaminen varmistettiin. Tämä koe ei käyttänyt repon selainadapteria eikä testannut lapsitiliä tai maksamista. Testikaupassa onnistuva ajo ei vielä osoita oikean kaupan kaikkien vaiheiden toimivan. Palvelun ruuhka tai loppuvat paikat voivat estää varaamisen.
+
+**Laadunvarmistus 22.11.2026:** oikean kaupan julkisen selainkoodin vertailu paljasti maksupyynnön muotoeron, jota simulaattori ei testannut. Lisäksi tarkastuksessa löytyi virheitä maksun vahvistamisessa ja häiriöistä palautumisessa. [Tarkastusraportti](docs/laadunvarmistus-2026-11-22.md) kertoo löydökset, korjaukset, testinäytön ja vielä todentamatta olevat vaiheet. Automaattisen maksun tuotantokelpoisuutta ei ole osoitettu.
+
+**Kirjautuneen JSON-kokeen löydös:** oikean kaupan maksamaton varaus lisättiin ja poistettiin, ja ostoskorin sekä kurssivarausten JSON otettiin talteen kolmessa vaiheessa. Havaitussa kurssivastauksessa ei ole `is_paid`-kenttää. Maksuton pysäytys tunnistaa tämän vuoksi erikseen täsmällisen ostoskoririvin ja saman osallistujan keskeneräisen kurssivarauksen; tuntematonta maksutilaa ei muuteta maksuluvaksi. Koe koski Kurssit-palvelun aikuista, eikä se ole repon Uimakoulut-adapterin tuotantoajo.
+
+**Tuotantomaksun vahvistusraja:** tässä korjauksessa oikean kaupan uuden maksun `confirmed`-tulosta ei muodosteta todentamattoman kuittiyhteyden perusteella. Maksupyyntö voi silti tulla lähetetyksi kerran, jos muu varaustieto sallii sen. Onnistunutkin maksu voi jäädä ohjelmassa vahvistamatta: tarkista tilanne oikean kaupan omista varauksista ja kuitista. Puuttuva vahvistus ei tarkoita maksun epäonnistumista eikä oikeuta uuteen maksuyritykseen.
 
 Interaktiivinen esimerkkiajo: [avaa HTML](docs/esimerkkiajo.html) (lataa tiedosto ja avaa selaimessa). Esimerkki toimii paikallisesti kuvitteellisilla kursseilla ja osallistujalla.
 Esimerkin ohjauspaneelissa voi valita myös pysähtymisen maksamattomaan ostoskoriin. HTML on itsenäinen havainnollistus eikä käynnistä komentoriviohjelmaa tai tee verkkopyyntöjä.
@@ -65,6 +71,8 @@ Valitsimet `--keskustele` ja `--kysy-toiminnot` tuovat ohjauksen myös suoriin v
 
 `--ilman-maksua` käy läpi saman kurssi- ja lapsivalinnan sekä varausyrityksen, mutta pysähtyy, kun täsmällinen maksamaton kurssirivi on tarkistettu ostoskorissa. Maksutapaa ei anneta, eikä ohjelma aloita maksua. Ostoskorissa oleva paikka voi vanhentua eikä ole maksettu tai lopullisesti vahvistettu kurssipaikka.
 
+Oikeasta kaupasta havaitussa muodossa tämä edellyttää yhtä oikean kurssin, myyntituotteen ja osallistujan koririviä, hyväksyttyä hintaa, vastaavaa yksilöityä tilan 7 kurssivarausta, nimenomaista `payment_event_id: null` -kenttää ja lukitsematonta koria. Ristiriitainen tieto estää hyväksymisen. Puuttuvan `is_paid`-kentän maksutila pysyy tuntemattomana: tämä näyttö riittää vain maksuttoman ajon pysäytykseen, eikä se salli maksun aloittamista.
+
 ```sh
 uhkone varaa-yksi KURSSITUNNUS --lapsi "Lapsen tarkka nimi" --enintaan 76 --ilman-maksua --ei-jono
 ```
@@ -72,13 +80,13 @@ uhkone varaa-yksi KURSSITUNNUS --lapsi "Lapsen tarkka nimi" --enintaan 76 --ilma
 Valitsin toimii myös `varaa`-komennossa. Ohjatussa tilassa valitse maksutavan sijaan "pysähdy maksamattomaan ostoskoriin". Työkalu avaa tarkistetun ostoskorin näkyvään selaimeen ja odottaa, että suljet ikkunan; tämän ajon selainverkkoesto estää maksupyynnöt myös ostoskorin näkymässä. Samaa ajoa voi jatkaa samalla selainprofiililla ja tilahakemistolla ostoskorin tilanteen tarkistamiseksi; tämä tila ei muutu myöhemmässä ajossa automaattisesti maksulliseksi.
 Tässä tilassa jonoihin ei liitytä oletuksena; `--jono` sallii sen erikseen.
 
-`varaa-yksi` hyväksyy useita etukäteen valittuja kurssiosoitteita tai tunnuksia. Ohjelma avaa niille erilliset välilehdet samassa selainprofiilissa. Julkisia kurssitietoja luetaan rinnakkain rajatulla määrällä pyyntöjä. Varsinaiset varaus- ja maksutoiminnot käyttävät yhteistä vuoroa.
+`varaa-yksi` hyväksyy useita etukäteen valittuja kurssiosoitteita tai tunnuksia **antamassasi etusijajärjestyksessä**. Mitään muita kursseja ei haeta ehdokkaiksi. Annettujen tunnusten kurssitiedot tarkistetaan palvelusta, ja kurssitason, hallin sekä aloitusajan hakuehdot ovat edelleen turvarajoja. Ohjelma avaa niille erilliset välilehdet samassa selainprofiilissa. Julkisia kurssitietoja luetaan rinnakkain rajatulla määrällä pyyntöjä. Varsinaiset varaus- ja maksutoiminnot käyttävät yhteistä vuoroa.
 
-Jos useampi sopiva paikka on samalla tarkistuksella saatavilla, hallien toivejärjestys ratkaisee. Pelkästään Kallion paikan ollessa valmis sitä voidaan tavoitella heti. Ohjelma ei odota mahdollista myöhempää Mäkelänrinteen paikkaa.
+Jos useampi sopiva paikka on samalla tarkistuksella saatavilla, **syöttämäsi kurssilistan järjestys** ratkaisee. Pelkästään Kallion paikan ollessa valmis sitä voidaan tavoitella heti. Ohjelma ei odota mahdollista myöhempää Mäkelänrinteen paikkaa.
 
 **Kun varsinainen varauspyyntö on voinut lähteä, muut kurssien ostot lukitaan.** Valinta tallennetaan levylle ennen lähettämistä. Työkalu selvittää tämän varauksen ja sen maksun tuloksen ennen muuta etenemistä. Se ei käynnistä toisen kurssin ostoa pelkän aikakatkaisun tai tyhjän tilavastauksen perusteella. Maksua ei lähetetä uudelleen epäselvän vastauksen jälkeen.
 
-Onnistuminen edellyttää oikean osallistujan oikean kurssin vahvistettua varausta ja uuden maksun osalta suljettua kuittia oikealla summalla. Pelkkä ostoskoririvi, onnistumissivu tai ”Ei vahvistettu” -varaus ei riitä. Työkalu ei voi hallita käsin, toisella laitteella tai toisessa paikallisessa tilahakemistossa tehtyjä ostoksia.
+Onnistuminen edellyttää oikean osallistujan oikean kurssin vahvistettua, maksetuksi merkittyä varausta. Uuden maksun osalta suljetun ja oikeansummaiseksi tarkistetun kuitin pitää lisäksi liittyä samaan varaukseen. Pelkkä uusin samanhintainen kuitti, ostoskoririvi, onnistumissivu tai ”Ei vahvistettu” -varaus ei riitä. Jos kaupan vastaus ei todista varauksen ja kuitin yhteyttä, ohjelma jättää maksun vahvistamatta eikä lähetä uutta maksua. Oikean kirjautuneen kurssirajapinnan kuittiyhteys on vielä todennettava; simulaattorin kenttä tai kahden todentamattoman tunnisteen numeroyhtäläisyys ei ole siitä todiste. Julkisen kauppakoodin kuittikenttiä käyttävä muu varausnäkymä rajaa kurssit pois. Työkalu ei voi hallita käsin, toisella laitteella tai toisessa paikallisessa tilahakemistossa tehtyjä ostoksia.
 
 Oletusrajat ovat asetustiedostossa `asetukset.toml`. `haku` ja `vahti` eivät tee varauksia tai tarvitse kirjautumista:
 
@@ -139,6 +147,14 @@ Simulaattorin paikkamäärät ja avautumisajat muutetaan tarkoituksella paikalli
 
 **Simulaattori on tämän projektin oma toteutus.** Se ei ole Enkoran lisensoitu palvelinohjelmisto tai itse asennettu Nexus-kauppa. Urheiluhallien käyttämän alustan osoittavat [kaupan Nexus-sivu](https://kauppa.urheiluhallit.fi/nexus/) ja [Enkoran asiakasreferenssi](https://enkora.fi/fi/referenssit/urheiluhallit-oy/). Julkista itse asennettavaa Enkora-jakelua ei löytynyt. Toimittajan mahdollinen testiympäristö olisi selvitettävä erikseen.
 
+Testikaupan kurssi-, osallistuja-, varaustila- ja korinäkymät käyttävät oikean kaupan julkisesta HTML:stä poimittuja, puhdistettuja malleja. Kahdeksan lähdemallin tunnisteet ja tarkistussummat ovat tiedostossa `uhkone/testshop_templates.html`. Poimija säilyttää valittujen elementtien hierarkian, poistaa muuttuvat arvot ja korvaa ne paikallisilla tietopaikoilla. Kurssilisäys avaa korin, kurssilla näkyy osallistujan **Ei vahvistettu** -rivi, ja **Poista** vapauttaa testipaikan. Maksutavat ja saldo päivittyvät erillisinä vastauksina kuten kaupan selainkoodissa.
+
+Kurssivarausten ja ostoskorin JSON-rakenne perustuu lisäksi 22.11.2026 kirjautuneessa kaupassa talteen otettuun maksuttomaan kokeeseen. Kurssivastaukseen ei lisätä keksittyä `is_paid`- tai kuittiviitettä. Simuloitujen maksujen todistusaineisto välitetään erillisellä, vain paikallisessa testitilassa hyväksyttävällä lukurajapinnalla. Se ei kuvaa tuotannon maksusopimusta. Simulaattori käyttää edelleen omia pysyviä koririvitunnisteitaan; oikeassa yhden rivin näytteessä `item_id` oli 0, ja sen lukeminen katetaan erikseen regressiolla.
+
+Tyylit ja palvelin ovat omia paikallisia toteutuksia. Kirjautuminen, henkilötiedot ja maksut ovat kuvitteellisia; kaupan JavaScriptiä, kuvia, fontteja tai muita ulkoisia resursseja ei ladata. CSP rajaa myös käsin avatun testikaupan resurssit paikalliseen palvelimeen. Testikaupan läpäisy ei yksin todista oikean kirjautuneen rajapinnan vastausten tai maksupalvelun vastaavuutta. Myös `koeajo --monta 1` käyttää usean vaihtoehdon selainpohjaa; erillinen Chromium-smoke tarkistaa lisäksi yhden kurssin selainpohjan, näkyvän maksamattoman koririvin ja osallistujan varaustilan.
+
+Mallit voi poimia uudelleen anonyymisti tallennetusta julkisesta sivusta komennolla `python scripts/extract_shop_templates.py /tmp/kauppa-julkinen.html --output uhkone/testshop_templates.html`. Pidä raakatallenne lähdekansion ulkopuolella. Poiminta pysähtyy, jos tarvittava rakenne puuttuu tai muuttuu epäselväksi. Tarkista tulos ja suorita julkisen puun tarkistin ennen julkaisemista.
+
 ## Paikalliset tiedot ja julkinen repository
 
 Selainprofiili, kirjautumisistunto ja varausajon etenemistila tallennetaan oletuksena **lähdekansion ulkopuolelle**, hakemistoon `~/.local/state/uhkone` tai `$XDG_STATE_HOME/uhkone`. `--tilahakemisto` vaihtaa paikan. Valitse yksityinen hakemisto tämän repon ulkopuolelta. Profiili sisältää kirjautumisen ja etenemistila voi sisältää osallistujaan sekä varaukseen liittyviä tietoja. Älä jaa niitä.
@@ -168,6 +184,7 @@ Tarkista ennen ensimmäistä committia myös `git var GIT_AUTHOR_IDENT` ja `git 
 python -m pip install -e '.[test]'
 python -m playwright install chromium
 python -m pytest -q
+python scripts/smoke_browser.py
 python scripts/check_public_tree.py
 ```
 
@@ -176,5 +193,17 @@ Testit käyttävät kuvitteellisia osallistujia ja paikallisia kauppanäkymiä. 
 `client.py` lukee julkista kurssidataa. `booking.py` ja `multi.py` hallitsevat varaamista ja palautumista, selainliitännät käyttävät kaupan käyttöliittymää ja saman istunnon rajapintoja. `console.py` käsittelee ihmisen ohjauksen. `testshop.py` toteuttaa paikallisen simulaattorin ja `seed.py` rajaa julkaistavan kurssidatan.
 
 Todellinen kirjautuminen, tilikohtaiset osallistujavaatimukset ja maksupalvelun mahdollinen lisätunnistautuminen pitää vielä todentaa omassa työpöytäympäristössä. Tässä kehitysympäristössä ei ole käytetty oikeita asiakastunnuksia, tehty aitoja varauksia tai veloitettu korttia. TLS-varmenteiden tarkistusta ei poisteta käytöstä yhteysongelman korjaamiseksi.
+
+### Tarkista oikean kaupan julkinen sopimus
+
+```sh
+uv run --locked python scripts/check_live_shop.py
+```
+
+Tämä erillinen tarkistus lukee oikean kaupan julkista HTML:ää, JavaScriptiä ja kurssirajapintaa. Se käyttää nykyistä kurssijäsennintä ja tarkistaa automaation tarvitsemia julkisia rakenteita. Se käyttää vain GET-pyyntöjä eikä kirjaudu, tee varausta tai aloita maksua. Tulosteessa ovat tarkistusten yhteenveto ja lähteiden tarkistussummat; raakavastauksia ei tallenneta.
+
+Julkisen sopimuksen tarkistus ja paikallinen testijoukko ovat erillisiä. Sopimustarkistuksen voi ajaa myös GitHub Actionsin **Live public shop contract** -työnkulusta käsin. Ajoa ei ole ajastettu. CI käyttää paikallisille testeille komentoa `pytest -q --fail-on-skip`: ohitettu testi epäonnistuttaa ajon. CI ajaa lisäksi koko paikallisen Chromium-smoken, joka tarkistaa simuloidun varauksen palvelimen todellisista tapahtumista.
+
+**Julkisen tarkistuksen hyväksytty tulos ei ole päästä päähän tehty varaus- tai maksutesti.** Kirjautuneen tilin osallistujavalinta, varauksen ja kuitin yhteys sekä ulkoisen maksupalvelun paluu on varmennettava erikseen.
 
 Kurssin sopiva taso tarkistetaan [Urheiluhallien leikki-ikäisten uimakoulujen kuvauksesta](https://www.urheiluhallit.fi/palvelut/uimakoulut/leikki-ikaiset/). Ilmoittautuminen tapahtuu [Urheiluhallien omassa verkkokaupassa](https://kauppa.urheiluhallit.fi/webshop/).

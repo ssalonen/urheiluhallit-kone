@@ -26,4 +26,4 @@ uhkone = "uhkone.cli:main"
 include = ["uhkone*"]
 
 [tool.setuptools.package-data]
-uhkone = ["testshop.html", "data/*.json"]
+uhkone = ["testshop.html", "testshop.js", "testshop.css", "testshop_templates.html", "data/*.json"]

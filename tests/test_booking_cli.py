@@ -75,6 +75,13 @@ class ReservationCliTests(unittest.TestCase):
         self.assertNotIn("Testilapsi", str(state))
         self.assertIn("VARAUS VAHVISTETTU", stdout)
 
+    def test_live_checkout_discloses_inability_to_confirm_receipt_before_browser_and_after_deadline(self):
+        self.run_booking.return_value = SimpleNamespace(status="deadline", course_id=123, reservation_id="r123", receipt_id=None)
+        code, stdout, stderr = self.invoke()
+        self.assertEqual(code, 1)
+        self.assertLess(stdout.index("kuittia"), stdout.index("Avaan näkyvän selaimen"))
+        self.assertIn("maksu on voinut toteutua", stderr.lower())
+
     def test_maximum_price_blocks_booking_before_browser(self):
         self.client.get_course.return_value = replace(self.course, price=Decimal("76.01"))
         code, _, stderr = self.invoke()
@@ -104,7 +111,7 @@ class ReservationCliTests(unittest.TestCase):
         self.assertFalse(self.run_booking.call_args.kwargs["allow_queue"])
         self.assertIn("maksamaton", stdout.casefold())
         self.assertNotIn("VARAUS VAHVISTETTU", stdout)
-        self.backend.show_unpaid_cart.assert_called_once_with()
+        self.backend.show_unpaid_cart.assert_called_once_with("r123")
         self.backend.wait_for_close.assert_called_once_with()
 
     def test_requested_queue_fallback_is_default_and_can_be_disabled(self):
@@ -184,7 +191,7 @@ class ReservationCliTests(unittest.TestCase):
         self.assertIn("aikaisempi", stderr)
         self.open_browser.assert_not_called()
 
-    def test_multiple_targets_are_ranked_and_share_one_coordinator(self):
+    def test_multiple_targets_preserve_input_priority_and_share_one_coordinator(self):
         kallio = replace(self.course, id=124, location="Kallio")
         self.client.get_course.side_effect = [kallio, self.course]
         self.args = ["varaa-yksi", "124", "123", "124", "--lapsi", "Testilapsi",
@@ -193,7 +200,8 @@ class ReservationCliTests(unittest.TestCase):
         self.assertEqual(code, 0, stderr)
         self.assertEqual([call.args[0] for call in self.client.get_course.call_args_list], [124, 123])
         specs, pool, _ = self.run_booking.call_args.args
-        self.assertEqual([spec.course.id for spec in specs], [123, 124])
+        self.assertEqual([spec.course.id for spec in specs], [124, 123])
+        self.assertIn("antamassasi etusijajärjestyksessä", stdout)
         self.assertEqual(pool, self.open_pool.return_value.__enter__.return_value)
         self.open_browser.assert_not_called()
         self.assertIn("yksi kurssi 2", stdout)

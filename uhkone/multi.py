@@ -15,6 +15,7 @@ from collections.abc import Callable, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 from typing import Protocol, cast
 
@@ -39,7 +40,7 @@ from .origin import validate_base_url
 
 
 class QueueBackend(BookingBackend, Protocol):
-    def join_queue(self) -> None: ...
+    def join_queue(self, *, deadline: datetime) -> None: ...
 
 
 class RacePool(Protocol):
@@ -141,6 +142,10 @@ def _lease_template(identity: str, origin: str, specs: Sequence[BookingSpec]) ->
         "candidates": sorted((_binding(spec) for spec in specs), key=lambda item: item["course_id"]),
         "pinned_id": None,
         "existing_claim": False,
+        "hold_payment_conflict": False,
+        "confirmed_claim_id": None,
+        "claim_id": None,
+        "fallback_until": None,
         "queue": None,
         "queues": {},
     }
@@ -156,6 +161,11 @@ def _load_lease(path: Path, identity: str, origin: str, specs: Sequence[BookingS
         value = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_object)
         # Queue support was added to version 1 without changing actual-course
         # bindings or the meaning of a previously pinned purchase.
+        if isinstance(value, dict):
+            value.setdefault("confirmed_claim_id", None)
+            value.setdefault("claim_id", value["confirmed_claim_id"])
+            value.setdefault("fallback_until", None)
+            value.setdefault("hold_payment_conflict", False)
         if isinstance(value, dict) and "queue" not in value:
             value["queue"] = None
         if isinstance(value, dict) and "queues" not in value:
@@ -163,9 +173,21 @@ def _load_lease(path: Path, identity: str, origin: str, specs: Sequence[BookingS
             value["queues"] = {str(queue["course_id"]): queue} if isinstance(queue, dict) else {}
         if not isinstance(value, dict) or set(value) != set(expected) or type(value["version"]) is not int:
             raise ValueError("Tuntematon yhteisen varaustilan rakenne")
+        if value["fallback_until"] is not None:
+            _aware(datetime.fromisoformat(value["fallback_until"]))
         pinned = value["pinned_id"]
         if type(value["existing_claim"]) is not bool or (value["existing_claim"] and pinned is None):
             raise ValueError("Virheellinen aiemmin nähdyn varauksen tieto")
+        if type(value["hold_payment_conflict"]) is not bool or (value["hold_payment_conflict"] and not value["existing_claim"]):
+            raise ValueError("Tallennettu maksutilan ristiriita ei vastaa kurssivalintaa")
+        paid_id = value["confirmed_claim_id"]
+        claim_id = value["claim_id"]
+        if claim_id is not None and (not isinstance(claim_id, str) or not claim_id.strip() or not value["existing_claim"]):
+            raise ValueError("Tallennetun varauksen tunnus ei vastaa kurssivalintaa")
+        if paid_id is not None and paid_id != claim_id:
+            raise ValueError("Maksutieto ei kuulu tallennettuun varaukseen")
+        if paid_id is not None and (not isinstance(paid_id, str) or not paid_id.strip() or not value["existing_claim"]):
+            raise ValueError("Vahvistetun varauksen tunnus ei vastaa tallennettua varausta")
         if pinned is not None and (type(pinned) is not int or pinned not in {spec.course.id for spec in specs}):
             raise ValueError("Tallennettu voittajakurssi ei kuulu tähän ehdokasjoukkoon")
         queues = value["queues"]
@@ -197,7 +219,8 @@ def _load_lease(path: Path, identity: str, origin: str, specs: Sequence[BookingS
             if key in queues and queues[key] != value["queue"]:
                 raise ValueError("Jonovarauksen vanha ja uusi tallenne ovat ristiriidassa")
             queues[key] = value["queue"]
-        comparison = dict(value, pinned_id=None, existing_claim=False, queue=None, queues={})
+        comparison = dict(value, pinned_id=None, existing_claim=False, hold_payment_conflict=False,
+                          confirmed_claim_id=None, claim_id=None, fallback_until=None, queue=None, queues={})
         if comparison != expected:
             raise BookingError(
                 "Saman maksajan ja lapsen tallennettu varausajo käyttää eri kurssijoukkoa tai asetuksia. "
@@ -217,15 +240,27 @@ def _can_release(path: Path, backend: BookingBackend, spec: BookingSpec) -> bool
         state["phase"] == "ready"
         and state["add_sends"] == state["checkout_sends"] == 0
         and state["reservation_id"] is None
+        and not state["hold_payment_conflict"]
     )
 
 
+def _affordable(spec: BookingSpec, observation: Observation) -> bool:
+    return observation.current_price is not None and observation.current_price <= spec.max_price
+
+
+def _actual_claim(observation: Observation) -> bool:
+    return observation.held or observation.reservation_id is not None or observation.hold_payment_conflict
+
+
 class _ArbitratedBackend:
-    def __init__(self, backend: BookingBackend, spec: BookingSpec, journal: Path, *, existing_claim: bool):
+    def __init__(self, backend: BookingBackend, spec: BookingSpec, journal: Path, *,
+                 existing_claim: bool, confirmed_claim_id: str | None, claim_id: str | None):
         self.backend = backend
         self.spec = spec
         self.journal = journal
         self.existing_claim = existing_claim
+        self.confirmed_claim_id = confirmed_claim_id
+        self.claim_id = claim_id
 
     @property
     def identity(self):
@@ -234,23 +269,32 @@ class _ArbitratedBackend:
     def snapshot(self):
         value = self.backend.snapshot()
         _check_observation(value)
-        if (self.existing_claim and not value.held and not value.reservation_confirmed
-                and value.reservation_id is None and value.cart_empty and not value.cart_has_others):
+        if self.claim_id is not None and value.reservation_id != self.claim_id:
+            if value.hold_payment_conflict:
+                return Observation(hold_payment_conflict=True)
+            raise TransientBookingError("Odotetaan tunnistetun varauksen ajantasaista tilaa.")
+        if self.confirmed_claim_id is not None and (
+            not value.reservation_confirmed or value.reservation_id != self.confirmed_claim_id or value.held
+        ):
+            if value.hold_payment_conflict:
+                return Observation(hold_payment_conflict=True)
+            raise TransientBookingError("Odotetaan aiemmin vahvistetun varauksen yhdenmukaista tilaa.")
+        if self.existing_claim and not _actual_claim(value) and value.cart_empty and not value.cart_has_others:
             # Shared account reads may expose a claim before the selected
             # course page does. Losing that evidence cannot authorize an add.
             raise TransientBookingError("Aiemmin nähty oma varaus ei vielä näy kurssipolussa.")
-        if (not self.existing_claim and not value.available and not value.held and not value.reservation_confirmed
-                and value.reservation_id is None
+        if (not self.existing_claim and (not value.available or not _affordable(self.spec, value))
+                and not _actual_claim(value)
                 and not value.payment_locked and not value.cart_has_others and value.cart_empty
                 and _can_release(self.journal, self.backend, self.spec)):
             raise _YieldSelection()
         return value
 
-    def add_selected_course(self):
-        self.backend.add_selected_course()
+    def add_selected_course(self, *, deadline: datetime):
+        self.backend.add_selected_course(deadline=deadline)
 
-    def checkout(self):
-        self.backend.checkout()
+    def checkout(self, reservation_id: str, price: Decimal, *, deadline: datetime, on_dispatched: Callable[[], None]):
+        self.backend.checkout(reservation_id, price, deadline=deadline, on_dispatched=on_dispatched)
 
     def wait(self, seconds):
         self.backend.wait(seconds)
@@ -362,7 +406,32 @@ def run_race(
             emit("heartbeat")
             backend.wait(min(1, remaining))
 
-    def selected(lease: dict, course_id: int, *, existing_claim: bool = False,
+    def pin_claim(lease: dict, course_id: int, observed_claim: Observation | None):
+        lease["pinned_id"] = course_id
+        lease["existing_claim"] = lease["existing_claim"] or observed_claim is not None
+        if observed_claim is not None and observed_claim.hold_payment_conflict:
+            lease["hold_payment_conflict"] = True
+        if observed_claim is not None and lease["claim_id"] is None:
+            lease["claim_id"] = observed_claim.reservation_id
+        if observed_claim is not None and observed_claim.settlement_seen:
+            if not observed_claim.reservation_id:
+                raise BookingError("Vahvistetun varauksen tunnus puuttuu.")
+            if observed_claim.reservation_id == lease["claim_id"]:
+                lease["confirmed_claim_id"] = observed_claim.reservation_id
+
+    def preserve_shared_conflict(lease: dict, observations: Mapping[int, Observation | TransientBookingError]):
+        for course_id, value in observations.items():
+            if isinstance(value, Observation) and value.hold_payment_conflict:
+                _check_observation(value)
+                if lease["pinned_id"] is not None and lease["pinned_id"] != course_id:
+                    lease["hold_payment_conflict"] = lease["existing_claim"] = True
+                    save_lease(lease)
+                    raise BookingError("Maksutilan ristiriita koskee eri kurssia kuin tallennettu varaus.")
+                pin_claim(lease, course_id, value)
+                save_lease(lease)
+                return
+
+    def selected(lease: dict, course_id: int, *, observed_claim: Observation | None = None,
                  grace_deadline: datetime | None = None) -> RaceResult | None:
         spec = by_id[course_id]
         if grace_deadline is not None and grace_deadline > spec.deadline:
@@ -374,19 +443,22 @@ def run_race(
         if checkpoint is not None:
             checkpoint()
         # The intent is durable before activating a writable page.
-        lease["pinned_id"] = course_id
-        lease["existing_claim"] = lease["existing_claim"] or existing_claim
+        pin_claim(lease, course_id, observed_claim)
         save_lease(lease)
         ensure_identity()
         # Activation failure preserves the pinned choice until no send is proven.
         backend = pool.activate(course_id)
         if backend is not pool.backends[course_id]:
             raise BookingError("Aktivoitu selain ei vastaa valittua kurssia.")
-        wrapper = _ArbitratedBackend(backend, spec, journal, existing_claim=lease["existing_claim"])
+        wrapper = _ArbitratedBackend(backend, spec, journal, existing_claim=lease["existing_claim"],
+                                     confirmed_claim_id=lease["confirmed_claim_id"], claim_id=lease["claim_id"])
+        conflict = (Observation(hold_payment_conflict=True, reservation_id=lease["claim_id"])
+                    if lease["hold_payment_conflict"] else None)
         try:
             result = run_booking(spec, wrapper, journal, now=now, log=log,
                                  on_add_not_sent=wrapper.on_add_not_sent, progress=progress,
-                                 checkpoint=checkpoint, before_action=before_action)
+                                 checkpoint=checkpoint, before_action=before_action,
+                                 prior_payment_conflict=conflict)
         except _YieldSelection:
             if lease["existing_claim"] or not _can_release(journal, backend, spec):
                 raise BookingError("Kurssia ei voi vaihtaa mahdollisesti lähetetyn varauksen jälkeen.")
@@ -404,7 +476,7 @@ def run_race(
             if journal.exists() or journal.is_symlink():
                 state = _load_state(journal, pool.backends[spec.course.id].identity, spec)
                 if (state["add_sends"] or state["checkout_sends"] or state["reservation_id"] is not None
-                        or state["phase"] != "ready"):
+                        or state["phase"] != "ready" or state["hold_payment_conflict"]):
                     return True
         return False
 
@@ -425,7 +497,31 @@ def run_race(
     def queue_fallback(lease: dict) -> RaceResult:
         if lease["pinned_id"] is not None or lease["existing_claim"] or actual_history():
             return RaceResult("deadline", lease["pinned_id"])
-        grace_end = max(end, clock()) + timedelta(seconds=queue_timeout)
+        if lease["fallback_until"] is None:
+            lease["fallback_until"] = (end + timedelta(seconds=queue_timeout)).isoformat()
+            save_lease(lease)
+        grace_end = _aware(datetime.fromisoformat(lease["fallback_until"]))
+        if clock() >= grace_end:
+            # A restart may still reconcile a previously sent queue request,
+            # but must never reopen the expired mutation window.
+            queue = lease["queue"]
+            if queue is None:
+                return RaceResult("deadline")
+            try:
+                ensure_identity()
+                seen = pool.observations()[queue["course_id"]]
+                ensure_identity()
+                if isinstance(seen, Observation):
+                    _check_observation(seen)
+                    if seen.hold_payment_conflict:
+                        pin_claim(lease, queue["course_id"], seen)
+                        save_lease(lease)
+                        return RaceResult("deadline", queue["course_id"])
+                    if seen.queued:
+                        return finish_queue(lease, queue["course_id"], seen)
+            except (TransientBookingError, TimeoutError, OSError):
+                pass
+            return with_queues(RaceResult("queue_pending", queue["course_id"]), lease)
         queue_dispatched_here = False
         queue_cooldowns: dict[int, datetime] = {}
         failures = 0
@@ -450,8 +546,9 @@ def run_race(
             ensure_identity()
             if not isinstance(observations, Mapping) or set(observations) != set(identifiers):
                 raise BookingError("Jonopolkujen havaintojoukko on virheellinen.")
+            preserve_shared_conflict(lease, observations)
             errors = [value for value in observations.values() if isinstance(value, TransientBookingError)]
-            if errors:
+            if errors and not lease["hold_payment_conflict"]:
                 # selection_clear covers actual bookings, not existing queues.
                 # Every candidate's queue state must be known before fallback.
                 verified_queue_ids.clear()
@@ -464,7 +561,7 @@ def run_race(
                 emit("candidate", course_id=course_id, **_observation_metadata(observation))
             failures = 0
             existing = [course_id for course_id, value in observations.items()
-                        if value.held or value.reservation_confirmed or value.reservation_id is not None]
+                        if _actual_claim(value)]
             if len(existing) > 1:
                 raise BookingError("Usealla hyväksytyllä kurssilla on jo varaus. Jonovarausta ei lähetetä.")
             if existing:
@@ -472,7 +569,7 @@ def run_race(
                     # A real reservation appearing after queue dispatch needs
                     # explicit reconciliation on the next invocation.
                     return RaceResult("deadline", existing[0])
-                result = selected(lease, existing[0], existing_claim=True, grace_deadline=grace_end)
+                result = selected(lease, existing[0], observed_claim=observations[existing[0]], grace_deadline=grace_end)
                 if result is not None:
                     return result
                 continue
@@ -485,8 +582,7 @@ def run_race(
                 actual_visible = [spec for spec in specs if spec.course.id in observations
                           and spec.opens_at <= clock()
                           and observations[spec.course.id].available
-                          and (price := observations[spec.course.id].current_price) is not None
-                          and price <= spec.max_price]
+                          and _affordable(spec, observations[spec.course.id])]
                 actual = [spec for spec in actual_visible
                           if clock() >= cooldowns.get(spec.course.id, spec.opens_at)]
                 if actual:
@@ -512,7 +608,8 @@ def run_race(
                 return finish_queue(lease, queued[0], observations[queued[0]])
             choices = [spec.course.id for spec in specs
                        if clock() >= queue_cooldowns.get(spec.course.id, spec.opens_at) and spec.opens_at <= clock()
-                       and spec.course.id in observations and observations[spec.course.id].queue_available]
+                       and spec.course.id in observations and observations[spec.course.id].queue_available
+                       and _affordable(spec, observations[spec.course.id])]
             if not choices:
                 wait(2, until=grace_end)
                 continue
@@ -530,13 +627,24 @@ def run_race(
                 backend = pool.activate_queue(course_id)
                 if backend is not pool.backends[course_id]:
                     raise BookingError("Aktivoitu selain ei vastaa valittua jonokurssia.")
-                backend.join_queue()
+                backend.join_queue(deadline=grace_end)
             except ActionNotSent as exc:
                 lease["queue"] = None
                 lease["queues"].pop(str(course_id), None)
+                if exc.observation is not None and _actual_claim(exc.observation):
+                    pin_claim(lease, course_id, exc.observation)
+                    save_lease(lease)
+                    if exc.retry_after > 0:
+                        wait(exc.retry_after, until=grace_end)
+                    result = selected(lease, course_id, grace_deadline=grace_end)
+                    assert result is not None  # A pinned existing claim cannot yield.
+                    return result
                 save_lease(lease)
-                queue_cooldowns[course_id] = clock() + timedelta(seconds=2)
+                queue_cooldowns[course_id] = clock() + timedelta(seconds=max(2, exc.retry_after))
                 log(f"Jonopyyntöä ei lähetetty; toinen hyväksytty jono voidaan tarkistaa: {exc}")
+                if exc.retry_after > 0:
+                    # A shared account read may be the rate-limited request.
+                    wait(exc.retry_after, until=grace_end)
                 continue
             except Exception as exc:  # noqa: BLE001 - Any queue failure may follow a sent mutation; preserve the durable intent.
                 queue_dispatched_here = True
@@ -604,7 +712,8 @@ def run_race(
                    and current >= eager_cooldowns.get(spec.course.id, spec.opens_at)
                    and str(spec.course.id) not in records
                    and spec.course.id in observations
-                   and observations[spec.course.id].queue_available]
+                   and observations[spec.course.id].queue_available
+                   and _affordable(spec, observations[spec.course.id])]
         if not choices:
             return False, None
         course_id = choices[0]
@@ -622,14 +731,20 @@ def run_race(
             backend = pool.activate_queue(course_id)
             if backend is not pool.backends[course_id]:
                 raise BookingError("Aktivoitu selain ei vastaa valittua jonokurssia.")
-            backend.join_queue()
+            backend.join_queue(deadline=by_id[course_id].deadline)
         except ActionNotSent as exc:
             records.pop(str(course_id), None)
             lease["queue"] = None
+            if exc.observation is not None and _actual_claim(exc.observation):
+                pin_claim(lease, course_id, exc.observation)
             save_lease(lease)
-            eager_cooldowns[course_id] = clock() + timedelta(seconds=2)
+            delay = max(2, exc.retry_after)
+            eager_cooldowns[course_id] = clock() + timedelta(seconds=delay)
             log(f"Jonopyyntöä ei lähetetty kurssille {course_id}; muut hyväksytyt polut jatkavat: {exc}")
-            emit("retry", course_id=course_id, action="queue", retry_after=2)
+            emit("retry", course_id=course_id, action="queue", retry_after=delay)
+            if exc.retry_after > 0:
+                # Pause shared reads as well as this candidate's next write.
+                wait(exc.retry_after)
         except Exception as exc:  # noqa: BLE001 - Any queue failure may follow a sent mutation; preserve the durable intent.
             log(f"Kurssin {course_id} jonopyynnön tulos on epävarma; tätä pyyntöä ei toisteta. "
                 f"Muiden kurssien haku jatkuu: {exc}")
@@ -652,16 +767,25 @@ def run_race(
         return result
 
     with _account_lock(lock_path):
+        lease = _load_lease(lease_path, identity, origin, specs)
+        preflight_conflicts = {}
+        for course_id, backend in pool.backends.items():
+            conflict = getattr(backend, "payment_conflict", None)
+            if isinstance(conflict, Observation) and conflict.hold_payment_conflict:
+                preflight_conflicts[course_id] = conflict
+        preserve_shared_conflict(lease, preflight_conflicts)
+        if len(preflight_conflicts) > 1:
+            raise BookingError("Maksutilan ristiriita koskee useaa kurssia. Uutta varausta ei lähetetä.")
         if checkpoint is not None:
             checkpoint()
-        lease = _load_lease(lease_path, identity, origin, specs)
         save_lease(lease)
         for spec in specs:
             emit("waiting", course_id=spec.course.id, opens_at=spec.opens_at.isoformat(),
                  deadline=spec.deadline.isoformat())
         if lease["pinned_id"] is not None:
             log(f"Jatketaan aiemmin valittua kurssia {lease['pinned_id']}; muut polut pysyvät lukittuina.")
-            result = selected(lease, lease["pinned_id"])
+            grace = lease["fallback_until"] if allow_queue and queue_policy == "fallback" else None
+            result = selected(lease, lease["pinned_id"], grace_deadline=datetime.fromisoformat(grace) if grace else None)
             if result is not None:
                 return result
         granted_queue: int | None = None
@@ -685,8 +809,9 @@ def run_race(
             ensure_identity()
             if not isinstance(observations, Mapping) or set(observations) != set(identifiers):
                 raise BookingError("Kurssipolkujen havaintojoukko on virheellinen.")
+            preserve_shared_conflict(lease, observations)
             errors = [value for value in observations.values() if isinstance(value, TransientBookingError)]
-            if errors and getattr(pool, "selection_clear", False) is not True:
+            if errors and not lease["hold_payment_conflict"] and getattr(pool, "selection_clear", False) is not True:
                 # An unknown candidate may already have a confirmed booking.
                 # Wait until every own-reservation observation is authoritative.
                 failures += 1
@@ -702,11 +827,11 @@ def run_race(
                 reconcile_queues(lease, observations)
             failures = 0
             existing = [course_id for course_id, value in observations.items()
-                        if value.held or value.reservation_confirmed or value.reservation_id is not None]
+                        if _actual_claim(value)]
             if len(existing) > 1:
                 raise BookingError("Usealla hyväksytyllä kurssilla on jo varaus. Uutta maksua ei tehdä.")
             if existing:
-                result = selected(lease, existing[0], existing_claim=True)
+                result = selected(lease, existing[0], observed_claim=observations[existing[0]])
                 if result is not None:
                     return result
                 continue
@@ -721,8 +846,7 @@ def run_race(
                        and current >= cooldowns.get(spec.course.id, spec.opens_at)
                        and spec.course.id in observations
                        and observations[spec.course.id].available
-                       and (price := observations[spec.course.id].current_price) is not None
-                       and price <= spec.max_price]
+                       and _affordable(spec, observations[spec.course.id])]
             if choices:
                 winner = choices[0].course.id
                 log(f"Kurssi {winner} saa yhteisen varausvuoron; muut polut jäävät seurantaan.")
@@ -733,10 +857,15 @@ def run_race(
             if allow_queue and queue_policy == "eager":
                 advanced, granted_queue = eager_queues(lease, observations, permitted_queue)
                 if advanced:
+                    if lease["pinned_id"] is not None:
+                        result = selected(lease, lease["pinned_id"])
+                        if result is not None:
+                            return result
                     continue
             future = [(spec.opens_at - current).total_seconds() for spec in specs if spec.opens_at > current]
             # Keep the final minute responsive while limiting pre-opening load.
-            wait(min(30, min(future) - 60) if future and min(future) > 60 else 2)
+            active = any(spec.opens_at <= current < spec.deadline for spec in specs)
+            wait(min(30, min(future) - 60) if not active and future and min(future) > 60 else 2)
         log("Määräaika saavutettu; yhdellekään kurssille ei vahvistettu uutta varausta.")
         emit("deadline")
         if allow_queue and queue_policy == "eager":

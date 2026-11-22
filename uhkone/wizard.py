@@ -121,20 +121,20 @@ def _select_courses(conversation: _Conversation, args, settings: Settings, clien
                 except argparse.ArgumentTypeError:
                     conversation.say("Valitse 1–12 yllä näkyvää kurssitunnusta. Valintaa ei tehty.")
                     continue
-                return ranked([by_id[course_id] for course_id in identifiers], filters)
+                return [by_id[course_id] for course_id in identifiers]
         while True:
-            value = conversation.ask("Liitä hyväksymiesi kurssien osoitteet tai tunnukset välilyönnein (tyhjä peruu):")
+            value = conversation.ask("Liitä hyväksymiesi kurssien osoitteet tai tunnukset ETUSIJAJÄRJESTYKSESSÄ välilyönnein (tyhjä peruu):")
             try:
                 identifiers = _targets(value)
             except argparse.ArgumentTypeError:
                 conversation.say("Anna 1–12 Urheiluhallien kurssiosoitetta tai positiivista kurssitunnusta.")
                 continue
-            conversation.say("Tarkistan kurssien tason, hallit, ajat ja hinnat julkisesta kurssiluettelosta.")
+            conversation.say("Tarkistan vain antamiesi kurssien tiedot ja säilytän niiden etusijajärjestyksen.")
             courses = [client.get_course(course_id) for course_id in identifiers]
             for identifier, course in zip(identifiers, courses):
                 if course.id != identifier or not filters.matches(course):
                     raise ConfigError("Valittu kurssi ei vastaa kurssitasoa, halli- tai aikarajoja. Varausajoa ei aloitettu.")
-            return ranked(courses, filters)
+            return courses
 
 
 def _budget(conversation: _Conversation, courses: list[Course]) -> Decimal:
@@ -218,6 +218,9 @@ def _review_and_run(conversation: _Conversation, courses: list[Course], args, se
     conversation.say(f"Tavoite: yksi varsinainen kurssipaikka {len(courses)} hyväksytystä vaihtoehdosta.")
     conversation.say(f"Yhden kurssin enimmäishinta: {budget:.2f} €. " +
                      ("Pysähdytään ostoskoriin ennen maksua." if payment == "none" else f"Maksutapa: {payment}."))
+    if payment != "none":
+        from .cli import LIVE_PAYMENT_LIMIT
+        conversation.say(LIVE_PAYMENT_LIMIT)
     conversation.say("Osallistuja: syöttämäsi asiakastililtä valittava lapsi. Nimeä ei kirjoiteta asetustiedostoon.")
     for course in courses:
         starts = opening or course.registration_start

@@ -1,0 +1,24 @@
+name: Live public shop contract
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-shop-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@v7
+      - name: Sync locked dependencies
+        run: uv sync --locked --no-dev
+      - name: Check public production sources using GET
+        run: uv run --locked --no-dev python scripts/check_live_shop.py

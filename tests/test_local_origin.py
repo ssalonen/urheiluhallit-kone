@@ -32,7 +32,7 @@ def row():
 
 
 def local_spec(mode="saldo"):
-    opening = datetime(2027, 1, 1, tzinfo=UTC)
+    opening = datetime.now(UTC)
     return BookingSpec(parse_course(row(), base_url=LOCAL), "Testilapsi", Decimal(80),
                        opening, opening + timedelta(minutes=30), mode)
 

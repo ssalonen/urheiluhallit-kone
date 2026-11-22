@@ -24,6 +24,12 @@ HELSINKI = ZoneInfo("Europe/Helsinki")
 DAYS = ("ma", "ti", "ke", "to", "pe", "la", "su")
 
 
+LIVE_PAYMENT_LIMIT = (
+    "Ohjelma voi aloittaa maksun oikeassa kaupassa. Se ei pysty yhdistämään maksun kuittia "
+    "kurssivaraukseen. Tarkista maksun lopputulos asiakastililtäsi."
+)
+
+
 def iso_date(value: str) -> date:
     try:
         return date.fromisoformat(value)
@@ -373,7 +379,8 @@ def run_reservation(args, filters: SearchFilters, directory: Path, client) -> in
         if course.price is None or course.price > args.enintaan:
             raise ConfigError(f"Kurssin {target} hinta puuttuu tai ylittää enimmäissumman.")
         selected.append(course)
-    selected = ranked(selected, replace(filters, available_only=False))
+    # Caller-provided course IDs are already in strict priority order.
+    # Do not re-rank by hall, date or time.
     now = datetime.now(HELSINKI)
     specs = []
     for course in selected:
@@ -389,7 +396,9 @@ def run_reservation(args, filters: SearchFilters, directory: Path, client) -> in
     print_courses(selected, details=True)
     print(f"Tavoitteena yksi kurssi {len(specs)} vaihtoehdosta. Enimmäishinta {args.enintaan} €. "
           + ("Pysähdytään maksamattomaan ostoskoriin." if args.ilman_maksua else f"Maksutapa: {args.maksutapa}."), flush=True)
-    print("Samalla tarkistuksella valmiista vaihtoehdoista valitaan hallien toivejärjestyksessä. Muulloin ensimmäinen valmis polku saa varausvuoron.", flush=True)
+    print("Kurssit ovat antamassasi etusijajärjestyksessä. Samalla tarkistuksella valmiista valitaan listan ensimmäinen; muulloin ensimmäinen valmis saa varausvuoron.", flush=True)
+    if not args.ilman_maksua:
+        print(LIVE_PAYMENT_LIMIT, flush=True)
     if args.jono:
         print("Jonotus: liity kaikkiin valittuihin sopiviin jonoihin heti kun mahdollista. Varsinaisen paikan haku jatkuu; "
               + ("yksi kurssi lisätään ostoskoriin ilman maksua." if args.ilman_maksua else "maksetaan enintään yksi kurssi."), flush=True)
@@ -413,7 +422,7 @@ def run_reservation(args, filters: SearchFilters, directory: Path, client) -> in
             print(f"MAKSAMATON VARAUS OSTOSKORISSA. Kurssi: {result.course_id}. "
                   "Maksua ei aloitettu. Ostoskorin paikka voi vanhentua.")
             backend = pool.activate(result.course_id)
-            backend.show_unpaid_cart()
+            backend.show_unpaid_cart(result.reservation_id)
             print("Ostoskori on avoinna näkyvässä selaimessa. Maksutoiminnot on estetty tässä ajossa. "
                   "Sulje selainikkuna, kun olet tarkistanut ostoskorin.")
             backend.wait_for_close()
@@ -429,6 +438,8 @@ def run_reservation(args, filters: SearchFilters, directory: Path, client) -> in
             print("Jonopyyntö on voinut mennä perille, mutta vahvistusta ei saatu. Jatka samalla komennolla; älä lähetä uutta jonopyyntöä.", file=sys.stderr)
             return 1
         print("Varausta ei ole vahvistettu. Tarkista tallennettu tila ja asiakastilin varaukset.", file=sys.stderr)
+        if not args.ilman_maksua and result.reservation_id:
+            print("Maksu on voinut toteutua. Tarkista kuitti ja maksutapahtuma ennen mahdollista uutta maksua.", file=sys.stderr)
         return 1
 
     if len(specs) == 1:

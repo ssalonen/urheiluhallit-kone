@@ -19,7 +19,7 @@ def course_row():
     return {"reservation_event_group_id": 123, "service_id": 9, "location_id": 2,
         "reservation_group_id": 6, "name": "Leikki-ikäisten jatkouimakoulu<br>Advanced",
         "location": "Mäkelänrinne", "start": "2027-01-10 10:00:00", "end": "2027-02-10 10:30:00",
-        "weekdays": [{"weekdays": [6], "times": "10:00 - 10:30"}], "capacity": 8,
+        "weekdays": [{"weekdays": [6], "times": "10:00 - 10:30"}], "capacity": 8, "event_number": 3,
         "free": 0, "is_reservable": 0, "public_reservation_start": "2026-12-01 08:00:00",
         "fare_products": [{"fare_product_id": 4321, "price": 7600}]}
 
@@ -38,7 +38,7 @@ class TestShopHTTPTests(unittest.TestCase):
             headers["Content-Type"] = "application/x-www-form-urlencoded" if rpc else "application/json"
             body = urlencode({"input_format": "json", "output_format": "json", "content": json.dumps(payload)}).encode() if rpc else json.dumps(payload).encode()
         elif rpc:
-            body = urlencode({"content": "null"}).encode()
+            body = urlencode({"content": '""'}).encode()
         if client is None:
             if shop not in self._clients:
                 self._clients[shop] = httpx.Client(trust_env=False, timeout=5)
@@ -51,9 +51,10 @@ class TestShopHTTPTests(unittest.TestCase):
                    "reservation_event_group_id": 123, "quantity": 1, "price": 7600, "title": "Testi", "campaign_code": None}
         return self.request(shop, "/webshop/reservations2/apicart", payload | changes, client=client)
 
-    def checkout(self, shop, *, method=4, balance=7600, client=None):
-        options = {"return_url": shop.base_url + "/webshop/reservations2/?doPayment=success",
-            "cancel_url": shop.base_url + "/webshop/reservations2/?doPayment=cancel",
+    def checkout(self, shop, *, method=4, balance=7600, course_id=123, client=None):
+        path = f"/webshop/reservations2/reservations/9/2/6/-/{course_id}"
+        options = {"return_url": path + "?doPayment=success",
+            "cancel_url": path + "?doPayment=cancel",
             "balance_amount": balance, "payment_type_id": str(method), "service_group_id": 9}
         return self.request(shop, "/webshop/call/cart/externalpaymentstart", [options], rpc=True, client=client)
 
@@ -61,6 +62,64 @@ class TestShopHTTPTests(unittest.TestCase):
         payload = {"account": {"account_id": "20", "name": "Testilapsi"},
                    "reservation_event_group_id": 123, "reservation_status_id": 1}
         return self.request(shop, "/webshop/reservations2/apiusereventgroups", payload | changes, client=client)
+
+    def delete_cart_item(self, shop, item, *, client=None):
+        payload = {key: item[key] for key in ("item_id", "fare_product_id")}
+        return self.request(shop, "/webshop/call/cart/deleteCartItem", [payload], rpc=True, client=client)
+
+    def test_default_pending_course_contract_and_capacity_match_observed_shape(self):
+        with TestShop([course_row()], opens_in=0) as shop:
+            course_path = "/webshop/reservations2/apieventgroups/123"
+            code, _, cart = self.add(shop)
+            self.assertEqual(code, 200)
+            self.assertEqual(len(cart), 1)
+            item = cart[0]
+            self.assertEqual((item["bundle_price"], item["payment_event_id"]), (None, None))
+            self.assertEqual(item["reservation_params"], {
+                "reservation_event_group_id": 123, "reservation_account_id": 20, "tags": None,
+            })
+            self.assertEqual(item["reservation_event_group_id"], 123)
+            own = self.request(shop, "/webshop/reservations2/apiusereventgroups")[2]
+            self.assertEqual(len(own), 1)
+            self.assertEqual(own[0], {
+                "reservation_id": 1, "reservation_event_group_id": 123,
+                "reservation_account_id": 20, "reservation_account_name": "Testilapsi",
+                "reservation_status_id": 7, "name": "Leikki-ikäisten jatkouimakoulu<br>Advanced",
+                "start": "2027-01-10 10:00:00", "end": "2027-02-10 10:30:00",
+                "is_course": 1, "instructors": "Testiohjaaja", "event_number": 3,
+                "location_id": 2, "location": "Mäkelänrinne",
+                "payment_label": None, "payment_label_class": None,
+            })
+            course = self.request(shop, course_path)[2]
+            self.assertEqual((course["free"], course["reserved"]), (course["capacity"] - 1, 1))
+            self.assertEqual(self.delete_cart_item(shop, item)[0], 200)
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apiusereventgroups")[2], [])
+            course = self.request(shop, course_path)[2]
+            self.assertEqual((course["free"], course["reserved"]), (course["capacity"], 0))
+
+    def test_simulated_payment_proof_is_separate_from_course_rows(self):
+        with TestShop([course_row()], opens_in=0) as shop:
+            self.assertEqual(self.add(shop)[0], 200)
+            proof_path = "/_test/reservation-proof"
+            before = self.request(shop, proof_path)
+            self.assertEqual((before[0], before[2]), (200, {"testshop": True, "reservations": [{
+                "reservation_id": 1, "reservation_status_id": 7, "is_paid": 0, "receipt_event_id": None,
+            }]}))
+            self.assertEqual(self.checkout(shop)[0], 200)
+            after = self.request(shop, proof_path)
+            self.assertEqual((after[0], after[2]), (200, {"testshop": True, "reservations": [{
+                "reservation_id": 1, "reservation_status_id": 4, "is_paid": 1, "receipt_event_id": 1,
+            }]}))
+            own = self.request(shop, "/webshop/reservations2/apiusereventgroups")[2]
+            self.assertNotIn("is_paid", own[0])
+            self.assertNotIn("receipt_event_id", own[0])
+
+    def test_empty_receipt_and_cart_lock_use_observed_response_envelopes(self):
+        with TestShop([course_row()], opens_in=0) as shop:
+            code, _, receipt = self.request(shop, "/webshop/call/cart/getreceiptinfo", rpc=True)
+            self.assertEqual((code, receipt), (200, {"result": False, "errors": []}))
+            code, _, lock = self.request(shop, "/webshop/call/cart/islocked", rpc=True)
+            self.assertEqual((code, lock), (200, {"result": {"isLocked": False}, "errors": []}))
 
     def test_waitlist_reservation_is_shared_by_account_without_cart_payment_or_receipt(self):
         with TestShop([course_row()], opens_in=0, scenario="jono") as shop, httpx.Client(trust_env=False) as other:
@@ -70,11 +129,13 @@ class TestShopHTTPTests(unittest.TestCase):
             self.assertEqual(self.queue(shop)[0], 200)
             own = self.request(shop, "/webshop/reservations2/apiusereventgroups", client=other)[2]
             self.assertEqual(len(own), 1)
-            self.assertEqual((own[0]["reservation_status_id"], own[0]["queue_number"], own[0]["is_paid"], own[0]["receipt_event_id"]), (1, 1, 0, None))
+            self.assertEqual((own[0]["reservation_status_id"], own[0]["queue_number"]), (1, 1))
+            self.assertNotIn("is_paid", own[0])
+            self.assertNotIn("receipt_event_id", own[0])
             row = self.request(shop, "/webshop/reservations2/apieventgroups/123")[2]
             self.assertEqual((row["free"], row["queue"], row["free_queue"]), (0, 1, 0))
             self.assertEqual(self.request(shop, "/webshop/reservations2/apicart")[2], [])
-            self.assertIsNone(self.request(shop, "/webshop/call/cart/getreceiptinfo", rpc=True)[2]["result"])
+            self.assertIs(self.request(shop, "/webshop/call/cart/getreceiptinfo", rpc=True)[2]["result"], False)
             stats = shop.stats()
             self.assertEqual((stats["queue_posts"], stats["queued"], stats["queue_capacity"], stats["writes"]), (1, 1, 1, 1))
             self.assertEqual((stats["cart_posts"], stats["checkout_posts"], stats["confirmed"], stats["receipts"], stats["fake_card_charges"], stats["balance_cents"]), (0, 0, 0, 0, 0, 100000))
@@ -112,7 +173,7 @@ class TestShopHTTPTests(unittest.TestCase):
             self.assertEqual((row["free"], row["queue"], row["free_queue"]), (1, 1, 0))
             self.assertEqual(self.add(shop)[0], 200)
             own = self.request(shop, "/webshop/reservations2/apiusereventgroups")[2]
-            self.assertEqual([(row["reservation_id"], row["reservation_status_id"], row["queue_number"]) for row in own], [(queued_id, 7, None)])
+            self.assertEqual([(row["reservation_id"], row["reservation_status_id"], row.get("queue_number")) for row in own], [(queued_id, 7, None)])
             self.assertEqual(self.checkout(shop, method=5, balance=0)[0], 200)
             stats = shop.stats()
             self.assertEqual((stats["reservations"], stats["queued"], stats["confirmed"], stats["receipts"], stats["fake_card_charges"]), (1, 0, 1, 1, 1))
@@ -147,7 +208,7 @@ class TestShopHTTPTests(unittest.TestCase):
             self.assertEqual([(row["reservation_event_group_id"], row["reservation_status_id"]) for row in own], [(123, 4), (124, 7)])
             first_receipt = self.request(shop, "/webshop/call/cart/getreceiptinfo", rpc=True, client=first)[2]["result"]
             self.assertEqual(first_receipt["total_amount"], 7600)
-            self.assertIsNone(self.request(shop, "/webshop/call/cart/getreceiptinfo", rpc=True, client=second)[2]["result"])
+            self.assertIs(self.request(shop, "/webshop/call/cart/getreceiptinfo", rpc=True, client=second)[2]["result"], False)
             self.assertEqual(self.checkout(shop, method=5, balance=0, client=first)[0], 409)
             stats = shop.stats()
             self.assertEqual((stats["reservations"], stats["confirmed"], stats["cart_items"], stats["receipts"], stats["fake_card_charges"]), (2, 1, 1, 1, 1))
@@ -165,7 +226,7 @@ class TestShopHTTPTests(unittest.TestCase):
             self.assertEqual(self.checkout(shop, client=first)[0], 200)
             receipt = self.request(shop, "/webshop/call/cart/getreceiptinfo", rpc=True, client=first)[2]["result"]
             self.assertEqual(self.add(shop, client=second, reservation_event_group_id=124, fare_product_id=4322, price=8400)[0], 200)
-            self.assertEqual(self.checkout(shop, balance=8400, client=second)[0], 200)
+            self.assertEqual(self.checkout(shop, balance=8400, course_id=124, client=second)[0], 200)
             other_receipt = self.request(shop, "/webshop/call/cart/getreceiptinfo", rpc=True, client=second)[2]["result"]
             self.assertNotEqual(receipt["receipt_id"], other_receipt["receipt_id"])
             self.assertEqual(other_receipt["total_amount"], 8400)
@@ -186,7 +247,7 @@ class TestShopHTTPTests(unittest.TestCase):
                 """)
             with TestShop([course_row()], opens_in=0, db_path=database) as shop:
                 self.assertEqual(shop.stats()["receipt_rows"], [{"id": 44, "total_amount": 7600, "payment_type_id": 4}])
-                self.assertIsNone(self.request(shop, "/webshop/call/cart/getreceiptinfo", rpc=True)[2]["result"])
+                self.assertIs(self.request(shop, "/webshop/call/cart/getreceiptinfo", rpc=True)[2]["result"], False)
                 self.assertEqual(self.add(shop)[0], 200)
                 self.assertEqual(self.checkout(shop)[0], 200)
                 receipt = self.request(shop, "/webshop/call/cart/getreceiptinfo", rpc=True)[2]["result"]
@@ -207,13 +268,113 @@ class TestShopHTTPTests(unittest.TestCase):
             self.assertIn("TESTIKAUPPA", self.request(shop, "/webshop/reservations2/")[2])
             self.assertIn("SIMULOITU MAKSU", self.request(shop, "/webshop/reservations2/reservations/9/2/6/-/123")[2])
 
+    def test_page_content_policy_only_allows_same_origin_resources(self):
+        with TestShop([course_row()], opens_in=0) as shop:
+            for path in ("/webshop/reservations2/", "/webshop/reservations2/reservations/9/2/6/-/123"):
+                with self.subTest(path=path):
+                    status, headers, _ = self.request(shop, path)
+                    self.assertEqual(status, 200)
+                    self.assertEqual(headers.get("X-Content-Type-Options"), "nosniff")
+                    self.assertEqual(set(headers.get("Content-Security-Policy", "").split("; ")), {
+                        "default-src 'none'", "script-src 'self'", "style-src 'self'", "connect-src 'self'",
+                        "img-src 'self'", "form-action 'none'", "base-uri 'none'", "object-src 'none'",
+                        "frame-ancestors 'none'",
+                    })
+
+    def test_fixed_simulator_assets_are_served_with_their_mime_types(self):
+        resource_path = "/webshop/resource/testshop/"
+        package = Path(__file__).resolve().parents[1] / "uhkone"
+        assets = (
+            ("testshop.js", "testshop.js", "text/javascript"),
+            ("testshop.css", "testshop.css", "text/css"),
+            ("templates.html", "testshop_templates.html", "text/html"),
+        )
+        with TestShop([course_row()], opens_in=0) as shop:
+            for route, source, content_type in assets:
+                with self.subTest(asset=route):
+                    status, headers, body = self.request(shop, resource_path + route)
+                    self.assertEqual(status, 200)
+                    self.assertEqual(headers["Content-Type"], content_type + "; charset=utf-8")
+                    self.assertEqual(headers.get("X-Content-Type-Options"), "nosniff")
+                    self.assertEqual(body, (package / source).read_bytes().decode("utf-8"))
+            for unknown in ("testshop.py", "testshop_templates.html", "testshop.js/", "%2e%2e/testshop.js"):
+                with self.subTest(unknown=unknown):
+                    self.assertEqual(self.request(shop, resource_path + unknown)[0], 404)
+
+    def test_cart_delete_rejects_malformed_payloads_and_wrong_products(self):
+        with TestShop([course_row()], opens_in=0) as shop:
+            status, _, cart = self.add(shop)
+            self.assertEqual(status, 200)
+            item = {key: cart[0][key] for key in ("item_id", "fare_product_id")}
+            own = self.request(shop, "/webshop/reservations2/apiusereventgroups")[2]
+            malformed = (item, [], [item, item], [{"item_id": item["item_id"]}],
+                         [item | {"extra": 1}], [item | {"item_id": True}], [item | {"item_id": 10**20}])
+            for payload in malformed:
+                with self.subTest(payload=payload):
+                    status, _, result = self.request(shop, "/webshop/call/cart/deleteCartItem", payload, rpc=True)
+                    self.assertEqual(status, 400)
+                    self.assertIs(result["result"], False)
+            self.assertEqual(self.delete_cart_item(shop, item | {"fare_product_id": 9999})[0], 409)
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apicart")[2], cart)
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apiusereventgroups")[2], own)
+
+    def test_cart_delete_only_removes_the_exact_item_in_its_session(self):
+        rows = [course_row() | {"reservation_event_group_id": course_id} for course_id in (123, 124, 125)]
+        with TestShop(rows, opens_in=0) as shop, httpx.Client(trust_env=False) as other:
+            self.assertEqual(self.add(shop)[0], 200)
+            status, _, cart = self.add(shop, reservation_event_group_id=124)
+            self.assertEqual(status, 200)
+            target = next(item for item in cart if item["reservation_params"]["reservation_event_group_id"] == 123)
+            status, _, other_cart = self.add(shop, client=other, reservation_event_group_id=125)
+            self.assertEqual(status, 200)
+            self.assertEqual(self.delete_cart_item(shop, target, client=other)[0], 409)
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apicart")[2], cart)
+            status, _, result = self.delete_cart_item(shop, target)
+            self.assertEqual((status, result), (200, {"result": True}))
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apicart")[2], [item for item in cart if item != target])
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apicart", client=other)[2], other_cart)
+            own = self.request(shop, "/webshop/reservations2/apiusereventgroups")[2]
+            self.assertEqual([row["reservation_event_group_id"] for row in own], [124, 125])
+            stats = self.request(shop, "/_test/status")[2]
+            self.assertEqual((stats["delete_posts"], stats["writes"], stats["checkout_posts"], stats["receipts"]), (2, 5, 0, 0))
+
+    def test_cart_delete_releases_last_place_and_repeat_leaves_replacement_untouched(self):
+        with TestShop([course_row()], opens_in=0, scenario="viimeinen-paikka") as shop:
+            status, _, cart = self.add(shop)
+            self.assertEqual(status, 200)
+            course_path = "/webshop/reservations2/apieventgroups/123"
+            self.assertEqual(self.request(shop, course_path)[2]["free"], 0)
+            self.assertEqual(self.delete_cart_item(shop, cart[0])[0], 200)
+            self.assertEqual(self.request(shop, course_path)[2]["free"], 1)
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apiusereventgroups")[2], [])
+            status, _, replacement = self.add(shop)
+            self.assertEqual(status, 200)
+            self.assertNotEqual(replacement[0]["item_id"], cart[0]["item_id"])
+            self.assertEqual(self.delete_cart_item(shop, cart[0])[0], 409)
+            self.assertEqual(self.request(shop, "/webshop/reservations2/apicart")[2], replacement)
+            self.assertEqual(self.request(shop, course_path)[2]["free"], 0)
+
+    def test_cart_delete_preserves_nonpending_rows_even_if_an_old_cart_link_remains(self):
+        for reservation_status, paid in ((4, 1), (1, 0), (7, 1)):
+            with self.subTest(reservation_status=reservation_status, paid=paid), TestShop([course_row()], opens_in=0) as shop:
+                status, _, cart = self.add(shop)
+                self.assertEqual(status, 200)
+                # Model a stale cart link in a persisted simulator database.
+                with shop._lock:
+                    shop._db.execute("UPDATE reservations SET status=?, is_paid=?", (reservation_status, paid))
+                previous = self.request(shop, "/webshop/reservations2/apiusereventgroups")[2]
+                self.assertEqual(self.delete_cart_item(shop, cart[0])[0], 409)
+                self.assertEqual(self.request(shop, "/webshop/reservations2/apicart")[2], cart)
+                self.assertEqual(self.request(shop, "/webshop/reservations2/apiusereventgroups")[2], previous)
+
     def test_real_http_add_and_checkout_are_atomic_and_only_confirm_exact_child(self):
         with TestShop([course_row()], opens_in=0) as shop:
             user = self.request(shop, "/webshop/call/user/getcurrentuser", [True, True], rpc=True)[2]["result"]
             self.assertEqual((user["account_id"], user["linked_accounts"][0]["account_id"]), (10, 20))
             self.assertEqual(self.add(shop)[0], 200)
             held = self.request(shop, "/webshop/reservations2/apiusereventgroups")[2][0]
-            self.assertEqual((held["reservation_status_id"], held["is_paid"]), (7, 0))
+            self.assertEqual(held["reservation_status_id"], 7)
+            self.assertNotIn("is_paid", held)
             self.assertEqual(self.checkout(shop)[0], 200)
             status = self.request(shop, "/_test/status")[2]
             self.assertEqual((status["cart_posts"], status["checkout_posts"], status["receipts"], status["confirmed"]), (1, 1, 1, 1))
