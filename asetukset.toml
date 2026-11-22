@@ -5,6 +5,12 @@ hallit = ["Mäkelänrinne", "Kallio"]
 # Tyhjä lista: kaikki viikonpäivät. Numerot: ma=1 ... su=7.
 viikonpaivat = []
 arki_aikaisintaan = "17:20"
+# Vain nämä kolme viikoittaista vuoroa, tässä etusijajärjestyksessä.
+ensisijaiset_vuorot = [
+  { halli = "Mäkelänrinne", paiva = 3, aloitus = "17:50" },
+  { halli = "Kallio", paiva = 1, aloitus = "18:10" },
+  { halli = "Kallio", paiva = 3, aloitus = "18:10" },
+]
 viikonloppu_aikaisintaan = "09:30"
 # Voit lisätä rajoitukset myöhemmin:
 # aikaisintaan = "15:00"
