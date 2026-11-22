@@ -6,10 +6,10 @@ the local TestShop simulator and must never open a production merchant URL.
 from __future__ import annotations
 
 import json
-from concurrent.futures import ThreadPoolExecutor
 import queue
 import shutil
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
