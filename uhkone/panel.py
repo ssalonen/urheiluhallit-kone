@@ -45,6 +45,7 @@ label{font-weight:600}#message{min-height:1.5em}.warning{border-left:3px solid #
 <label for="child-select">Valitse lapsitili</label><select id="child-select" aria-label="Lapsitilit"><option value="">Hae alitilit ensin</option></select>
 <small>Nimi, kurssit ja hintaraja säilyvät tässä selaimessa myös uudelleenkäynnistyksen jälkeen.</small>
 <div class="row"><button id="save">Tallenna tämän ajon asetukset</button></div></form></section>
+<section><h2>Manuaalinen varatie</h2><p>Jos automaatio ei voi jatkaa, pysäytä ajo ja tarkista ensin alkuperäisen Chromium-ikkunan ostoskori ja varaukset. Alla oleva linkki avaa kurssin julkisen verkkokauppasivun; eri selainprofiililla ostoskori ei välttämättä ole sama. Älä tee uutta varausta, jos edellinen on voinut onnistua.</p><div id="manual-links" class="row"></div></section>
 <section><h2>Ohjaus</h2><div class="row">
 <button id="start">Käynnistä ennen klo 7.00</button>
 <button id="pause" class="alt">Tauko</button><button id="resume" class="alt">Jatka</button>
@@ -69,6 +70,9 @@ el('p',d.opens_at?'Ilmoittautuminen '+new Date(d.opens_at).toLocaleString('fi-FI
 el('strong',d.phase==='held'?'Ostoskorissa (maksamatta)':d.phase==='adding'?'Varausyritys':d.phase==='reservation_pending'?'Varauksen tilaa selvitetään':d.confirmed?'Vahvistettu':d.held?'Ostoskorissa (maksamatta)':d.available?'Vapaa paikka':d.available===false?'Ei varattavissa':'Odottaa'));return e}));
 for(let k of ['ids','price','child','child-select','children','save'])$(k).disabled=s.running;
 $('start').disabled=s.running||s.children_loading;$('children').disabled=s.running||s.children_loading;
+const manual=$('manual-links');manual.replaceChildren();
+if(!s.running)for(const id of s.ids){const d=s.details[String(id)]||{};if(d.manual_url){const a=el('a','Avaa kurssi '+id+' kaupassa');a.href=d.manual_url;a.target='_blank';a.rel='noopener noreferrer';manual.append(a)}}
+else manual.append(el('span','Pysäytä varausajo ennen manuaalista siirtymistä.'));
 $('pause').disabled=!s.running||s.paused;$('resume').disabled=!s.running||!s.paused;$('stop').disabled=!s.running}
 async function refresh(){try{draw(await req('/api/status'))}catch(e){$('message').textContent='Yhteys paneeliin katkesi'}}
 $('form').onsubmit=async e=>{e.preventDefault();try{let ids=$('ids').value.trim().split(/[\s,;]+/).map(Number);
@@ -155,12 +159,23 @@ class PanelState:
             self.note = "Asetukset hyväksytty. Ei maksuja eikä jonotusta."
 
     def course_info(self, courses):
+        from .browser import BrowserError, _validate_course_url
+        from .origin import PRODUCTION_URL, is_local_test
+        from urllib.parse import urlsplit
         with self.lock:
             for course in courses:
-                self.details.setdefault(course.id, {}).update({
+                row = self.details.setdefault(course.id, {})
+                row.update({
                     "location": course.location, "time": course.time_start,
                     "opens_at": course.registration_start.isoformat() if course.registration_start else None,
                 })
+                row.pop("manual_url", None)
+                try:
+                    uri = course.url
+                    base = f"{urlsplit(uri).scheme}://{urlsplit(uri).netloc}" if is_local_test(uri) else PRODUCTION_URL
+                    row["manual_url"] = _validate_course_url(course, base_url=base)
+                except (AttributeError, BrowserError, TypeError, ValueError):
+                    pass
 
     def progress(self, phase: str, metadata: dict):
         if phase == "heartbeat":
