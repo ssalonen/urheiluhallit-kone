@@ -1,6 +1,6 @@
 # Urheiluhallien ilmoittautumiskone
 
-Paikallinen komentoriviohjelma, joka ohjaa **oikeaa näkyvää Chromium-selainta** ja pitää ihmisen mukana varaamisessa. Ohjelma kertoo etenemisestään, odottaa ilmoittautumisen avautumista ja tavoittelee yhtä maksettua kurssipaikkaa etukäteen valituista vaihtoehdoista. Oletushaku on leikki-ikäisten jatkouimakoulu: ensin Mäkelänrinne, sitten Kallio, arkipäivisin aloitus aikaisintaan 17.20 ja viikonloppuisin aikaisintaan 9.30. Nykyinen `asetukset.toml` rajaa hyväksyttävät vuorot kolmeen järjestyksessä: Mäkelänrinne ke 17.50, Kallio ma 18.10, Kallio ke 18.10. Muut vuorot eivät kelpaa.
+Paikallinen komentoriviohjelma, joka ohjaa **oikeaa näkyvää Chromium-selainta** ja pitää ihmisen mukana varaamisessa. Ohjelma kertoo etenemisestään, odottaa ilmoittautumisen avautumista ja tavoittelee yhtä maksettua kurssipaikkaa etukäteen valituista vaihtoehdoista. Oletushaku on leikki-ikäisten jatkouimakoulu: ensin Mäkelänrinne, sitten Kallio, arkipäivisin aloitus aikaisintaan 17.20 ja viikonloppuisin aikaisintaan 9.30.
 
 Versiossa **0.5** on ohjattu käyttötila, jatkuvat tilaviestit sekä komennot ajon pysäyttämiseen ja jatkamiseen. Tavoitteena on yksi vahvistettu kurssipaikka. Haluttaessa ohjelma liittyy myös sopivien kurssien jonoihin varsinaisen paikan etsimisen aikana.
 
@@ -82,13 +82,13 @@ Tässä tilassa jonoihin ei liitytä oletuksena; `--jono` sallii sen erikseen.
 
 `varaa-yksi` hyväksyy useita etukäteen valittuja kurssiosoitteita tai tunnuksia. Ohjelma avaa niille erilliset välilehdet samassa selainprofiilissa. Julkisia kurssitietoja luetaan rinnakkain rajatulla määrällä pyyntöjä. Varsinaiset varaus- ja maksutoiminnot käyttävät yhteistä vuoroa.
 
-Jos useampi sopiva paikka on samalla tarkistuksella saatavilla, hyväksyttyjen vuorojen etusijajärjestys ratkaisee (`ensisijaiset_vuorot`); muuten hallien toivejärjestys. Pelkästään Kallion paikan ollessa valmis sitä voidaan tavoitella heti. Ohjelma ei odota mahdollista myöhempää Mäkelänrinteen paikkaa.
+Jos useampi sopiva paikka on samalla tarkistuksella saatavilla, hallien toivejärjestys ratkaisee. Pelkästään Kallion paikan ollessa valmis sitä voidaan tavoitella heti. Ohjelma ei odota mahdollista myöhempää Mäkelänrinteen paikkaa.
 
 **Kun varsinainen varauspyyntö on voinut lähteä, muut kurssien ostot lukitaan.** Valinta tallennetaan levylle ennen lähettämistä. Työkalu selvittää tämän varauksen ja sen maksun tuloksen ennen muuta etenemistä. Se ei käynnistä toisen kurssin ostoa pelkän aikakatkaisun tai tyhjän tilavastauksen perusteella. Maksua ei lähetetä uudelleen epäselvän vastauksen jälkeen.
 
 Onnistuminen edellyttää oikean osallistujan oikean kurssin vahvistettua, maksetuksi merkittyä varausta. Uuden maksun osalta suljetun ja oikeansummaiseksi tarkistetun kuitin pitää lisäksi liittyä samaan varaukseen. Pelkkä uusin samanhintainen kuitti, ostoskoririvi, onnistumissivu tai ”Ei vahvistettu” -varaus ei riitä. Jos kaupan vastaus ei todista varauksen ja kuitin yhteyttä, ohjelma jättää maksun vahvistamatta eikä lähetä uutta maksua. Oikean kirjautuneen kurssirajapinnan kuittiyhteys on vielä todennettava; simulaattorin kenttä tai kahden todentamattoman tunnisteen numeroyhtäläisyys ei ole siitä todiste. Julkisen kauppakoodin kuittikenttiä käyttävä muu varausnäkymä rajaa kurssit pois. Työkalu ei voi hallita käsin, toisella laitteella tai toisessa paikallisessa tilahakemistossa tehtyjä ostoksia.
 
-Oletusrajat ovat asetustiedostossa `asetukset.toml`. `ensisijaiset_vuorot` toimii tiukkana sallittujen halli–päivä–aloitusaika-yhdistelmien listana; sen järjestys ohittaa hallien yleisen toivejärjestyksen. Tyhjä lista poistaisi tämän lisärajoituksen. `haku` ja `vahti` eivät tee varauksia tai tarvitse kirjautumista:
+Oletusrajat ovat asetustiedostossa `asetukset.toml`. `haku` ja `vahti` eivät tee varauksia tai tarvitse kirjautumista:
 
 ```sh
 uhkone haku
