@@ -147,7 +147,7 @@ Testikaupan kurssi-, osallistuja-, varaustila- ja korinäkymät käyttävät oik
 
 Tyylit ja palvelin ovat omia paikallisia toteutuksia. Kirjautuminen, henkilötiedot ja maksut ovat kuvitteellisia; kaupan JavaScriptiä, kuvia, fontteja tai muita ulkoisia resursseja ei ladata. CSP rajaa myös käsin avatun testikaupan resurssit paikalliseen palvelimeen. Testikaupan läpäisy ei yksin todista oikean kirjautuneen rajapinnan vastausten tai maksupalvelun vastaavuutta. Myös `koeajo --monta 1` käyttää usean vaihtoehdon selainpohjaa; erillinen Chromium-smoke tarkistaa lisäksi yhden kurssin selainpohjan, näkyvän maksamattoman koririvin ja osallistujan varaustilan.
 
-Mallit voi poimia uudelleen anonyymisti tallennetusta julkisesta sivusta komennolla `python scripts/extract_shop_templates.py /tmp/kauppa-julkinen.html --output uhkone/testshop_templates.html`. Pidä raakatallenne lähdekansion ulkopuolella. Muuttunut rakenne pysäyttää poiminnan; tarkista tulos ja suorita julkisen puun tarkistin ennen julkaisemista.
+Mallit voi poimia uudelleen anonyymisti tallennetusta julkisesta sivusta komennolla `python scripts/extract_shop_templates.py /tmp/kauppa-julkinen.html --output uhkone/testshop_templates.html`. Pidä raakatallenne lähdekansion ulkopuolella. Poiminta pysähtyy, jos tarvittava rakenne puuttuu tai muuttuu epäselväksi. Tarkista tulos ja suorita julkisen puun tarkistin ennen julkaisemista.
 
 ## Paikalliset tiedot ja julkinen repository
 
