@@ -7,6 +7,8 @@ from copy import deepcopy
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import Mock
 from urllib.parse import urlencode
@@ -18,6 +20,7 @@ from uhkone.booking import (
     BookingSpec,
     Observation,
     TransientBookingError,
+    run_booking,
 )
 from uhkone.booking_browser import (
     BookingBrowser,
@@ -54,6 +57,32 @@ def cart_row(child=20, price=7600):
 def reservation(status=7, paid=0, child=20):
     return {"reservation_id": 456, "reservation_event_group_id": 123,
             "reservation_account_id": child, "reservation_status_id": status, "is_paid": paid}
+
+
+def observed_hold():
+    """Fictional values in the authenticated pending course and cart JSON shape."""
+    cart = {
+        "item_id": 0, "fare_product_id": 4321, "fare_product_type_id": 2,
+        "title": "Leikki-ikäisten jatkouimakoulu", "price": 7600, "bundle_price": None,
+        "bundle_vat_amount": None,
+        "reservation_params": {"reservation_event_group_id": 123, "reservation_account_id": 20, "tags": None},
+        "sale_event_id": 601, "payment_event_id": None, "loading_event_id": 701,
+        "organization_id": 1, "bundle_event_id": None, "is_bundle": None,
+        "forward_account_number": None, "reservation_event_group_id": 123,
+        "related_reservation_event_group_id": None, "max_age": None, "min_age": None,
+        "quantity": 1, "vat_percentage": 13.5, "discount": 0, "type": 1, "capacity": 1,
+        "amount_for_second_vat": None, "second_vat_percentage": None,
+        "is_visible_bundle_item": False, "variation": None, "bundle_rows": None, "name_customer": None,
+    }
+    own = {
+        "reservation_event_group_id": 123, "name": "Leikki-ikäisten jatkouimakoulu",
+        "start": "2027-01-10 10:00:00", "end": "2027-02-10 10:30:00",
+        "is_course": 1, "instructors": "Esimerkkiohjaaja", "event_number": 3,
+        "reservation_status_id": 7, "reservation_id": 456, "location_id": 2,
+        "location": "Mäkelänrinne", "reservation_account_id": 20,
+        "reservation_account_name": "Aino Esimerkki", "payment_label": None, "payment_label_class": None,
+    }
+    return cart, own
 
 
 class ScopeGuardTests(unittest.TestCase):
@@ -219,6 +248,61 @@ class ServerEvidenceTests(unittest.TestCase):
         self.assertFalse(value.cart_empty)
         self.assertEqual(value.reservation_id, "456")
 
+    def test_observed_pending_course_cart_does_not_infer_reservation_payment(self):
+        cart, own = observed_hold()
+        unpaid = replace(spec(), payment_mode="none", without_payment=True)
+        value = _observation(unpaid, 20, course_row(), [cart], [own], False, {"isLocked": False})
+        self.assertEqual((value.reservation_id, value.current_price), ("456", Decimal(76)))
+        self.assertIsNone(value.reservation_paid)
+        self.assertFalse(value.unpaid_hold)
+        self.assertTrue(value.unpaid_hold_without_checkout)
+        paid = self.observe(cart=[cart], reservations=[own])
+        self.assertFalse(paid.unpaid_hold)
+        self.assertFalse(paid.unpaid_hold_without_checkout)
+
+    def test_cart_payment_event_contradicts_legacy_paid_false(self):
+        cart, own = observed_hold()
+        for bad in (222, 0, False, "", [], {}):
+            with self.subTest(value=bad):
+                value = self.observe(cart=[cart | {"payment_event_id": bad}],
+                                     reservations=[own | {"is_paid": False}])
+                self.assertFalse(value.unpaid_hold)
+
+    def test_observed_pending_course_cart_requires_nonconflicting_evidence(self):
+        cart, own = observed_hold()
+        unpaid = replace(spec(), payment_mode="none", without_payment=True)
+        cases = (
+            ("missing payment event", [{key: value for key, value in cart.items() if key != "payment_event_id"}], [own], False),
+            ("payment event exists", [cart | {"payment_event_id": 223}], [own], False),
+            ("malformed payment event", [cart | {"payment_event_id": []}], [own], False),
+            ("wrong product", [cart | {"fare_product_id": 999}], [own], False),
+            ("contradictory cart course", [cart | {"reservation_event_group_id": 999}], [own], False),
+            ("wrong account", [cart], [own | {"reservation_account_id": 10}], False),
+            ("multiple cart lines", [cart, cart], [own], False),
+            ("no reservation", [cart], [], False),
+            ("different status", [cart], [own | {"reservation_status_id": 4}], False),
+            ("explicit paid", [cart], [own | {"is_paid": True}], False),
+            ("malformed paid field", [cart], [own | {"is_paid": None}], False),
+            ("conflicting linked receipt", [cart], [own | {"receipt_event_id": 800}], False),
+            ("locked cart", [cart], [own], True),
+        )
+        for label, cart_rows, own_rows, locked in cases:
+            with self.subTest(label=label):
+                value = _observation(unpaid, 20, course_row(), cart_rows, own_rows, False, {"isLocked": locked})
+                self.assertFalse(value.unpaid_hold_without_checkout)
+        for own_rows in ([own, own | {"reservation_id": 457}], [own | {"reservation_id": 0}]):
+            with self.assertRaises(BookingError):
+                _observation(unpaid, 20, course_row(), [cart], own_rows, False, {"isLocked": False})
+
+    def test_selected_reservation_id_is_unique_across_course_response(self):
+        cart, own = observed_hold()
+        unpaid = replace(spec(), payment_mode="none", without_payment=True)
+        for conflicting in ({"reservation_account_id": 21}, {"reservation_event_group_id": 124},
+                            {"reservation_status_id": 1}, {"reservation_status_id": None}):
+            with self.subTest(conflicting=conflicting), self.assertRaises(BookingError):
+                _observation(unpaid, 20, course_row(), [cart], [own, own | conflicting],
+                             False, {"isLocked": False})
+
     def test_queue_and_unpaid_reservations_are_not_complete(self):
         for status, paid in ((1, 1), (3, 1), (7, 1), (6, 1), (2, 0), (4, 0), (5, 0)):
             with self.subTest(status=status, paid=paid):
@@ -375,6 +459,112 @@ class QueueMutationPreconditionsTests(unittest.TestCase):
 
 
 class ReadOnlyPreflightTests(unittest.TestCase):
+    def test_preflight_conflicted_reservation_cannot_be_rebound_to_replacement(self):
+        selected = spec()
+        page = SimpleNamespace(goto=lambda *args, **kwargs: None)
+        backend = BookingBrowser(selected, None, page, _BookingGuard(None, selected))
+        cart, own = observed_hold()
+        values = {
+            "/webshop/reservations2/apieventgroups/123": course_row(),
+            "/webshop/reservations2/apicart": [cart | {"payment_event_id": 78}],
+            "/webshop/reservations2/apiusereventgroups": [own | {"is_paid": False}],
+            "cart/getreceiptinfo": False, "cart/islocked": {"isLocked": False},
+        }
+        backend._read = Mock(side_effect=lambda path, **kwargs: values[path])
+        backend._user = Mock(return_value={"account_id": 10, "linked_accounts": [
+            {"account_id": 20, "name": "Aino Esimerkki"},
+        ]})
+        backend.initialize()
+        values["/webshop/reservations2/apicart"] = []
+        values["/webshop/reservations2/apiusereventgroups"] = [reservation(4, 1) | {"reservation_id": 457}]
+        current = selected.opens_at
+
+        def wait(seconds: float) -> None:
+            nonlocal current
+            current += timedelta(seconds=seconds)
+
+        backend.wait = Mock(side_effect=wait)
+        bounded = replace(selected, deadline=current + timedelta(seconds=4))
+        with TemporaryDirectory() as directory:
+            state_path = Path(directory) / "booking.json"
+            result = run_booking(bounded, backend, state_path, now=lambda: current, log=lambda _: None)
+            self.assertEqual((result.status, result.reservation_id, result.receipt_id), ("deadline", "456", None))
+            self.assertEqual(json.loads(state_path.read_text())["reservation_id"], "456")
+        self.assertFalse(backend.guard.checkout_sent)
+
+    def test_snapshot_keeps_preflight_payment_conflict_for_the_controller(self):
+        selected = spec()
+        cart, own = observed_hold()
+        backend = BookingBrowser(selected, None, None, _BookingGuard(None, selected))
+        backend.child_id = 20
+        values = {
+            "/webshop/reservations2/apieventgroups/123": course_row(),
+            "/webshop/reservations2/apicart": [cart | {"payment_event_id": 78}],
+            "/webshop/reservations2/apiusereventgroups": [own | {"is_paid": False}],
+            "cart/getreceiptinfo": False, "cart/islocked": {"isLocked": False},
+        }
+        backend._read = Mock(side_effect=lambda path, **kwargs: values[path])
+        self.assertTrue(backend.snapshot().hold_payment_conflict)
+        values["/webshop/reservations2/apicart"] = [cart]
+        self.assertTrue(backend.snapshot().hold_payment_conflict)
+        self.assertFalse(backend.snapshot().unpaid_hold)
+
+    def test_loopback_payment_proof_rejects_public_paid_fields_and_missing_receipt_key(self):
+        _, own = observed_hold()
+        loopback = "http://127.0.0.1:43210"
+        backend = BookingBrowser(spec(), None, None, _BookingGuard(None, spec(), base_url=loopback),
+                                 base_url=loopback)
+        normal = {"reservation_id": 456, "reservation_status_id": 7,
+                  "is_paid": 0, "receipt_event_id": None}
+        public_claim = own | {"is_paid": True, "receipt_event_id": 78}
+        for rows, proof in (([public_claim], [normal]),
+                            ([public_claim], [normal | {"reservation_id": 457}]),
+                            ([own], [{key: value for key, value in normal.items() if key != "receipt_event_id"}])):
+            with self.subTest(rows=rows, proof=proof):
+                backend._read = Mock(side_effect=[rows, {"testshop": True, "reservations": proof}])
+                with self.assertRaises(BookingError):
+                    backend._reservations({123})
+
+    def test_simulated_proof_is_read_only_on_loopback_and_bound_to_observed_status(self):
+        production = BASE_URL
+        loopback = "http://127.0.0.1:43210"
+        proof_path = "/_test/reservation-proof"
+        _, own = observed_hold()
+        calls = []
+        proof_status = 7
+
+        def get(url, **options):
+            calls.append(url)
+            payload = [own]
+            if url.endswith(proof_path):
+                payload = {"testshop": True, "reservations": [{
+                    "reservation_id": 456, "reservation_status_id": proof_status,
+                    "is_paid": 0, "receipt_event_id": None,
+                }]}
+            return SimpleNamespace(status=200, headers={}, json=lambda: payload, dispose=lambda: None)
+
+        context = SimpleNamespace(request=SimpleNamespace(get=get))
+        live = BookingBrowser(spec(), context, None, _BookingGuard(context, spec()))
+        with self.assertRaises(BookingError):
+            live._read(proof_path)
+        self.assertEqual(calls, [])
+        local = BookingBrowser(spec(), context, None, _BookingGuard(context, spec(), base_url=loopback),
+                               base_url=loopback)
+        self.assertEqual(local._read(proof_path)["reservations"][0]["reservation_id"], 456)
+        self.assertEqual(local._reservations({123})[0]["is_paid"], 0)
+        self.assertEqual(calls, [
+            loopback + proof_path, loopback + "/webshop/reservations2/apiusereventgroups", loopback + proof_path,
+        ])
+        calls.clear()
+        self.assertEqual(live._reservations({123}), [own])
+        self.assertEqual(local._reservations(set()), [own])
+        self.assertEqual(local._reservations({124}), [own])
+        self.assertEqual(calls, [production + "/webshop/reservations2/apiusereventgroups",
+                                 loopback + "/webshop/reservations2/apiusereventgroups",
+                                 loopback + "/webshop/reservations2/apiusereventgroups"])
+        proof_status = 4
+        self.assertEqual(local._reservations({123}), [own])
+
     def test_rpc_no_arguments_follow_public_serializer(self):
         calls = []
         def post(url, *, form, **options):
@@ -537,6 +727,41 @@ class FastPaySelectionTests(unittest.TestCase):
             json=lambda: {"result": {"form": '<form id="payment_form" action="https://payment.example/authenticate"></form>'}},
         ))
         self.assertEqual(guard.provider_origins, {"https://payment.example"})
+
+
+    def test_rendered_cart_payment_event_blocks_checkout_and_preserves_the_conflict(self):
+        selected = replace(spec("fastpay"), payment_type_id=5)
+        backend = BookingBrowser(selected, None, None, _BookingGuard(None, selected))
+        backend.child_id = 20
+        state = Observation(held=True, cart_empty=False, reservation_id="456",
+                            reservation_paid=False, current_price=Decimal(76))
+        backend.snapshot = Mock(return_value=state)
+        backend._payment_types = Mock(return_value=[{
+            "payment_type_id": 5, "name": "FastPay", "is_disabled": False,
+            "is_balance": False, "is_pay_later": False,
+        }])
+        action = Mock()
+        action.count.return_value = 1
+        action.is_checked.return_value = False
+        action.is_visible.return_value = action.is_enabled.return_value = True
+        action.evaluate.return_value = False
+
+        def simulated_click():
+            backend.guard.sent = True
+            backend.guard.checkout_sent = True
+
+        action.click.side_effect = simulated_click
+        page = Mock(url=BASE_URL + "/webshop/reservations2/")
+        page.locator.return_value = action
+        page.evaluate.side_effect = [None, [cart_row() | {"payment_event_id": 78}], 9]
+        page.expect_response.return_value = nullcontext()
+        backend.page = page
+
+        with self.assertRaises(ActionNotSent) as failure:
+            backend.checkout("456", Decimal(76))
+        self.assertEqual(failure.exception.observation, replace(state, hold_payment_conflict=True))
+        self.assertFalse(backend.guard.checkout_sent)
+        action.click.assert_not_called()
 
 
 if __name__ == "__main__":

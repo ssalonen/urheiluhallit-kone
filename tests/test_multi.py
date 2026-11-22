@@ -248,6 +248,48 @@ class MultiTests(unittest.TestCase):
         self.assertEqual(self.race(later).status, "already_confirmed")
         self.assertEqual(self.pool.writes, [])
 
+    def test_shared_cart_payment_conflict_survives_stale_selected_tab(self):
+        backend = self.pool.backends[2]
+        backend.hold()
+        backend.observation = replace(backend.observation, hold_payment_conflict=True)
+        def older_tab(target):
+            target.observation = replace(target.observation, hold_payment_conflict=False)
+        backend.on_snapshot = older_tab
+        result = self.race()
+        self.assertEqual((result.status, result.course_id, result.receipt_id), ("deadline", 2, None))
+        self.assertEqual(self.pool.writes, [])
+
+    def test_restart_from_pinned_shared_payment_conflict_never_charges(self):
+        backend = self.pool.backends[1]
+        backend.hold()
+        backend.observation = replace(backend.observation, hold_payment_conflict=True)
+        def interrupt_after_pin(path, state):
+            _save_state(path, state)
+            if state.get("pinned_id") is not None:
+                raise KeyboardInterrupt()
+        with patch("uhkone.multi._save_state", side_effect=interrupt_after_pin), self.assertRaises(KeyboardInterrupt):
+            self.race()
+        backend.observation = replace(backend.observation, hold_payment_conflict=False)
+        result = self.race()
+        self.assertEqual((result.status, result.course_id, result.receipt_id), ("deadline", 1, None))
+        self.assertEqual(self.pool.writes, [])
+
+    def test_shared_payment_conflict_is_durable_before_progress_interruption(self):
+        backend = self.pool.backends[2]
+        backend.hold()
+        backend.observation = replace(backend.observation, hold_payment_conflict=True)
+
+        def interrupt(phase, metadata):
+            if phase == "candidate" and metadata["course_id"] == 2:
+                raise KeyboardInterrupt()
+
+        with self.assertRaises(KeyboardInterrupt):
+            self.race(progress=interrupt)
+        backend.observation = replace(backend.observation, hold_payment_conflict=False)
+        result = self.race()
+        self.assertEqual((result.status, result.course_id, result.receipt_id), ("deadline", 2, None))
+        self.assertEqual(self.pool.writes, [])
+
     def test_crash_after_pinning_shared_paid_claim_preserves_its_identity(self):
         backend = self.pool.backends[1]
         backend.confirm()

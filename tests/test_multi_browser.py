@@ -2,13 +2,17 @@
 import json
 import unittest
 from dataclasses import replace
+from datetime import timedelta
 from decimal import Decimal
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import Mock
 
 from tests.test_booking_browser import cart_row, course_row, reservation, spec
 from uhkone.booking import BookingError, Observation, TransientBookingError
 from uhkone.client import BASE_URL
+from uhkone.multi import run_race
 from uhkone.multi_browser import BookingPool, _candidate_rows, _PoolRouting
 
 
@@ -291,6 +295,91 @@ class SharedCandidateEvidenceTests(unittest.TestCase):
             _candidate_rows([{"id": 123, "status": 200, "value": course_row()}], {123, 124})
         with self.assertRaises(BookingError):
             _candidate_rows([{"id": 123, "status": 200, "value": course_row()}] * 2, {123, 124})
+
+    def _in_memory_pool(self, *, conflict=False):
+        pool, _ = self.make_pool()
+        cart_path = "/webshop/reservations2/apicart"
+        own_path = "/webshop/reservations2/apiusereventgroups"
+        replies = {
+            cart_path: [cart_row() | {"payment_event_id": 78}] if conflict else [],
+            own_path: [reservation()] if conflict else [],
+            "cart/getreceiptinfo": False,
+            "cart/islocked": {"isLocked": False},
+            "cart/getonlinepaymenttypes": [{
+                "payment_type_id": 5, "name": "FastPay", "is_disabled": False,
+                "is_balance": False, "is_pay_later": False,
+            }],
+        }
+        user = pool._reader()._user
+
+        def read(path, **kwargs):
+            if path.startswith("/webshop/reservations2/apieventgroups/") and path not in replies:
+                return course_row() | {"reservation_event_group_id": int(path.rsplit("/", 1)[1])}
+            value = replies[path]
+            if isinstance(value, TransientBookingError):
+                raise value
+            return value
+
+        for backend in pool.backends.values():
+            backend._user = user
+            backend._read = Mock(side_effect=read)
+            backend.add_selected_course = Mock()
+            backend.checkout = Mock()
+        pool.initialize()
+        return pool, replies
+
+    def _run_in_memory_race(self, specs, pool, directory, *, progress=None):
+        current = max(spec.opens_at for spec in specs)
+
+        def wait(seconds: float) -> None:
+            nonlocal current
+            current += timedelta(seconds=seconds)
+
+        for backend in pool.backends.values():
+            backend.wait = wait
+        bounded = [replace(spec, deadline=current + timedelta(seconds=8)) for spec in specs]
+        return run_race(bounded, pool, directory, now=lambda: current, log=lambda _: None, progress=progress)
+
+    def test_preflight_conflict_survives_target_detail_failure_with_available_alternative(self):
+        pool, replies = self._in_memory_pool(conflict=True)
+        replies.update({"/webshop/reservations2/apicart": [], "/webshop/reservations2/apiusereventgroups": [],
+                        "/webshop/reservations2/apieventgroups/123": TransientBookingError("HTTP 503")})
+        pool._reader().page.values = [
+            {"id": 123, "status": 503},
+            {"id": 124, "status": 200, "value": course_row() | {"reservation_event_group_id": 124}},
+        ]
+        observations = pool.observations()
+        self.assertIsInstance(observations[123], TransientBookingError)
+        self.assertTrue(observations[124].available)
+        with TemporaryDirectory() as directory:
+            path = Path(directory)
+            result = self._run_in_memory_race(pool.specs, pool, path)
+            self.assertEqual((result.status, result.course_id, result.reservation_id), ("deadline", 123, "456"))
+            lease = next(file for file in path.glob("yksi-*.json") if "-kurssi-" not in file.name)
+            self.assertEqual(json.loads(lease.read_text())["claim_id"], "456")
+        self.assertFalse(pool.selection_clear)
+        pool.backends[124].add_selected_course.assert_not_called()
+
+    def test_preflight_conflict_is_durable_before_first_waiting_callback_and_restart(self):
+        pool, _ = self._in_memory_pool(conflict=True)
+
+        def interrupt(phase, data):
+            if phase == "waiting":
+                raise KeyboardInterrupt()
+
+        with TemporaryDirectory() as directory:
+            path = Path(directory)
+            with self.assertRaises(KeyboardInterrupt):
+                self._run_in_memory_race(pool.specs, pool, path, progress=interrupt)
+            restarted, replies = self._in_memory_pool()
+            replies["/webshop/reservations2/apiusereventgroups"] = [reservation(4, 1) | {"reservation_id": 457}]
+            result = self._run_in_memory_race(pool.specs, restarted, path)
+            self.assertEqual((result.status, result.course_id, result.reservation_id), ("deadline", 123, "456"))
+            lease = next(file for file in path.glob("yksi-*.json") if "-kurssi-" not in file.name)
+            self.assertEqual(json.loads(lease.read_text())["claim_id"], "456")
+        for backend in restarted.backends.values():
+            backend.add_selected_course.assert_not_called()
+            backend.checkout.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -203,6 +203,8 @@ def allowed_path(path: str) -> bool:
         "docs/superpowers/specs/2026-11-22-correctness-audit-design.md",
         "docs/superpowers/plans/2026-11-22-production-html.md",
         "docs/superpowers/specs/2026-11-22-production-html-design.md",
+        "docs/superpowers/plans/2026-11-22-live-json.md",
+        "docs/superpowers/specs/2026-11-22-live-json-design.md",
     }:
         return True
     if path == ".github/dependabot.yml":

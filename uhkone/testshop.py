@@ -269,24 +269,47 @@ class TestShop:
         free = max(0, stored["capacity"] - occupied)
         row["_test"] = {"simulated": True, "scenario": self.scenario, "original_availability": {
             key: deepcopy(row.get(key)) for key in ("free", "capacity", "is_reservable", "public_reservation_start", "queue_capacity", "queue", "free_queue")}}
-        row.update(free=free, capacity=stored["capacity"], is_reservable=datetime.now(UTC) >= self.opens_at,
+        row.update(free=free, reserved=occupied, capacity=stored["capacity"], is_reservable=datetime.now(UTC) >= self.opens_at,
                    queue_capacity=stored["queue_capacity"], queue=queued, free_queue=max(0, stored["queue_capacity"] - queued),
                    public_reservation_start=self.opens_at.isoformat())
         return row
 
     def _cart(self, session_id):
         rows = self._db.execute("SELECT c.item_id,r.*,p.product_id FROM cart c JOIN reservations r ON r.id=c.reservation_id JOIN courses p ON p.id=r.course_id WHERE c.session_id=?", (session_id,)).fetchall()
-        return [{"item_id": row["item_id"], "fare_product_id": row["product_id"], "quantity": 1, "price": row["price"],
-                 "reservation_params": {"reservation_event_group_id": row["course_id"], "reservation_account_id": row["child_id"]}} for row in rows]
+        return [{"item_id": row["item_id"], "fare_product_id": row["product_id"], "quantity": 1,
+                 "price": row["price"], "bundle_price": None, "payment_event_id": None,
+                 "reservation_event_group_id": row["course_id"],
+                 "reservation_params": {"reservation_event_group_id": row["course_id"],
+                                        "reservation_account_id": row["child_id"], "tags": None}} for row in rows]
 
     def _own(self):
-        return [{"reservation_id": row["id"], "reservation_event_group_id": row["course_id"], "reservation_account_id": row["child_id"],
-                 "reserving_account_id": 10, "reservation_status_id": row["status"], "is_paid": row["is_paid"], "receipt_event_id": row["receipt_id"], "queue_number": row["queue_number"]}
-                for row in self._db.execute("SELECT * FROM reservations ORDER BY id")]
+        rows = self._db.execute("SELECT r.*, c.raw FROM reservations r JOIN courses c ON c.id=r.course_id ORDER BY r.id")
+        result = []
+        for row in rows:
+            course = json.loads(row["raw"])
+            reservation = {
+                "reservation_id": row["id"], "reservation_event_group_id": row["course_id"],
+                "reservation_account_id": row["child_id"], "reservation_account_name": "Testilapsi",
+                "reservation_status_id": row["status"], "name": course.get("name"),
+                "start": course.get("start"), "end": course.get("end"), "is_course": course.get("is_course", 1),
+                "instructors": "Testiohjaaja", "event_number": course.get("event_number"),
+                "location_id": course.get("location_id"), "location": course.get("location"),
+                "payment_label": None, "payment_label_class": None,
+            }
+            if row["status"] in {1, 3}:
+                reservation["queue_number"] = row["queue_number"]
+            result.append(reservation)
+        return result
+
+    def _reservation_proof(self):
+        return {"testshop": True, "reservations": [dict(row) for row in self._db.execute("""
+            SELECT id AS reservation_id, status AS reservation_status_id, is_paid, receipt_id AS receipt_event_id
+            FROM reservations ORDER BY id
+        """)]}
 
     def _receipt(self, session_id):
         row = self._db.execute("SELECT id,total_amount,payment_type_id FROM receipts WHERE session_id=? ORDER BY id DESC LIMIT 1", (session_id,)).fetchone()
-        return dict(row, receipt_id=row["id"], is_closed=1, is_pay_later=0) if row else None
+        return dict(row, receipt_id=row["id"], is_closed=1, is_pay_later=0) if row else False
 
     def _payment_types(self):
         return [{"payment_type_id": 4, "name": "Simuloitu testisaldo", "is_balance": True, "is_pay_later": False, "is_disabled": False},
@@ -298,6 +321,8 @@ class TestShop:
             if method == "GET":
                 if path == "/_test/status":
                     return self.stats()
+                if path == "/_test/reservation-proof":
+                    return self._reservation_proof()
                 if path == PREFIX + "apicart":
                     return self._cart(session_id)
                 if path == PREFIX + "apiusereventgroups":
@@ -323,10 +348,12 @@ class TestShop:
                     operation = path.removeprefix("/webshop/call/")
                     if operation == "cart/deleteCartItem":
                         return self._delete_cart_item(body, session_id=session_id)
-                    if operation in {"cart/getreceiptinfo", "cart/islocked"} and body != "":
-                        raise _APIError("Testilukupyyntö edellyttää tyhjää sisältöä", 400)
+                    if operation in {"cart/getreceiptinfo", "cart/islocked"}:
+                        if body != "":
+                            raise _APIError("Testilukupyyntö edellyttää tyhjää sisältöä", 400)
+                        result = self._receipt(session_id) if operation == "cart/getreceiptinfo" else {"isLocked": False}
+                        return {"result": result, "errors": []}
                     reads = {"user/getcurrentuser": {"account_id": 10, "name": "Testihuoltaja", "linked_accounts": [{"account_id": 20, "name": "Testilapsi"}]},
-                        "cart/getreceiptinfo": self._receipt(session_id), "cart/islocked": {"isLocked": False},
                         "cart/getonlinepaymenttypes": self._payment_types(),
                         "cart/checkcurrentuserbalance": {"balance": int(self._meta("balance"))}}
                     if operation in reads:
@@ -499,7 +526,12 @@ class TestShop:
     def stats(self) -> dict:
         with self._lock:
             counts = dict(self._db.execute("SELECT kind,count(*) FROM requests GROUP BY kind"))
-            own = self._own()
+            own = [dict(row) for row in self._db.execute("""
+                SELECT id AS reservation_id, course_id AS reservation_event_group_id,
+                       child_id AS reservation_account_id, 10 AS reserving_account_id,
+                       status AS reservation_status_id, is_paid, receipt_id AS receipt_event_id, queue_number
+                FROM reservations ORDER BY id
+            """)]
             receipts = [dict(row) for row in self._db.execute("SELECT id,total_amount,payment_type_id FROM receipts ORDER BY id")]
             card_charges = [row for row in receipts if row["payment_type_id"] == 5]
             return {"testshop": True, "scenario": self.scenario, "course_id": self.course_id,

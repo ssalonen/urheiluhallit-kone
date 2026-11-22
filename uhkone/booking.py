@@ -100,16 +100,26 @@ class Observation:
     reservation_receipt_id: str | None = None
     reservation_paid: bool | None = None
     reservation_final: bool = False
+    observed_unconfirmed_hold: bool = False
+    hold_payment_conflict: bool = False
 
     @property
     def settlement_seen(self) -> bool:
         return self.reservation_final or self.reservation_confirmed or self.reservation_paid is True
 
     @property
+    def _pending_cart(self) -> bool:
+        return (self.held and self.reservation_id is not None and not self.settlement_seen
+                and not self.cart_empty and not self.cart_has_others and not self.payment_locked
+                and not self.hold_payment_conflict)
+
+    @property
     def unpaid_hold(self) -> bool:
-        return (self.held and self.reservation_id is not None and self.reservation_paid is False
-                and not self.settlement_seen and not self.cart_empty
-                and not self.cart_has_others and not self.payment_locked)
+        return self._pending_cart and self.reservation_paid is False
+
+    @property
+    def unpaid_hold_without_checkout(self) -> bool:
+        return self._pending_cart and (self.reservation_paid is False or self.observed_unconfirmed_hold)
 
 
 @dataclass(frozen=True)
@@ -164,7 +174,7 @@ def _new_state(identity: str, spec: BookingSpec) -> dict:
         "attempts": {"add": 0, "checkout": 0}, "add_sends": 0, "checkout_sends": 0,
         "expected_price": None, "add_started": None, "absent_count": 0, "last_absent": None,
         "baseline_receipt_id": None, "reservation_id": None, "receipt_id": None,
-        "result_status": None, "checkout_dispatched": False,
+        "result_status": None, "checkout_dispatched": False, "hold_payment_conflict": False,
     }
 
 
@@ -187,6 +197,7 @@ def _load_state(path: Path, identity: str, spec: BookingSpec) -> dict:
         if isinstance(state, dict):
             # Earlier journals only recorded intent before dispatch.
             state.setdefault("checkout_dispatched", False)
+            state.setdefault("hold_payment_conflict", False)
         template = _new_state(identity, spec)
         if not isinstance(state, dict) or set(state) != set(template):
             raise ValueError("Tuntematon tilatiedoston rakenne")
@@ -204,6 +215,8 @@ def _load_state(path: Path, identity: str, spec: BookingSpec) -> dict:
                 raise ValueError("Virheellinen yrityslaskuri")
         if type(state["checkout_dispatched"]) is not bool or (state["checkout_dispatched"] and not state["checkout_sends"]):
             raise ValueError("Maksun lähetystieto ei vastaa maksuaikomusta")
+        if type(state["hold_payment_conflict"]) is not bool:
+            raise ValueError("Maksutilan ristiriitatieto on virheellinen")
         if state["add_sends"] > 3 or state["checkout_sends"] > 1:
             raise ValueError("Liian monta lähetettyä toimintoa")
         if (state["add_sends"] > state["attempts"]["add"]
@@ -283,7 +296,7 @@ def _check_observation(observation: Observation) -> None:
     if not isinstance(observation, Observation):
         raise BookingError("Varausrajapinta palautti tuntemattoman tilan.")
     for key in ("available", "held", "reservation_confirmed", "receipt_closed", "cart_has_others", "cart_empty", "payment_locked",
-                "queue_available", "queued", "reservation_final"):
+                "queue_available", "queued", "reservation_final", "observed_unconfirmed_hold", "hold_payment_conflict"):
         if type(getattr(observation, key)) is not bool:
             raise BookingError("Varausrajapinnan totuusarvo ei ole yksiselitteinen.")
     if observation.reservation_paid is not None and type(observation.reservation_paid) is not bool:
@@ -336,6 +349,7 @@ def run_booking(
     progress: Callable[[str, dict], None] | None = None,
     checkpoint: Callable[[], None] | None = None,
     before_action: Callable[[str, int], None] | None = None,
+    prior_payment_conflict: Observation | None = None,
 ) -> BookingResult:
     """Book one course, with optional main-thread human controls.
 
@@ -347,12 +361,19 @@ def run_booking(
         if progress is not None:
             progress(phase, {"course_id": spec.course.id, **metadata})
 
-    if checkpoint is not None:
-        checkpoint()
     identity = backend.identity
     if not isinstance(identity, str) or not identity:
         raise BookingError("Maksajan, lapsen ja kurssin varma tunniste puuttuu.")
     state = _load_state(state_path, identity, spec)
+    conflict = prior_payment_conflict or getattr(backend, "payment_conflict", None)
+    if isinstance(conflict, Observation) and conflict.hold_payment_conflict:
+        _check_observation(conflict)
+        if not state["hold_payment_conflict"] or (state["reservation_id"] is None and conflict.reservation_id):
+            state["hold_payment_conflict"] = True
+            state["reservation_id"] = state["reservation_id"] or conflict.reservation_id
+            _save_state(state_path, state)
+    if checkpoint is not None:
+        checkpoint()
     if state["phase"] == "confirmed":
         # Durable proof records a past success. A later cancellation must not
         # be reported as a currently valid reservation or trigger a new charge.
@@ -420,6 +441,8 @@ def run_booking(
         if observation is None:
             return
         _check_observation(observation)
+        if observation.hold_payment_conflict:
+            state["hold_payment_conflict"] = True
         if observation.reservation_id:
             if state["reservation_id"] and state["reservation_id"] != observation.reservation_id:
                 state["phase"] = "verifying"
@@ -462,6 +485,11 @@ def run_booking(
             continue
         ensure_identity()
         _check_observation(observation)
+        if observation.hold_payment_conflict and (
+                not state["hold_payment_conflict"] or (state["reservation_id"] is None and observation.reservation_id)):
+            state["hold_payment_conflict"] = True
+            state["reservation_id"] = state["reservation_id"] or observation.reservation_id
+            _save_state(state_path, state)
         emit("candidate", **_observation_metadata(observation))
         failures = 0
         preflight = True
@@ -488,9 +516,9 @@ def run_booking(
         if (observation.reservation_confirmed and not state["checkout_dispatched"]
                 and (not state["checkout_sends"] or observation.reservation_id == state["reservation_id"])):
             return finish("already_confirmed", observation)
-        if state["phase"] == "verifying":
-            # A later incomplete read cannot authorize paying a reservation
-            # already observed as paid, including after a restart.
+        if state["phase"] == "verifying" or (state["hold_payment_conflict"] and state["phase"] != "paying"):
+            # A later clean read cannot clear possible payment evidence.
+            # An already dispatched checkout still follows its proof checks.
             emit("reservation_pending")
             wait(2)
             continue
@@ -533,7 +561,8 @@ def run_booking(
                 _save_state(state_path, state)
             wait(2)
             continue
-        if observation.held and not observation.unpaid_hold:
+        eligible_hold = (observation.unpaid_hold_without_checkout if spec.without_payment else observation.unpaid_hold)
+        if observation.held and not eligible_hold:
             keep_late_claim(observation)
             _save_state(state_path, state)
             emit("reservation_pending")

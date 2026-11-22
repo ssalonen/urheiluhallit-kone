@@ -148,7 +148,7 @@ class BookingFlowTests(unittest.TestCase):
         fixture_origin = "http://127.0.0.1:43210"
         spec = BookingSpec(parse_course(row, base_url=fixture_origin), "Aino Esimerkki", Decimal(80), opening,
                            opening + timedelta(seconds=40), payment_mode, without_payment=without_payment)
-        server: dict[str, Any] = {"cart": [], "own": [], "receipt": {
+        server: dict[str, Any] = {"cart": [], "own": [], "proof": [], "receipt": {
             "receipt_id": 77, "total_amount": 7600, "is_closed": 1, "is_pay_later": 0}}
         writes = []
         context = self.browser.new_context()
@@ -167,11 +167,13 @@ class BookingFlowTests(unittest.TestCase):
                 if path == "/webshop/reservations2/apicart":
                     payload = json.loads(request.post_data)
                     self.assertEqual(int(payload["account"]["account_id"]), 20)
-                    server["cart"] = [{"item_id": 11, "fare_product_id": 4321, "quantity": 1,
-                        "price": 7600, "reservation_params": {"reservation_event_group_id": 123,
-                                                              "reservation_account_id": 20}}]
+                    server["cart"] = [{"item_id": 0, "fare_product_id": 4321, "quantity": 1,
+                        "price": 7600, "bundle_price": None, "payment_event_id": None,
+                        "reservation_params": {"reservation_event_group_id": 123, "reservation_account_id": 20}}]
                     server["own"] = [{"reservation_id": 456, "reservation_event_group_id": 123,
-                        "reservation_account_id": 20, "reservation_status_id": 7, "is_paid": 0}]
+                        "reservation_account_id": 20, "reservation_status_id": 7}]
+                    server["proof"] = [{"reservation_id": 456, "reservation_status_id": 7,
+                        "is_paid": 0, "receipt_event_id": None}]
                     response = server["cart"]
                 else:
                     self.assertEqual(path, "/webshop/call/cart/externalpaymentstart")
@@ -181,7 +183,9 @@ class BookingFlowTests(unittest.TestCase):
                     self.assertEqual(server["cart"][0]["reservation_params"]["reservation_account_id"], 20)
                     server["cart"] = []
                     server["own"] = [{"reservation_id": 456, "reservation_event_group_id": 123,
-                        "reservation_account_id": 20, "reservation_status_id": 4, "is_paid": 1, "receipt_event_id": 78}]
+                        "reservation_account_id": 20, "reservation_status_id": 4}]
+                    server["proof"] = [{"reservation_id": 456, "reservation_status_id": 4,
+                        "is_paid": 1, "receipt_event_id": 78}]
                     server["receipt"] = server["receipt"] | {"receipt_id": 78}
                     response = {"result": {"payment_succeeded": True}}
                 route.fulfill(status=200, content_type="application/json", body=json.dumps(response))
@@ -203,6 +207,9 @@ class BookingFlowTests(unittest.TestCase):
         def read(path, *, rpc=False, content=None):
             if path == "user/getcurrentuser":
                 return {"account_id": 10, "linked_accounts": [{"account_id": 20, "name": spec.child_name}]}
+            if path == "/_test/reservation-proof":
+                self.assertFalse(without_payment)
+                return {"testshop": True, "reservations": deepcopy(server["proof"])}
             values = {f"/webshop/reservations2/apieventgroups/{spec.course.id}": row,
                 "/webshop/reservations2/apicart": server["cart"],
                 "/webshop/reservations2/apiusereventgroups": server["own"],

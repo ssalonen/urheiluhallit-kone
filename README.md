@@ -8,6 +8,8 @@ Ohjelma ei ole Urheiluhallien tai Enkoran virallinen tuote. **Repon automaatioll
 
 **Laadunvarmistus 22.11.2026:** oikean kaupan julkisen selainkoodin vertailu paljasti maksupyynnön muotoeron, jota simulaattori ei testannut. Lisäksi tarkastuksessa löytyi virheitä maksun vahvistamisessa ja häiriöistä palautumisessa. [Tarkastusraportti](docs/laadunvarmistus-2026-11-22.md) kertoo löydökset, korjaukset, testinäytön ja vielä todentamatta olevat vaiheet. Automaattisen maksun tuotantokelpoisuutta ei ole osoitettu.
 
+**Kirjautuneen JSON-kokeen löydös:** oikean kaupan maksamaton varaus lisättiin ja poistettiin, ja ostoskorin sekä kurssivarausten JSON otettiin talteen kolmessa vaiheessa. Havaitussa kurssivastauksessa ei ole `is_paid`-kenttää. Maksuton pysäytys tunnistaa tämän vuoksi erikseen täsmällisen ostoskoririvin ja saman osallistujan keskeneräisen kurssivarauksen; tuntematonta maksutilaa ei muuteta maksuluvaksi. Koe koski Kurssit-palvelun aikuista, eikä se ole repon Uimakoulut-adapterin tuotantoajo.
+
 **Tuotantomaksun vahvistusraja:** tässä korjauksessa oikean kaupan uuden maksun `confirmed`-tulosta ei muodosteta todentamattoman kuittiyhteyden perusteella. Maksupyyntö voi silti tulla lähetetyksi kerran, jos muu varaustieto sallii sen. Onnistunutkin maksu voi jäädä ohjelmassa vahvistamatta: tarkista tilanne oikean kaupan omista varauksista ja kuitista. Puuttuva vahvistus ei tarkoita maksun epäonnistumista eikä oikeuta uuteen maksuyritykseen.
 
 Interaktiivinen esimerkkiajo: [avaa HTML](docs/esimerkkiajo.html) (lataa tiedosto ja avaa selaimessa). Esimerkki toimii paikallisesti kuvitteellisilla kursseilla ja osallistujalla.
@@ -68,6 +70,8 @@ Valitsimet `--keskustele` ja `--kysy-toiminnot` tuovat ohjauksen myös suoriin v
 ### Varaa ostoskoriin ilman maksua
 
 `--ilman-maksua` käy läpi saman kurssi- ja lapsivalinnan sekä varausyrityksen, mutta pysähtyy, kun täsmällinen maksamaton kurssirivi on tarkistettu ostoskorissa. Maksutapaa ei anneta, eikä ohjelma aloita maksua. Ostoskorissa oleva paikka voi vanhentua eikä ole maksettu tai lopullisesti vahvistettu kurssipaikka.
+
+Oikeasta kaupasta havaitussa muodossa tämä edellyttää yhtä oikean kurssin, myyntituotteen ja osallistujan koririviä, hyväksyttyä hintaa, vastaavaa yksilöityä tilan 7 kurssivarausta, nimenomaista `payment_event_id: null` -kenttää ja lukitsematonta koria. Ristiriitainen tieto estää hyväksymisen. Puuttuvan `is_paid`-kentän maksutila pysyy tuntemattomana: tämä näyttö riittää vain maksuttoman ajon pysäytykseen, eikä se salli maksun aloittamista.
 
 ```sh
 uhkone varaa-yksi KURSSITUNNUS --lapsi "Lapsen tarkka nimi" --enintaan 76 --ilman-maksua --ei-jono
@@ -144,6 +148,8 @@ Simulaattorin paikkamäärät ja avautumisajat muutetaan tarkoituksella paikalli
 **Simulaattori on tämän projektin oma toteutus.** Se ei ole Enkoran lisensoitu palvelinohjelmisto tai itse asennettu Nexus-kauppa. Urheiluhallien käyttämän alustan osoittavat [kaupan Nexus-sivu](https://kauppa.urheiluhallit.fi/nexus/) ja [Enkoran asiakasreferenssi](https://enkora.fi/fi/referenssit/urheiluhallit-oy/). Julkista itse asennettavaa Enkora-jakelua ei löytynyt. Toimittajan mahdollinen testiympäristö olisi selvitettävä erikseen.
 
 Testikaupan kurssi-, osallistuja-, varaustila- ja korinäkymät käyttävät oikean kaupan julkisesta HTML:stä poimittuja, puhdistettuja malleja. Kahdeksan lähdemallin tunnisteet ja tarkistussummat ovat tiedostossa `uhkone/testshop_templates.html`. Poimija säilyttää valittujen elementtien hierarkian, poistaa muuttuvat arvot ja korvaa ne paikallisilla tietopaikoilla. Kurssilisäys avaa korin, kurssilla näkyy osallistujan **Ei vahvistettu** -rivi, ja **Poista** vapauttaa testipaikan. Maksutavat ja saldo päivittyvät erillisinä vastauksina kuten kaupan selainkoodissa.
+
+Kurssivarausten ja ostoskorin JSON-rakenne perustuu lisäksi 22.11.2026 kirjautuneessa kaupassa talteen otettuun maksuttomaan kokeeseen. Kurssivastaukseen ei lisätä keksittyä `is_paid`- tai kuittiviitettä. Simuloitujen maksujen todistusaineisto välitetään erillisellä, vain paikallisessa testitilassa hyväksyttävällä lukurajapinnalla. Se ei kuvaa tuotannon maksusopimusta. Simulaattori käyttää edelleen omia pysyviä koririvitunnisteitaan; oikeassa yhden rivin näytteessä `item_id` oli 0, ja sen lukeminen katetaan erikseen regressiolla.
 
 Tyylit ja palvelin ovat omia paikallisia toteutuksia. Kirjautuminen, henkilötiedot ja maksut ovat kuvitteellisia; kaupan JavaScriptiä, kuvia, fontteja tai muita ulkoisia resursseja ei ladata. CSP rajaa myös käsin avatun testikaupan resurssit paikalliseen palvelimeen. Testikaupan läpäisy ei yksin todista oikean kirjautuneen rajapinnan vastausten tai maksupalvelun vastaavuutta. Myös `koeajo --monta 1` käyttää usean vaihtoehdon selainpohjaa; erillinen Chromium-smoke tarkistaa lisäksi yhden kurssin selainpohjan, näkyvän maksamattoman koririvin ja osallistujan varaustilan.
 

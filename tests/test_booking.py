@@ -132,6 +132,26 @@ class BookingTests(unittest.TestCase):
         self.assertEqual(len(self.backend.adds), 1)
         self.assertEqual(self.backend.checkouts, [])
 
+    def test_observed_unconfirmed_cart_only_allows_without_payment_to_finish(self):
+        def observed_hold(backend):
+            backend.hold()
+            backend.observation = replace(backend.observation, reservation_paid=None, observed_unconfirmed_hold=True)
+
+        self.backend.on_add = observed_hold
+        unpaid = replace(self.spec, payment_mode="none", without_payment=True)
+        self.assertEqual(self.run_booking(unpaid).status, "held_unpaid")
+        self.assertEqual(self.run_booking(unpaid).status, "held_unpaid")
+        self.assertEqual(len(self.backend.adds), 1)
+        self.assertEqual(self.backend.checkouts, [])
+        self.assertEqual(self.state()["checkout_sends"], 0)
+
+        paid = Backend(self.clock)
+        paid.on_add = observed_hold
+        result = self.run_booking(self.spec, paid, self.path.with_name("paid.json"))
+        self.assertEqual(result.status, "deadline")
+        self.assertEqual(len(paid.adds), 1)
+        self.assertEqual(paid.checkouts, [])
+
     def test_without_payment_reconciles_lost_add_response_without_retry(self):
         spec = replace(self.spec, payment_mode="none", without_payment=True)
         def lost_response(backend):
@@ -402,6 +422,40 @@ class BookingTests(unittest.TestCase):
         self.backend.observation = replace(self.backend.observation, reservation_confirmed=False)
         self.assertEqual(self.run_booking().status, "deadline")
         self.assertEqual(self.backend.checkouts, [])
+
+    def test_cart_payment_conflict_survives_clean_snapshots_and_restart(self):
+        def first_conflicting_hold(backend):
+            backend.hold()
+            backend.observation = replace(backend.observation, hold_payment_conflict=True)
+
+        def older_clean_hold(backend):
+            if self.clock.now() >= BASE + timedelta(seconds=4):
+                backend.observation = replace(backend.observation, hold_payment_conflict=False)
+
+        self.backend.on_add = first_conflicting_hold
+        self.backend.on_snapshot = older_clean_hold
+        short = replace(self.spec, deadline=BASE + timedelta(seconds=8))
+        result = self.run_booking(short)
+        self.assertEqual((result.status, result.receipt_id), ("deadline", None))
+        self.assertEqual(self.backend.checkouts, [])
+        self.assertEqual(self.run_booking().status, "deadline")
+        self.assertEqual(self.backend.checkouts, [])
+
+    def test_payment_conflict_from_proven_unsent_mutation_survives_clean_snapshot(self):
+        for action in ("add", "checkout"):
+            with self.subTest(action=action):
+                clock = Clock()
+                backend = Backend(clock)
+                def conflicting(target):
+                    target.hold()
+                    raise ActionNotSent("Payment evidence conflicts",
+                                        observation=replace(target.observation, hold_payment_conflict=True))
+                setattr(backend, f"on_{action}", conflicting)
+                result = run_booking(self.spec, backend, self.path.with_name(f"conflicting-{action}"),
+                                     now=clock.now, log=lambda _: None)
+                self.assertEqual((result.status, result.receipt_id), ("deadline", None))
+                self.assertEqual(len(backend.adds), 1)
+                self.assertEqual(len(backend.checkouts), int(action == "checkout"))
 
     def test_proven_unsent_checkout_honors_shop_retry_after(self):
         def checkout(target):

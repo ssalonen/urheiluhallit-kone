@@ -6,7 +6,9 @@ Huoli simuloidun kaupan erilaisuudesta oli perusteltu. Paikallinen testikauppa o
 
 Myös tilakoneessa oli virheitä: uusi samanhintainen kuitti saattoi kelvata maksun todisteeksi ilman yhteyttä oikeaan varaukseen, ja ristiriitaiset peräkkäiset lukuvastaukset saattoivat johtaa tarpeettomaan maksuyritykseen. Korjaushaara tiukentaa näitä ehtoja ja lisää regressiotestit.
 
-**Automaattisen maksun tuotantokelpoisuutta ei ole tällä tarkastuksella osoitettu.** Repon automaation kirjautunut varausajo, lapsitilin valinta, varaus–kuitti-yhteys ja maksupalvelun koko ketju ovat edelleen todentamatta. Erillisessä oikean kaupan käyttöliittymäkokeessa 22.11.2026 tehtiin yksi aikuisen maksamaton testivaraus ja poistettiin se onnistuneesti. Jonoon ei liitytty eikä maksua aloitettu. Kokeen tarkka rajaus ja havainnot ovat jäljempänä.
+**Automaattisen maksun tuotantokelpoisuutta ei ole tällä tarkastuksella osoitettu.** Repon automaation kirjautunut varausajo, lapsitilin valinta, varaus–kuitti-yhteys ja maksupalvelun koko ketju ovat edelleen todentamatta. Erillisessä oikean kaupan käyttöliittymäkokeessa 22.11.2026 tehtiin aikuisen maksamaton testivaraus ja poistettiin se. Koe toistettiin myöhemmin samana päivänä kirjautuneet JSON-vastaukset tallentaen. Kumpikin testivaraus siivottiin, jonoon ei liitytty eikä maksua aloitettu.
+
+**Uusinnan konkreettinen löydös:** havaitussa kurssivastauksessa ei ole `is_paid`-kenttää, vaikka aiempi simulaattori tuotti sen. Tämä toisti maksuttoman pysäytyksen virheen: adapteri löysi oikean korin ja varauksen, mutta ei hyväksynyt sitä valmiiksi. Uusi erillinen maksuttoman korivarauksen näyttö ja simulaattorin vastausrakenne kuvataan kohdassa **Kirjautunut JSON-uusinta ja sen paljastama virhe**.
 
 ## Mitä lähtötilanteen testit todistivat?
 
@@ -49,9 +51,9 @@ Vanha ohjain hyväksyi uuden suljetun, oikeansummaiseksi tulkitun kuitin ilman t
 
 **Korjaus:** uuden maksun vahvistus edellyttää havaittua lähetystä, ennen lähetystä tunnistettua varausta, saman varaustunnuksen säilymistä, varauksen maksutietoa, tyhjentynyttä koria, oikeansummaista suljettua uutta kuittia ja todennettua yhteyttä samaan kuittiin. Ilman havaittua lähetystä löytynyt jo vahvistettu varaus palauttaa `already_confirmed` ilman kuittiväitettä. Pelkkä pysyvä maksuaie ei todista lähetystä. Puuttuva tai ristiriitainen näyttö ei oikeuta uuteen maksupyyntöön.
 
-**Oikean kurssivarauksen ja kuitin yhteistä tunnistetta ei ole varmistettu.** Julkisessa JavaScriptissä kurssien `apiusereventgroups` käyttää `R2.EventGroupReservation`-mallia. Maksukenttiä `receipt_event_id` ja `is_paid` käyttävä julkinen näkymä kuuluu erilliseen `apireservations`-malliin ja rajaa kurssit nimenomaisesti pois (`getUserReservations`). Ostoskorin onnistumisnäkymä lukee kuitin ilman liitosta kurssivaraukseen. Tämä ei osoita kenttien puuttuvan kirjautuneesta kurssivastauksesta, mutta ei myöskään vahvista niiden saatavuutta tai tunnisteiden samaa merkitystä.
+**Oikean kurssivarauksen ja kuitin yhteistä tunnistetta ei ole varmistettu.** Julkisessa JavaScriptissä kurssien `apiusereventgroups` käyttää `R2.EventGroupReservation`-mallia. Maksukenttiä `receipt_event_id` ja `is_paid` käyttävä julkinen näkymä kuuluu erilliseen `apireservations`-malliin ja rajaa kurssit nimenomaisesti pois (`getUserReservations`). Ostoskorin onnistumisnäkymä lukee kuitin ilman liitosta kurssivaraukseen. Myöhempi kirjautunut JSON-koe osoitti molempien kenttien puuttuvan tutkitusta keskeneräisestä kurssivastauksesta. Maksetun kurssin vastausta tai tunnisteiden yhteyttä ei ole tutkittu.
 
-Testikauppa antaa varauksen kuittiviitteelle ja kuitille saman SQLite-avaimen. Sitä ei hyväksytä tuotannon sopimuksen todisteeksi. Kuittiviite välitetään maksun todisteeksi vain erikseen rajatun paikallisen testikaupan alkuperästä. Oikean kaupan uuden maksun `confirmed`-tulos jää tarkoituksellisesti pois käytöstä, kunnes kirjautunut integraationäyttö tai toimittajan sopimus osoittaa kuittiyhteyden.
+Testikauppa antaa sisäisesti varauksen kuittiviitteelle ja kuitille saman SQLite-avaimen. Sitä ei hyväksytä tuotannon sopimuksen todisteeksi. JSON-korjauksessa tämä synteettinen näyttö erotetaan julkisesta kurssivastausta jäljittelevästä rajapinnasta omaan paikalliseen testilukuun. Kuittiviite välitetään maksun todisteeksi vain erikseen rajatun paikallisen testikaupan alkuperästä. Oikean kaupan uuden maksun `confirmed`-tulos jää tarkoituksellisesti pois käytöstä, kunnes kirjautunut integraationäyttö tai toimittajan sopimus osoittaa kuittiyhteyden.
 
 Tämä rajoitus koskee vahvistamista: muu nimenomaisesti maksamaton varaustieto voi silti sallia yhden maksupyynnön lähettämisen. Onnistunutkin maksu voi jäädä automaatilta vahvistamatta ja vaatia manuaalista tarkistusta oikean kaupan omista varauksista ja kuitista. Puuttuva vahvistus ei osoita maksun epäonnistuneen. Maksua ei lähetetä uudelleen tämän epäselvyyden vuoksi. CLI kertoo rajan ennen tuotannon maksupolkua ja vahvistamattomassa lopputuloksessa.
 
@@ -96,7 +98,7 @@ Ensimmäisen korjauskierroksen vihreät testit eivät kattaneet kaikkia viimeise
 | Toistettu puute | Korjaus |
 | --- | --- |
 | Ohjain hyväksyi varauksen A, mutta adapterin vanhentunut välimuisti päivitti hyväksynnän varaukseen B, puuttuvaan tunnukseen tai eri summaan. | Checkout saa ohjaimen hyväksymän ei-tyhjän varaustunnuksen ja tarkan summan. Molempien pitää säilyä samoina kaikissa valmistelun tarkistuksissa. |
-| Puuttuva, virheellinen tai lopputilan kanssa ristiriitainen `is_paid` näytti maksamattomalta korilta. | Tuntematon maksutila erotetaan nimenomaisesta maksamattomuudesta. Vain tunnistettu, kelvollinen maksamaton varaus saa edetä maksuun tai maksamattoman korin luovutukseen. |
+| Puuttuva, virheellinen tai lopputilan kanssa ristiriitainen `is_paid` näytti maksamattomalta korilta. | Tuntematon maksutila erotetaan nimenomaisesta maksamattomuudesta eikä se salli maksua. Myöhempi JSON-korjaus lisää erillisen, tiukasti tunnistetun keskeneräisen korivarauksen näytön vain maksutonta pysäytystä varten. |
 | Adapterin viimeisellä lukukerralla löytynyt oma tai maksettu varaus hävisi, kun toiminto palautui lähettämättömänä. | Havainto kulkee virhetuloksen mukana ohjaimelle ja tallennetaan ennen uutta yritystä tai kurssin vaihtamista. Myöhempi vanha vastaus ei pyyhi sitä pois. |
 | Keskeytys pysyvän maksuaikeen ja varsinaisen lähetyksen välissä sai muualla maksetun varauksen näyttämään tämän ajon maksulta. | Maksuaie estää kaksoisyrityksen, mutta havaitulla lähetyksellä on erillinen pysyvä merkintä. Ilman lähetysnäyttöä löytynyt maksettu varaus ilmoitetaan ilman tämän ajon maksuväitettä. |
 | Fallback-jonotus alkoi tarkoituksella alkuperäisen määräajan jälkeen, mutta verkkovartija käytti alkuperäistä rajaa. | Sama rajattu lisäajan päättymishetki kulkee lähetykseen asti ja säilyy uudelleenkäynnistyksessä. Uusi ajo ei avaa liukuvaa lisäaikaa. |
@@ -146,7 +148,7 @@ Haaran ajantasaiset portit ovat [luonnos-PR:n tarkistuksissa](https://github.com
 
 ## Jäljellä olevat rajat
 
-- Repon oman automaation kirjautunut varausajo, lapsitilin valinta, ostoskorin vastausrakenteet, jonotus, maksu ja varaus–kuitti-yhteys vaativat erikseen todennettavan integraation. Julkinen GET-tarkistus ja erillinen aikuisen käyttöliittymäkoe eivät kata niitä.
+- Repon oman automaation kirjautunut varausajo, lapsitilin valinta, jonotus, maksu ja varaus–kuitti-yhteys vaativat erikseen todennettavan integraation. Aikuisen Kurssit-palvelun ostoskorin ja kurssivarausten JSON on nyt tallennettu ennen korilisäystä, lisäyksen jälkeen ja siivouksen jälkeen. Se ei osoita Uimakoulut-adapterin ja lapsitilin koko tuotantoketjun toimivuutta.
 - Maksun varmistukseen vaadittu kuittiviite voi puuttua oikeasta vastauksesta tai kuulua eri tunnistejoukkoon. Todentamaton numeroyhtäläisyys ei kelpaa tuotannon maksutodisteeksi. Työkalu ei saa päätellä puuttuvasta vahvistuksesta maksun epäonnistuneen ja lähettää maksua uudelleen.
 - Testikauppa on tarkoituksella yksinkertaistettu. Sen ulkoasun yhtenäistäminen ei yksin poistaisi riippumattoman rajapinta- ja selainnäytön tarvetta.
 - `koeajo --monta 1` käyttää edelleen monen kurssin poolia, kun varsinainen yhden kurssin ajo käyttää omaa selainadapteria. Uusi smoke kattaa tämän adapterin ja maksamattoman korin näyttämisen erikseen. Koko ohjatun CLI:n läpikäynti ei kuulu siihen.
@@ -169,7 +171,7 @@ Koe tehtiin oikeassa Urheiluhallien kaupassa käyttäjän itse avaamalla kirjaut
 
 **Tulos: oikean kaupan maksamaton kurssivaraus ja sen poistaminen toimivat tässä käyttöliittymäkokeessa.** Testistä ei jäänyt kurssipaikkaa varatuksi. Varaus oli väliaikainen ja vahvistamaton; maksettua tai lopullisesti vahvistettua kurssipaikkaa ei muodostettu tässä kokeessa.
 
-Koe ei osoita, palauttaako kirjautunut kurssirajapinta adapterin vaatiman nimenomaisen `is_paid=false`-kentän tai todennettavan kuittiviitteen. Tilateksti **Ei vahvistettu** on käyttöliittymähavainto. Myös lapsitilin valinta, jonotus, avautumishetken kilpailu ja repon `--ilman-maksua`-ajon `held_unpaid`-tulos jäävät erikseen testattaviksi. Henkilötietoja, tilin tai varauksen tunnisteita, raakavastauksia ja kuvakaappauksia ei sisällytetty repositoryyn.
+Tässä ensimmäisessä kokeessa ei luettu kirjautunutta JSONia: tilateksti **Ei vahvistettu** oli käyttöliittymähavainto. Myöhemmin samana päivänä tehty alla kuvattu uusinta tallensi vastaukset ja osoitti `is_paid`-kentän puuttuvan kyseisestä kurssivastauksesta. Lapsitilin valinta, jonotus, avautumishetken kilpailu ja repon `--ilman-maksua`-ajon tuotantotulos jäävät erikseen testattaviksi. Henkilötietoja, tilin tai varauksen tunnisteita, raakavastauksia ja kuvakaappauksia ei sisällytetä repositoryyn.
 
 ## Oikeasta HTML:stä poimittu simulaattori ja uusi erovertailu
 
@@ -219,7 +221,55 @@ Riippumaton katselmointi löysi puuttuvan saatavuuskohdan hyväksymisen poimijas
 
 CSS on paikallinen toteutus, eikä koko kaupan teemaa, fontteja, kuvia tai JavaScript-pakettia kopioida. Uusien lapsitilien luonti, lahjakortit, kaikki suodattimet, muiden palveluryhmien näkymät ja ulkoiset maksupalvelut eivät kuulu jäljiteltyyn polkuun. Kori ei näytä osallistujaa tuotteen omana tietona, koska oikeakin kauppa näyttää sen kurssin varausrivillä. ALV-erittely on ilmoitettua testidataa.
 
-Poimittu HTML parantaa rakenteen ja käyttöliittymän vaiheiden vastaavuutta. Se ei osoita kirjautuneen tuotantorajapinnan `is_paid`- tai kuittikenttien saatavuutta. Aiempi oikean kaupan maksamaton käyttöliittymäkoe pysyy erillisenä näyttönä; tässä lisäyksessä ei tehdä uutta oikeaa varausta tai maksua.
+Poimittu HTML parantaa rakenteen ja käyttöliittymän vaiheiden vastaavuutta. Se ei itsessään osoita kirjautuneen tuotantorajapinnan `is_paid`- tai kuittikenttien saatavuutta. HTML-muutoksessa ei tehty uutta oikeaa varausta tai maksua. Seuraava erillinen JSON-uusinta täydentää tätä näyttöä.
+
+## Kirjautunut JSON-uusinta ja sen paljastama virhe
+
+Koe toistettiin 22.11.2026 noin klo 17.11–17.12 Suomen aikaa. Kohteena oli sama 35 euron Vesijuoksukurssi Malmilla, palveluryhmä 34 (**Kurssit**), osallistujana oma aikuistili. **Siirrä ostoskoriin** valittiin kerran ja syntynyt rivi poistettiin. Käyttöehtoja ei hyväksytty eikä Verkkomaksua, FastPayta tai muuta maksupainiketta käytetty.
+
+Selaimen kehittäjätyökalut olivat ympäristön käytännöllä estettyjä. Osoitteet `/webshop/reservations2/apicart`, `/webshop/reservations2/apiusereventgroups` ja valitun kurssin `apieventgroups` voitiin silti avata tavallisina JSON-sivuina samassa kirjautuneessa selainistunnossa. Niiden renderöity teksti luettiin muuttamatta sivun tai sovelluksen tilaa. Alkuperäiset ostoskori- ja varausvastaukset tallennettiin yksityisesti lähdekansion ulkopuolelle. Kurssivastauksista tallennettiin vertailuun paikkamäärät. Tämä aineisto sisältää JSON-tilanäytteet, ei verkkoliikennelokia, HTTP-otsakkeita, vastauskoodeja tai kirjoituspyyntöjen runkoja.
+
+| Vaihe | `apicart` | `apiusereventgroups` | Kurssin `free` / `reserved` |
+| --- | --- | --- | --- |
+| Ennen lisäystä | `[]` | `[]` | 8 / 0 |
+| Lisäyksen jälkeen | Yksi oikean kurssin, tuotteen ja osallistujan rivi | Yksi samaan kurssiin ja osallistujaan kuuluva varaus, tila 7 ja positiivinen varaustunnus | 7 / 1 |
+| Poiston jälkeen | `[]` | `[]` | 8 / 0 |
+
+Kaikkien kolmen opetuskerran paikkamäärät muuttuivat samoin. Sivu ladattiin vielä uudelleen, ja kahdeksan vapaata paikkaa sekä testivarauksen poistuminen varmistuivat myös käyttöliittymästä. Testipaikkaa ei jäänyt varatuksi. Maksupyyntöjen verkkotason lukumäärää ei mitattu; nolla maksutoimintoa tarkoittaa tässä tehtyjä käyttöliittymätoimia.
+
+### Havaitut kentät ja niiden vaikutus
+
+| Oikean vastauksen havainto | Vaikutus koodiin ja simulaattoriin |
+| --- | --- |
+| Kurssivarauksella `reservation_status_id: 7`, mutta `is_paid` ja `receipt_event_id` puuttuvat kokonaan | Aiempi simulaattori keksi kentät. Oikean muotoisella näytteellä vanha parseri palautti `held=True`, `reservation_paid=None` ja `unpaid_hold=False`; maksuton ajo ei tunnistanut valmistunutta varausvaihetta. |
+| Koririvillä nimenomainen `payment_event_id: null` | Tätä käytetään yhdessä täsmällisen korin ja keskeneräisen varausrivin kanssa uutena näyttönä vain maksuttomaan pysäytykseen. Puuttuva avain tai ei-null-arvo ei ole sama havainto. |
+| `bundle_price: null`, `price: 3500`, `quantity: 1` | Nykyinen hinnan lukeminen osasi jo käyttää tavallista hintaa. Tyyppi ja null-arvo säilytetään regressiossa ja simulaattorissa. |
+| Ensimmäinen `item_id` oli 0 | Parseri osasi jo lukea nollan. Sitä testataan erikseen. Yksi näyte ei todista tunnisteiden generointia tai uudelleenkäyttöä, joten simulaattorin pysyvät omat tunnisteet säilytetään. |
+| `payment_label` ja `payment_label_class` olivat null | Simulaattori säilyttää kenttärakenteen. Näistä esityskentistä ei johdeta maksettuutta. |
+| `reserved` muuttui 0 → 1 → 0 | Simulaattori päivittää myös varattujen määrän, ei pelkästään `free`-kenttää. |
+
+Erilliset, poiston jälkeen noin klo 17.20 tehdyt GET-luvut palauttivat `cart/islocked`-rajapinnasta `{"result":{"isLocked":false},"errors":[]}` ja `cart/getreceiptinfo`-rajapinnasta `{"result":false,"errors":[]}`. Nämä todentavat tyhjän lopputilan vastausmuodot. Niitä ei kuvata adapterin käyttämien POST-lukujen tai varauksen aikaisen lukitustilan havaintoina.
+
+### Korjauksen rajaus
+
+Maksutila pysyy tuntemattomana, kun sen kenttä puuttuu. Maksuton ajo saa erillisen hyväksymisperusteen vain, kun kori, kurssi, myyntituote, osallistuja, määrä ja hinta täsmäävät, samaan osallistujaan liittyy yksi kelvollinen keskeneräinen varaus, maksutapahtuman kenttä on nimenomaisesti null ja kori on tunnetusti lukitsematon. Ristiriitaiset maksu- tai kuittitiedot eivät saa ohittaa tätä vanhan nimenomaisen `is_paid=false`-polun kautta. Uusi näyttö ei anna lupaa checkoutiin tai maksun vahvistamiseen.
+
+Simulaattorin julkisesta kurssivastausta jäljittelevästä JSONista poistettiin keksitty maksutila ja kuittiviite. Maksulliset paikalliset testit saavat sisäiseen SQLite-tilaan perustuvan synteettisen näytön erillisestä `/_test/reservation-proof`-lukurajapinnasta, joka hyväksytään vain loopback-testialkuperässä. Maksuton testipolku käyttää oikean muotoista JSONia. Testien osallistujat ja tunnisteet ovat kuvitteellisia.
+
+### JSON-korjauksen varmennus
+
+Alkuperäinen virhe osoitettiin ensin epäonnistuvalla regressiolla. Oikean näytteen ostoskori- ja varausrivien avainjoukot sekä arvotyypit verrattiin täydellisiin, kuvitteellisilla henkilötiedoilla ja tunnisteilla tehtyihin testiriveihin: ne täsmäsivät. Yksityiset alkuperäiset näytteet luettiin myös suoraan parseriin ennen lisäystä, varauksen aikana ja poiston jälkeen. Uusi maksuttoman pysäytyksen tulos syntyi vain keskimmäisessä vaiheessa, kun taas `reservation_paid` pysyi jokaisessa vaiheessa tuntemattomana. Tässä offline-toistossa lukitsematon kori oli hallittu testisyöte; sitä ei esitetä varauksen aikaisena tuotannon RPC-havaintona.
+
+Riippumaton katselmointi löysi ensimmäisestä korjauksesta neljä olennaista jatkopuutetta, jotka korjattiin ja hyväksyttiin kohdennetussa uusintatarkistuksessa:
+
+- Viimeinen renderöity kori tarkistaa myös ristiriitaisen maksutapahtuman ennen checkout-vartijan avaamista.
+- Alustuksessa tai myöhemmässä lukuvaiheessa havaittu maksutiedon ristiriita sekä alkuperäinen kurssi ja varaustunnus säilyvät pysyvässä tilassa ennen callbackeja. Lukukatko, keskeytys, uudelleenkäynnistys tai vaihtunut varaustunnus eivät saa avata toisen kurssin tai uuden maksun polkua.
+- Valitun varaustunnuksen yksikäsitteisyys tarkistetaan koko tilivastauksesta, myös muiden osallistujien, kurssien ja tilojen riveistä.
+- Paikallinen synteettinen maksutodiste vaatii kaikki sovitut kentät sekä saman tunnuksen ja tilan. Se ei saa korvata julkisesta vastauksesta tullutta ristiriitaista maksutietoa tai toimia puuttuvan testitodisteen varavaihtoehtona.
+
+Viimeiset kolme regressiota käyttävät varsinaista alustusta ja ohjaimen siirtymää muistissa: vaihtunut varaustunnus, keskeytys ensimmäisessä odotusilmoituksessa sekä valitun kurssin HTTP 503 toisen kurssin ollessa saatavilla. Kaikki kolme epäonnistuivat ennen korjausta ja läpäisivät sen jälkeen. Lopullinen paikallinen selainvapaa ajo läpäisi **428 testiä ja 373 alitestiä**; Ruff ja ty läpäisivät. **15 Chromium-tapausta rajattiin pois** käynnistämättä uudelleen käyttöjärjestelmän estämää selainta. Koko selainjoukko ja molemmat smoket ovat erillinen, ohitukset hylkäävä CI-portti.
+
+Tämä korjaus ei ole lupa ajaa repon ohjelmaa toisen palveluryhmän aikuiskurssilla. Tuotannon selainadapteri pysyy Uimakoulut-palvelussa ja olemassa olevan lapsitilin valinnassa. Tässä työympäristössä repon Chromiumin käynnistys on aiemmin estynyt käyttöjärjestelmän Unix-pistokerajoitukseen; kirjautunutta pilviselainta ei voi liittää repon Playwright-ohjaimeen tuetulla rajapinnalla. Näitä rajoja ei kierretty. Repon koodin oikean kaupan ajo jää siksi erilliseksi vaiheeksi, vaikka paikallinen ja CI-varmennus läpäisisivät.
 
 ## Tarkistuksen toistaminen
 

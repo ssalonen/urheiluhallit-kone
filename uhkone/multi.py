@@ -142,6 +142,7 @@ def _lease_template(identity: str, origin: str, specs: Sequence[BookingSpec]) ->
         "candidates": sorted((_binding(spec) for spec in specs), key=lambda item: item["course_id"]),
         "pinned_id": None,
         "existing_claim": False,
+        "hold_payment_conflict": False,
         "confirmed_claim_id": None,
         "claim_id": None,
         "fallback_until": None,
@@ -164,6 +165,7 @@ def _load_lease(path: Path, identity: str, origin: str, specs: Sequence[BookingS
             value.setdefault("confirmed_claim_id", None)
             value.setdefault("claim_id", value["confirmed_claim_id"])
             value.setdefault("fallback_until", None)
+            value.setdefault("hold_payment_conflict", False)
         if isinstance(value, dict) and "queue" not in value:
             value["queue"] = None
         if isinstance(value, dict) and "queues" not in value:
@@ -176,6 +178,8 @@ def _load_lease(path: Path, identity: str, origin: str, specs: Sequence[BookingS
         pinned = value["pinned_id"]
         if type(value["existing_claim"]) is not bool or (value["existing_claim"] and pinned is None):
             raise ValueError("Virheellinen aiemmin nähdyn varauksen tieto")
+        if type(value["hold_payment_conflict"]) is not bool or (value["hold_payment_conflict"] and not value["existing_claim"]):
+            raise ValueError("Tallennettu maksutilan ristiriita ei vastaa kurssivalintaa")
         paid_id = value["confirmed_claim_id"]
         claim_id = value["claim_id"]
         if claim_id is not None and (not isinstance(claim_id, str) or not claim_id.strip() or not value["existing_claim"]):
@@ -215,7 +219,8 @@ def _load_lease(path: Path, identity: str, origin: str, specs: Sequence[BookingS
             if key in queues and queues[key] != value["queue"]:
                 raise ValueError("Jonovarauksen vanha ja uusi tallenne ovat ristiriidassa")
             queues[key] = value["queue"]
-        comparison = dict(value, pinned_id=None, existing_claim=False, confirmed_claim_id=None, claim_id=None, fallback_until=None, queue=None, queues={})
+        comparison = dict(value, pinned_id=None, existing_claim=False, hold_payment_conflict=False,
+                          confirmed_claim_id=None, claim_id=None, fallback_until=None, queue=None, queues={})
         if comparison != expected:
             raise BookingError(
                 "Saman maksajan ja lapsen tallennettu varausajo käyttää eri kurssijoukkoa tai asetuksia. "
@@ -235,11 +240,16 @@ def _can_release(path: Path, backend: BookingBackend, spec: BookingSpec) -> bool
         state["phase"] == "ready"
         and state["add_sends"] == state["checkout_sends"] == 0
         and state["reservation_id"] is None
+        and not state["hold_payment_conflict"]
     )
 
 
 def _affordable(spec: BookingSpec, observation: Observation) -> bool:
     return observation.current_price is not None and observation.current_price <= spec.max_price
+
+
+def _actual_claim(observation: Observation) -> bool:
+    return observation.held or observation.reservation_id is not None or observation.hold_payment_conflict
 
 
 class _ArbitratedBackend:
@@ -260,19 +270,21 @@ class _ArbitratedBackend:
         value = self.backend.snapshot()
         _check_observation(value)
         if self.claim_id is not None and value.reservation_id != self.claim_id:
+            if value.hold_payment_conflict:
+                return Observation(hold_payment_conflict=True)
             raise TransientBookingError("Odotetaan tunnistetun varauksen ajantasaista tilaa.")
         if self.confirmed_claim_id is not None and (
             not value.reservation_confirmed or value.reservation_id != self.confirmed_claim_id or value.held
         ):
+            if value.hold_payment_conflict:
+                return Observation(hold_payment_conflict=True)
             raise TransientBookingError("Odotetaan aiemmin vahvistetun varauksen yhdenmukaista tilaa.")
-        if (self.existing_claim and not value.held and not value.reservation_confirmed
-                and value.reservation_id is None and value.cart_empty and not value.cart_has_others):
+        if self.existing_claim and not _actual_claim(value) and value.cart_empty and not value.cart_has_others:
             # Shared account reads may expose a claim before the selected
             # course page does. Losing that evidence cannot authorize an add.
             raise TransientBookingError("Aiemmin nähty oma varaus ei vielä näy kurssipolussa.")
         if (not self.existing_claim and (not value.available or not _affordable(self.spec, value))
-                and not value.held and not value.reservation_confirmed
-                and value.reservation_id is None
+                and not _actual_claim(value)
                 and not value.payment_locked and not value.cart_has_others and value.cart_empty
                 and _can_release(self.journal, self.backend, self.spec)):
             raise _YieldSelection()
@@ -397,12 +409,27 @@ def run_race(
     def pin_claim(lease: dict, course_id: int, observed_claim: Observation | None):
         lease["pinned_id"] = course_id
         lease["existing_claim"] = lease["existing_claim"] or observed_claim is not None
-        if observed_claim is not None and observed_claim.reservation_id is not None:
+        if observed_claim is not None and observed_claim.hold_payment_conflict:
+            lease["hold_payment_conflict"] = True
+        if observed_claim is not None and lease["claim_id"] is None:
             lease["claim_id"] = observed_claim.reservation_id
         if observed_claim is not None and observed_claim.settlement_seen:
             if not observed_claim.reservation_id:
                 raise BookingError("Vahvistetun varauksen tunnus puuttuu.")
-            lease["confirmed_claim_id"] = observed_claim.reservation_id
+            if observed_claim.reservation_id == lease["claim_id"]:
+                lease["confirmed_claim_id"] = observed_claim.reservation_id
+
+    def preserve_shared_conflict(lease: dict, observations: Mapping[int, Observation | TransientBookingError]):
+        for course_id, value in observations.items():
+            if isinstance(value, Observation) and value.hold_payment_conflict:
+                _check_observation(value)
+                if lease["pinned_id"] is not None and lease["pinned_id"] != course_id:
+                    lease["hold_payment_conflict"] = lease["existing_claim"] = True
+                    save_lease(lease)
+                    raise BookingError("Maksutilan ristiriita koskee eri kurssia kuin tallennettu varaus.")
+                pin_claim(lease, course_id, value)
+                save_lease(lease)
+                return
 
     def selected(lease: dict, course_id: int, *, observed_claim: Observation | None = None,
                  grace_deadline: datetime | None = None) -> RaceResult | None:
@@ -425,10 +452,13 @@ def run_race(
             raise BookingError("Aktivoitu selain ei vastaa valittua kurssia.")
         wrapper = _ArbitratedBackend(backend, spec, journal, existing_claim=lease["existing_claim"],
                                      confirmed_claim_id=lease["confirmed_claim_id"], claim_id=lease["claim_id"])
+        conflict = (Observation(hold_payment_conflict=True, reservation_id=lease["claim_id"])
+                    if lease["hold_payment_conflict"] else None)
         try:
             result = run_booking(spec, wrapper, journal, now=now, log=log,
                                  on_add_not_sent=wrapper.on_add_not_sent, progress=progress,
-                                 checkpoint=checkpoint, before_action=before_action)
+                                 checkpoint=checkpoint, before_action=before_action,
+                                 prior_payment_conflict=conflict)
         except _YieldSelection:
             if lease["existing_claim"] or not _can_release(journal, backend, spec):
                 raise BookingError("Kurssia ei voi vaihtaa mahdollisesti lähetetyn varauksen jälkeen.")
@@ -446,7 +476,7 @@ def run_race(
             if journal.exists() or journal.is_symlink():
                 state = _load_state(journal, pool.backends[spec.course.id].identity, spec)
                 if (state["add_sends"] or state["checkout_sends"] or state["reservation_id"] is not None
-                        or state["phase"] != "ready"):
+                        or state["phase"] != "ready" or state["hold_payment_conflict"]):
                     return True
         return False
 
@@ -483,6 +513,10 @@ def run_race(
                 ensure_identity()
                 if isinstance(seen, Observation):
                     _check_observation(seen)
+                    if seen.hold_payment_conflict:
+                        pin_claim(lease, queue["course_id"], seen)
+                        save_lease(lease)
+                        return RaceResult("deadline", queue["course_id"])
                     if seen.queued:
                         return finish_queue(lease, queue["course_id"], seen)
             except (TransientBookingError, TimeoutError, OSError):
@@ -512,8 +546,9 @@ def run_race(
             ensure_identity()
             if not isinstance(observations, Mapping) or set(observations) != set(identifiers):
                 raise BookingError("Jonopolkujen havaintojoukko on virheellinen.")
+            preserve_shared_conflict(lease, observations)
             errors = [value for value in observations.values() if isinstance(value, TransientBookingError)]
-            if errors:
+            if errors and not lease["hold_payment_conflict"]:
                 # selection_clear covers actual bookings, not existing queues.
                 # Every candidate's queue state must be known before fallback.
                 verified_queue_ids.clear()
@@ -526,7 +561,7 @@ def run_race(
                 emit("candidate", course_id=course_id, **_observation_metadata(observation))
             failures = 0
             existing = [course_id for course_id, value in observations.items()
-                        if value.held or value.reservation_confirmed or value.reservation_id is not None]
+                        if _actual_claim(value)]
             if len(existing) > 1:
                 raise BookingError("Usealla hyväksytyllä kurssilla on jo varaus. Jonovarausta ei lähetetä.")
             if existing:
@@ -596,7 +631,7 @@ def run_race(
             except ActionNotSent as exc:
                 lease["queue"] = None
                 lease["queues"].pop(str(course_id), None)
-                if exc.observation is not None and (exc.observation.held or exc.observation.reservation_id):
+                if exc.observation is not None and _actual_claim(exc.observation):
                     pin_claim(lease, course_id, exc.observation)
                     save_lease(lease)
                     if exc.retry_after > 0:
@@ -700,7 +735,7 @@ def run_race(
         except ActionNotSent as exc:
             records.pop(str(course_id), None)
             lease["queue"] = None
-            if exc.observation is not None and (exc.observation.held or exc.observation.reservation_id):
+            if exc.observation is not None and _actual_claim(exc.observation):
                 pin_claim(lease, course_id, exc.observation)
             save_lease(lease)
             delay = max(2, exc.retry_after)
@@ -732,9 +767,17 @@ def run_race(
         return result
 
     with _account_lock(lock_path):
+        lease = _load_lease(lease_path, identity, origin, specs)
+        preflight_conflicts = {}
+        for course_id, backend in pool.backends.items():
+            conflict = getattr(backend, "payment_conflict", None)
+            if isinstance(conflict, Observation) and conflict.hold_payment_conflict:
+                preflight_conflicts[course_id] = conflict
+        preserve_shared_conflict(lease, preflight_conflicts)
+        if len(preflight_conflicts) > 1:
+            raise BookingError("Maksutilan ristiriita koskee useaa kurssia. Uutta varausta ei lähetetä.")
         if checkpoint is not None:
             checkpoint()
-        lease = _load_lease(lease_path, identity, origin, specs)
         save_lease(lease)
         for spec in specs:
             emit("waiting", course_id=spec.course.id, opens_at=spec.opens_at.isoformat(),
@@ -766,8 +809,9 @@ def run_race(
             ensure_identity()
             if not isinstance(observations, Mapping) or set(observations) != set(identifiers):
                 raise BookingError("Kurssipolkujen havaintojoukko on virheellinen.")
+            preserve_shared_conflict(lease, observations)
             errors = [value for value in observations.values() if isinstance(value, TransientBookingError)]
-            if errors and getattr(pool, "selection_clear", False) is not True:
+            if errors and not lease["hold_payment_conflict"] and getattr(pool, "selection_clear", False) is not True:
                 # An unknown candidate may already have a confirmed booking.
                 # Wait until every own-reservation observation is authoritative.
                 failures += 1
@@ -783,7 +827,7 @@ def run_race(
                 reconcile_queues(lease, observations)
             failures = 0
             existing = [course_id for course_id, value in observations.items()
-                        if value.held or value.reservation_confirmed or value.reservation_id is not None]
+                        if _actual_claim(value)]
             if len(existing) > 1:
                 raise BookingError("Usealla hyväksytyllä kurssilla on jo varaus. Uutta maksua ei tehdä.")
             if existing:
