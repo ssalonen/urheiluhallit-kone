@@ -52,7 +52,7 @@ def load_settings(path: Path | None = None) -> Settings:
         raise ConfigError("haku, vahti ja varaus ovat TOML-taulukoita.")
     allowed = {
         "kurssi", "hallit", "viikonpaivat", "aikaisintaan", "viimeistaan",
-        "arki_aikaisintaan", "viikonloppu_aikaisintaan", "alkaen", "asti", "enintaan_euroa",
+        "arki_aikaisintaan", "viikonloppu_aikaisintaan", "alkaen", "asti", "enintaan_euroa", "ensisijaiset_vuorot",
     }
     if set(search) - allowed or set(watch) - {"vali_sekuntia"} or set(booking) - {"jono_varavaihtoehtona"}:
         raise ConfigError("Tuntematon asetus. Tarkista asetukset.toml-esimerkki.")
@@ -63,6 +63,20 @@ def load_settings(path: Path | None = None) -> Settings:
         halls = search.get("hallit", ["Mäkelänrinne", "Kallio"])
         if not isinstance(halls, list) or any(not isinstance(h, str) or not h.strip() for h in halls):
             raise ValueError("hallit on lista hallien nimistä")
+        slot_entries = search.get("ensisijaiset_vuorot", [])
+        if not isinstance(slot_entries, list):
+            raise ValueError("ensisijaiset_vuorot on lista vuoroista")
+        slots = []
+        for entry in slot_entries:
+            if not isinstance(entry, dict) or set(entry) != {"halli", "paiva", "aloitus"}:
+                raise ValueError("Vuorossa tarvitaan halli, paiva ja aloitus")
+            hall, day, start_time = entry["halli"], entry["paiva"], entry["aloitus"]
+            if (not isinstance(hall, str) or not hall.strip() or type(day) is not int
+                    or day not in range(1, 8) or not isinstance(start_time, str)
+                    or not re.fullmatch(r"\d{2}:\d{2}", start_time)):
+                raise ValueError("Virheellinen halli, paiva tai aloitus hyväksytyssä vuorossa")
+            time.fromisoformat(start_time)
+            slots.append((hall, day, start_time))
         days = search.get("viikonpaivat", [])
         if not isinstance(days, list) or any(type(d) is not int or not 1 <= d <= 7 for d in days):
             raise ValueError("viikonpaivat on lista numeroista 1–7")
@@ -97,6 +111,7 @@ def load_settings(path: Path | None = None) -> Settings:
         if type(queue_fallback) is not bool:
             raise ValueError("jono_varavaihtoehtona on true tai false")
         return Settings(SearchFilters(target=target, locations=tuple(halls), weekdays=tuple(days),
+                                     preferred_slots=tuple(slots),
                                      earliest_time=earliest, latest_time=latest,
                                      weekday_earliest_time=weekday_earliest,
                                      weekend_earliest_time=weekend_earliest, date_from=start,
