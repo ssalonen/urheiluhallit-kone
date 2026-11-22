@@ -34,7 +34,7 @@ label{font-weight:600}#message{min-height:1.5em}.warning{border-left:3px solid #
 </style>
 <h1>Uimakoulun varauspaneeli</h1>
 <p><small>Paikallinen · 127.0.0.1 · vain maksuton varaus</small> <strong id="clock"></strong></p>
-<main class="layout"><section><strong id="phase">VALMIS</strong><p id="note"></p><p id="message" role="status"></p></section>
+<main class="layout"><section><strong id="phase">VALMIS</strong><p id="health" aria-live="polite"></p><p id="last-checked"></p><p id="note"></p><p id="message" role="status"></p></section>
 <div class="cards" id="cards"></div>
 <section><h2>Asetukset</h2><p class="muted">Syöttöjärjestys on varausjärjestys; muita kursseja ei haeta.</p>
 <form id="form"><label for="ids">Kurssi-ID:t etusijajärjestyksessä</label>
@@ -61,7 +61,7 @@ function storePrefs(p){try{localStorage.setItem(PREF_KEY,JSON.stringify({ids:p.i
 async function req(path,data){const opts=data===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json','X-Panel-Token':token},body:JSON.stringify(data)};
 const r=await fetch(path,{...opts,cache:'no-store'});const v=await r.json();if(!r.ok)throw Error(v.error||'Pyyntö epäonnistui');return v}
 function el(tag,t,cls){let x=document.createElement(tag);x.textContent=t;if(cls)x.className=cls;return x}
-function draw(s){$('clock').textContent=new Date(s.now).toLocaleTimeString('fi-FI');$('phase').textContent=s.phase.toUpperCase();$('note').textContent=s.note;
+function draw(s){$('clock').textContent=new Date(s.now).toLocaleTimeString('fi-FI');$('phase').textContent=s.phase.toUpperCase();$('health').textContent='Yhteyden tila: '+s.health.replaceAll('_',' ');$('last-checked').textContent=s.last_checked?'Viimeinen onnistunut tarkistus: '+new Date(s.last_checked).toLocaleTimeString('fi-FI'):'';$('note').textContent=s.note;
 if(init){$('ids').value=s.ids.join(' ');$('price').value=s.max_price;init=false}
 $('cards').replaceChildren(...s.ids.map((id,i)=>{let d=s.details[String(id)]||{},e=el('article','');e.className='card';
 e.append(el('small','VAIHTOEHTO '+(i+1)),el('h3',d.location?d.location+' · '+d.time:'Kurssi '+id),el('p','ID '+id,'muted'),
@@ -111,12 +111,15 @@ class PanelState:
         self.paused = False
         self.stop_requested = False
         self.children_loading = False
+        self.health = "valmis"
+        self.last_checked: str | None = None
 
     def public(self):
         with self.lock:
             return {
                 "ids": list(self.ids), "max_price": self.max_price,
                 "has_child": bool(self.child), "phase": self.phase, "note": self.note,
+                "health": self.health, "last_checked": self.last_checked,
                 "details": {str(k): dict(v) for k, v in self.details.items()},
                 "running": self.running, "paused": self.paused,
                 "children_loading": self.children_loading,
@@ -173,6 +176,19 @@ class PanelState:
                 })
             if phase in {"adding", "held", "reservation_pending", "confirmed"} and type(cid) is int and cid in self.ids:
                 self.details.setdefault(cid, {})["phase"] = phase
+            if phase == "candidate":
+                self.last_checked = datetime.now(HELSINKI).isoformat(timespec="seconds")
+                self.health = "seurataan"
+            elif phase == "retry":
+                self.health = "ruuhka"
+            elif phase in {"reservation_pending", "payment_pending"}:
+                self.health = "varaus_epavarma"
+            elif phase in {"held", "held_unpaid"}:
+                self.health = "maksamaton_kori"
+            elif phase == "deadline":
+                self.health = "aika_paattyi"
+            elif phase == "confirmed":
+                self.health = "vahvistettu"
             self.phase = phase
             messages = {
                 "waiting": "Odotetaan ilmoittautumista.",
@@ -185,6 +201,21 @@ class PanelState:
                 "held_unpaid": "Maksamaton ostoskorivaraus. Ei maksettu eikä lopullisesti vahvistettu.",
             }
             self.note = messages.get(phase, self.note)
+
+    def record_failure(self, exc: Exception) -> None:
+        """Only coarse, non-sensitive diagnostics reach the dashboard."""
+        message = str(exc).casefold()
+        with self.lock:
+            self.phase = "toimenpide_tarvitaan"
+            if "kirjautum" in message or "authenticated" in message or "session" in message:
+                self.health = "kirjaudu_uudelleen"
+                self.note = "Kaupan kirjautuminen on tarkistettava. Ajo pysähtyi turvallisesti; tarkista ostoskori ennen uudelleenkäynnistystä."
+            elif exc.__class__.__name__ in {"ClientError", "TransientBookingError", "TimeoutError", "ConnectionError"}:
+                self.health = "yhteysongelma"
+                self.note = "Yhteys kauppaan katkesi. Automaattinen varaus pysähtyi; tarkista tilanne ennen uutta yritystä."
+            else:
+                self.health = "toimenpide_tarvitaan"
+                self.note = "Varausta ei voitu jatkaa luotettavasti. Tarkista alkuperäinen selain ja ostoskori ennen uutta yritystä."
 
     def checkpoint(self, wait):
         from .console import StopRequested
@@ -220,9 +251,8 @@ def _run(state: PanelState, directory: Path, executable: str | None):
     except KeyboardInterrupt:
         with state.lock:
             state.phase, state.note = "pysäytetty", "Ajo pysäytetty. Tarkista mahdollinen keskeneräinen varaus."
-    except Exception:  # noqa: BLE001 - Never expose backend errors through local HTTP.
-        with state.lock:
-            state.phase, state.note = "virhe", "Varausajo epäonnistui. Katso paikallisen ohjelman tuloste."
+    except Exception as exc:  # noqa: BLE001 - Never expose backend errors through local HTTP.
+        state.record_failure(exc)
     finally:
         with state.lock:
             state.running = False
