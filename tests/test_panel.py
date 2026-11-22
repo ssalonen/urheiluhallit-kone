@@ -107,6 +107,23 @@ class PanelTests(unittest.TestCase):
         self.assertEqual(state["health"], "kirjaudu_uudelleen")
         self.assertNotIn("salainen", repr(state))
 
+    def test_manual_fallback_exposes_only_verified_public_course_url(self):
+        self.panel.course_info([SimpleNamespace(
+            id=110980, location="Mäkelänrinne", time_start="17:50",
+            registration_start=None,
+            url="https://kauppa.urheiluhallit.fi/webshop/reservations2/reservations/9/6/2/-/110980",
+        )])
+        detail = self.panel.public()["details"]["110980"]
+        self.assertEqual(detail["manual_url"],
+                         "https://kauppa.urheiluhallit.fi/webshop/reservations2/reservations/9/6/2/-/110980")
+        self.assertNotIn("child", repr(detail))
+        # An injected URL must never become a clickable navigation target.
+        self.panel.course_info([SimpleNamespace(
+            id=110962, location="Kallio", time_start="18:10",
+            registration_start=None, url="https://evil.example/steal?child=Testilapsi",
+        )])
+        self.assertNotIn("manual_url", self.panel.public()["details"]["110962"])
+
     def test_stop_checkpoint_refuses_to_restart_actions(self):
         from uhkone.console import StopRequested
         self.panel.stop_requested = True
