@@ -104,8 +104,10 @@ def test_queue_unsent_preserves_server_backoff(tmp_path, policy):
     selected = replace(spec(), opens_at=BASE, deadline=BASE + timedelta(seconds=15))
     target = pool.backends[123]
     target.observation = Observation(queue_available=True, current_price=Decimal(76))
+    first_poll_after_rejection = []
     def join(backend):
         if len(backend.queue_calls) == 1:
+            first_poll_after_rejection.append(len(pool.polls))
             raise ActionNotSent("Too many requests", retry_after=7)
         backend.queued()
     target.on_queue = join
@@ -113,6 +115,7 @@ def test_queue_unsent_preserves_server_backoff(tmp_path, policy):
                       allow_queue=True, queue_policy=policy, queue_timeout=15)
     assert result.status == "queued"
     assert target.queue_calls[1] - target.queue_calls[0] >= timedelta(seconds=7)
+    assert pool.polls[first_poll_after_rejection[0]] - target.queue_calls[0] >= timedelta(seconds=7)
 
 
 def test_expired_fallback_never_reopens_a_new_write_window(tmp_path):

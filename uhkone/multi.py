@@ -599,12 +599,17 @@ def run_race(
                 if exc.observation is not None and (exc.observation.held or exc.observation.reservation_id):
                     pin_claim(lease, course_id, exc.observation)
                     save_lease(lease)
+                    if exc.retry_after > 0:
+                        wait(exc.retry_after, until=grace_end)
                     result = selected(lease, course_id, grace_deadline=grace_end)
                     assert result is not None  # A pinned existing claim cannot yield.
                     return result
                 save_lease(lease)
                 queue_cooldowns[course_id] = clock() + timedelta(seconds=max(2, exc.retry_after))
                 log(f"Jonopyyntöä ei lähetetty; toinen hyväksytty jono voidaan tarkistaa: {exc}")
+                if exc.retry_after > 0:
+                    # A shared account read may be the rate-limited request.
+                    wait(exc.retry_after, until=grace_end)
                 continue
             except Exception as exc:  # noqa: BLE001 - Any queue failure may follow a sent mutation; preserve the durable intent.
                 queue_dispatched_here = True
@@ -702,6 +707,9 @@ def run_race(
             eager_cooldowns[course_id] = clock() + timedelta(seconds=delay)
             log(f"Jonopyyntöä ei lähetetty kurssille {course_id}; muut hyväksytyt polut jatkavat: {exc}")
             emit("retry", course_id=course_id, action="queue", retry_after=delay)
+            if exc.retry_after > 0:
+                # Pause shared reads as well as this candidate's next write.
+                wait(exc.retry_after)
         except Exception as exc:  # noqa: BLE001 - Any queue failure may follow a sent mutation; preserve the durable intent.
             log(f"Kurssin {course_id} jonopyynnön tulos on epävarma; tätä pyyntöä ei toisteta. "
                 f"Muiden kurssien haku jatkuu: {exc}")

@@ -136,9 +136,13 @@ Tarkistussummat yksilöivät käytetyn lähdeaineiston. Tarkistin ei vaadi tulev
 
 Katselmoinnin korjausaallon jälkeinen yhdistetty paikallinen ajo palautti **390 läpäistyä testiä, 9 ohitettua selaintestiä ja 323 läpäistyä alitestiä**. Lähtötilanteeseen verrattuna mukaan tuli myös viivästetyn FastPay-valikon selainregressio. Ruff, ty, `git diff --cached --check` ja Git-indexin **64 lähdetiedoston** julkisuusraja läpäisivät.
 
-Ensimmäinen [GitHubin pakollinen selainajo](https://github.com/ssalonen/urheiluhallit-kone/actions/runs/44996346109) läpäisi **354 testiä ja 322 alitestiä ilman ohituksia**. Molemmat koko paikallisen Chromium-smoken polut läpäisivät. Monen kurssin palvelintilassa oli kaksi jonopyyntöä, yksi korilisäys, yksi checkout, yksi vahvistettu varaus ja yksi simuloitu korttiveloitus. Maksamattoman yhden kurssin polussa oli yksi korilisäys ja nolla checkoutia tai kuittia.
+Korjausaallon [GitHubin pakollinen selainajo](https://github.com/ssalonen/urheiluhallit-kone/actions/runs/44997628521) läpäisi **399 testiä ja 323 alitestiä ilman ohituksia**. Molemmat koko paikallisen Chromium-smoken polut läpäisivät. Monen kurssin palvelintilassa oli kaksi jonopyyntöä, yksi korilisäys, yksi checkout, yksi vahvistettu varaus ja yksi simuloitu korttiveloitus. Maksamattoman yhden kurssin polussa oli yksi korilisäys ja nolla checkoutia tai kuittia.
 
-Riippumaton katselmointi löysi tämän jälkeen vielä lähetyshetken sitomiseen, maksutiedon puuttumiseen, myöhäisen varaushavainnon säilyttämiseen, jonotuksen määräaikaan ja julkisen tarkistimen arvoihin liittyviä puutteita. Korjausaalto on toteutettu ja paikallisesti tarkistettu yllä esitetyin tuloksin. Korjausaallon kohdennettu uusintakatselmointi ja lopullinen GitHubin selainajo ovat vielä kesken.
+Riippumaton koko haaran katselmointi löysi ensimmäisen toteutuksen jälkeen vielä lähetyshetken sitomiseen, maksutiedon puuttumiseen, myöhäisen varaushavainnon säilyttämiseen, jonotuksen määräaikaan ja julkisen tarkistimen arvoihin liittyviä puutteita. Kohdennettu uusintakatselmointi hyväksyi yhdeksän kymmenestä korjatusta kohdasta eikä löytänyt uutta olennaista virhettä.
+
+Viimeinen avoin kohta koski palvelimen uusintaviivettä: uusi jonopyyntö odotti, mutta seuraava samaa tiliä lukeva kysely lähti heti. Korjaus laajennettiin koskemaan myös yhteisiä lukuja, rajattuna ajon määräaikaan. Ennen tätä muutosta laajennettu regressio epäonnistui molemmilla jonopolitiikoilla; sen jälkeen kaikki 100 kohdennettua koordinointi- ja lähetysrajatestiä läpäisivät. Tämä viimeinen pieni muutos varmennettiin toteuttajan regressiolla ja staattisilla tarkistuksilla; sille ei väitetä erillistä kolmatta koodikatselmointia.
+
+Haaran ajantasaiset portit ovat [luonnos-PR:n tarkistuksissa](https://github.com/ssalonen/urheiluhallit-kone/pull/7/checks). CI ajaa koko joukon ja molemmat smoket jokaiselle julkaistulle muutokselle, myös viimeisen uusintaviivekorjauksen jälkeen.
 
 ## Jäljellä olevat rajat
 
