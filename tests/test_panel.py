@@ -62,6 +62,10 @@ class PanelTests(unittest.TestCase):
             {"account_id": 30, "name": "Toinen testilapsi"},
         ]}
         self.assertEqual(linked_child_names(valid), ["Testilapsi", "Toinen testilapsi"])
+        string_ids = {"account_id": "10", "linked_accounts": [
+            {"account_id": "20", "name": "Testilapsi"},
+        ]}
+        self.assertEqual(linked_child_names(string_ids), ["Testilapsi"])
         for bad in (
             {**valid, "account_id": None},
             {**valid, "linked_accounts": [{"account_id": 10, "name": "Oma tili"}]},
