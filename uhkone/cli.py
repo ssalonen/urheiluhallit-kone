@@ -185,10 +185,21 @@ def get_filters(args: argparse.Namespace, configured: SearchFilters) -> SearchFi
 
 
 def ranked(courses: list[Course], filters: SearchFilters) -> list[Course]:
+    from .models import _meeting_start_times
+    slot_preferences = {(normalize_location(h), day, start): rank
+                        for rank, (h, day, start) in enumerate(filters.preferred_slots)}
+    def slot_rank(course: Course) -> int:
+        meetings = _meeting_start_times(course)
+        if meetings is None:
+            return len(slot_preferences)
+        matches = [slot_preferences.get((normalize_location(course.location), day, start.strftime("%H:%M")),
+                                        len(slot_preferences)) for day, start in meetings]
+        return min(matches, default=len(slot_preferences))
     preferences = {}
     for rank, name in enumerate(filters.locations):
         preferences.setdefault(normalize_location(name), rank)
     return sorted(filter_courses(courses, filters), key=lambda course: (
+        slot_rank(course) if slot_preferences else 0,
         preferences.get(normalize_location(course.location), len(preferences)),
         course.start.isoformat() if course.start else "9999", course.time_start, course.id,
     ))
