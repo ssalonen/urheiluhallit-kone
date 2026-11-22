@@ -111,12 +111,13 @@ def run_readonly_preflight(profile_dir: Path, executable: str | None, *,
             if not (user_rpc and path == "webshop/call/user/getcurrentuser" or
                     not user_rpc and path in allowed):
                 raise BrowserError("Esitarkistus ei salli tätä rajapintaa.")
-            opts = {"timeout": 15_000, "max_redirects": 0}
             if user_rpc:
                 answer = context.request.post(base_url + "/" + path,
-                    form={"input_format": "json", "output_format": "json", "content": "[true,true]"}, **opts)
+                    form={"input_format": "json", "output_format": "json", "content": "[true,true]"},
+                    timeout=15_000, max_redirects=0)
             else:
-                answer = context.request.get(base_url + "/" + path, **opts)
+                answer = context.request.get(base_url + "/" + path,
+                    timeout=15_000, max_redirects=0)
             try:
                 if answer.status != 200:
                     raise BrowserError("Esitarkistuksen lukupyyntö epäonnistui.")
