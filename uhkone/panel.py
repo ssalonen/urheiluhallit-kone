@@ -92,7 +92,7 @@ $('message').textContent=result.children.length+' alitiliä löytyi. Valitse lap
 function currentSettings(){return {ids:$('ids').value.trim().split(/[\s,;]+/).map(Number),max_price:$('price').value,child:$('child').value}}
 $('start').onclick=async()=>{try{$('start').disabled=true;const values=currentSettings();const saved=await req('/api/settings',values);
 storePrefs({ids:saved.ids,max_price:saved.max_price,child:values.child});draw(await req('/api/start',{}));$('message').textContent='Ajo käynnistetty tallennetuilla asetuksilla';
-}catch(err){$('message').textContent=err.message;await refresh()}finally{$('start').disabled=false}};
+}catch(err){$('message').textContent=err.message}finally{await refresh()}};
 for(let action of ['pause','resume','stop'])$(action).onclick=async()=>{try{draw(await req('/api/'+action,{}));$('message').textContent=''}catch(err){$('message').textContent=err.message}};
 async function initialize(){try{let s=await req('/api/status');const prefs=savedPrefs();
 if(prefs){$('ids').value=prefs.ids.join(' ');$('price').value=prefs.max_price;$('child').value=prefs.child;
