@@ -8,6 +8,8 @@ Ohjelma ei ole Urheiluhallien tai Enkoran virallinen tuote. **Oikealla asiakasti
 
 **Laadunvarmistus 22.11.2026:** oikean kaupan julkisen selainkoodin vertailu paljasti maksupyynnön muotoeron, jota simulaattori ei testannut. Lisäksi tarkastuksessa löytyi virheitä maksun vahvistamisessa ja häiriöistä palautumisessa. [Tarkastusraportti](docs/laadunvarmistus-2026-11-22.md) kertoo löydökset, korjaukset, testinäytön ja vielä todentamatta olevat vaiheet. Automaattisen maksun tuotantokelpoisuutta ei ole osoitettu.
 
+**Tuotantomaksun vahvistusraja:** tässä korjauksessa oikean kaupan uuden maksun `confirmed`-tulosta ei muodosteta todentamattoman kuittiyhteyden perusteella. Maksupyyntö voi silti tulla lähetetyksi kerran, jos muu varaustieto sallii sen. Onnistunutkin maksu voi jäädä ohjelmassa vahvistamatta: tarkista tilanne oikean kaupan omista varauksista ja kuitista. Puuttuva vahvistus ei tarkoita maksun epäonnistumista eikä oikeuta uuteen maksuyritykseen.
+
 Interaktiivinen esimerkkiajo: [avaa HTML](docs/esimerkkiajo.html) (lataa tiedosto ja avaa selaimessa). Esimerkki toimii paikallisesti kuvitteellisilla kursseilla ja osallistujalla.
 Esimerkin ohjauspaneelissa voi valita myös pysähtymisen maksamattomaan ostoskoriin. HTML on itsenäinen havainnollistus eikä käynnistä komentoriviohjelmaa tai tee verkkopyyntöjä.
 
@@ -80,7 +82,7 @@ Jos useampi sopiva paikka on samalla tarkistuksella saatavilla, hallien toivejä
 
 **Kun varsinainen varauspyyntö on voinut lähteä, muut kurssien ostot lukitaan.** Valinta tallennetaan levylle ennen lähettämistä. Työkalu selvittää tämän varauksen ja sen maksun tuloksen ennen muuta etenemistä. Se ei käynnistä toisen kurssin ostoa pelkän aikakatkaisun tai tyhjän tilavastauksen perusteella. Maksua ei lähetetä uudelleen epäselvän vastauksen jälkeen.
 
-Onnistuminen edellyttää oikean osallistujan oikean kurssin vahvistettua, maksetuksi merkittyä varausta. Uuden maksun osalta suljetun ja oikeansummaiseksi tarkistetun kuitin pitää lisäksi liittyä samaan varaukseen. Pelkkä uusin samanhintainen kuitti, ostoskoririvi, onnistumissivu tai ”Ei vahvistettu” -varaus ei riitä. Jos kaupan vastaus ei todista varauksen ja kuitin yhteyttä, ohjelma jättää maksun vahvistamatta eikä lähetä uutta maksua. Oikean kirjautuneen rajapinnan kuittiyhteys on vielä todennettava; simulaattorin kenttä ei ole siitä todiste. Työkalu ei voi hallita käsin, toisella laitteella tai toisessa paikallisessa tilahakemistossa tehtyjä ostoksia.
+Onnistuminen edellyttää oikean osallistujan oikean kurssin vahvistettua, maksetuksi merkittyä varausta. Uuden maksun osalta suljetun ja oikeansummaiseksi tarkistetun kuitin pitää lisäksi liittyä samaan varaukseen. Pelkkä uusin samanhintainen kuitti, ostoskoririvi, onnistumissivu tai ”Ei vahvistettu” -varaus ei riitä. Jos kaupan vastaus ei todista varauksen ja kuitin yhteyttä, ohjelma jättää maksun vahvistamatta eikä lähetä uutta maksua. Oikean kirjautuneen kurssirajapinnan kuittiyhteys on vielä todennettava; simulaattorin kenttä tai kahden todentamattoman tunnisteen numeroyhtäläisyys ei ole siitä todiste. Julkisen kauppakoodin kuittikenttiä käyttävä muu varausnäkymä rajaa kurssit pois. Työkalu ei voi hallita käsin, toisella laitteella tai toisessa paikallisessa tilahakemistossa tehtyjä ostoksia.
 
 Oletusrajat ovat asetustiedostossa `asetukset.toml`. `haku` ja `vahti` eivät tee varauksia tai tarvitse kirjautumista:
 

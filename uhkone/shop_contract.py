@@ -11,7 +11,9 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-from .client import BASE_URL, ClientError, parse_course
+from .browser import BrowserError, _validate_course_url
+from .client import BASE_URL, ClientError, _integer, parse_course
+from .models import _meeting_start_times
 from .seed import SOURCE_URL
 
 SHOP_PAGE = BASE_URL + "/webshop/reservations2/"
@@ -33,6 +35,7 @@ def check_catalogue(data: object) -> int:
     if not isinstance(data, list) or not data:
         raise ContractError("Kurssirajapinnan vastaus on tyhjä tai ei ole kurssiluettelo.")
     ids: set[int] = set()
+    supported = 0
     for row in data:
         if not isinstance(row, dict):
             raise ContractError("Kurssirajapinnan kurssi ei ole tietue.")
@@ -43,26 +46,37 @@ def check_catalogue(data: object) -> int:
             course = parse_course(row)
         except ClientError as exc:
             raise ContractError(str(exc)) from None
+        if any((_integer(row[key]) or 0) <= 0 for key in ("service_id", "location_id", "reservation_group_id")):
+            raise ContractError("Kurssin reittitunnus puuttuu tai on virheellinen.")
+        try:
+            _validate_course_url(course)
+        except BrowserError as exc:
+            raise ContractError(str(exc)) from None
         if course.id in ids:
             raise ContractError("Kurssirajapinta palautti saman kurssitunnuksen useita kertoja.")
         ids.add(course.id)
         if course.start is None or course.end is None or course.registration_start is None:
             raise ContractError("Kurssirajapinnan alkamis- tai päättymisaikaa ei voitu tulkita.")
-        if (course.free_places is None or course.queue_places is None
+        free, queue = _integer(row["free"]), _integer(row["free_queue"])
+        if (free is None or queue is None
                 or type(row["is_reservable"]) not in {bool, int} or row["is_reservable"] not in (0, 1)):
             raise ContractError("Kurssirajapinnan paikka-, jono- tai varaustilaa ei voitu tulkita.")
-        if not isinstance(row["weekdays"], list) or any(
-            not isinstance(entry, dict) or not isinstance(entry.get("times"), str)
-            or not isinstance(entry.get("weekdays"), list)
-            for entry in row["weekdays"]
-        ):
+        if not row["weekdays"] or _meeting_start_times(course) is None:
             raise ContractError("Kurssirajapinnan viikkoaikataulun (weekdays) rakenne muuttui.")
-        if not isinstance(row["fare_products"], list) or any(
-            not isinstance(product, dict) or not {"fare_product_id", "price"} <= product.keys()
-            for product in row["fare_products"]
-        ):
-            raise ContractError("Kurssirajapinnan myyntituotteelta puuttuu fare_product_id tai price.")
-    return len(ids)
+        products = row["fare_products"]
+        if not isinstance(products, list) or not products or any(
+            not isinstance(product, dict) or (_integer(product.get("fare_product_id")) or 0) <= 0
+            or _integer(product.get("price")) is None or int(product["price"]) < 0
+            or (product.get("bundle_price") is not None and (
+                _integer(product["bundle_price"]) is None or int(product["bundle_price"]) < 0))
+            for product in products
+        ) or course.price is None:
+            raise ContractError("Kurssin myyntituotteen fare_product_id tai price ei kelpaa varaukseen.")
+        if free >= 0 and queue >= 0:
+            supported += 1
+    if not supported:
+        raise ContractError("Yhdelläkään kurssilla ei ole varaukseen tulkittavaa paikka- ja jonotietoa.")
+    return supported
 
 
 class _PageScripts(HTMLParser):
@@ -230,7 +244,9 @@ def run_public_contract() -> dict[str, object]:
         javascript = _get_public(script_url, "Kaupan JavaScript")
         check_shop_javascript(javascript.decode("utf-8"))
         catalogue = _get_public(SOURCE_URL, "Kurssirajapinta")
-        count = check_catalogue(json.loads(catalogue))
+        rows = json.loads(catalogue)
+        supported = check_catalogue(rows)
+        count = len(rows)
     except (UnicodeDecodeError, json.JSONDecodeError):
         raise ContractError("Julkisen lähteen merkistökoodaus tai JSON-rakenne muuttui.") from None
     return {
@@ -239,6 +255,7 @@ def run_public_contract() -> dict[str, object]:
         "lahteet": [{"url": url, "sha256": sha256(content).hexdigest()}
                     for url, content in ((SHOP_PAGE, html), (script_url, javascript), (SOURCE_URL, catalogue))],
         "tarkistukset": {"kurssirajapinta": "läpäisty", "kurssit": count,
+                         "ei_negatiiviset_paikkatiedot": supported, "negatiiviset_paikkatiedot": count - supported,
                          "html_mallien_rakenne": "läpäisty", "javascript_sopimusmerkit": "läpäisty"},
         "todentamatta": ["kirjautuminen", "tilin lapsivalinta", "ostoskori", "varaus", "jonotus",
                          "maksupalvelu", "FastPay", "maksu ja kuitti"],

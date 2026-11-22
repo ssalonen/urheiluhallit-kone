@@ -20,6 +20,9 @@ Pelkkä simulaattorin ulkoasun muuttaminen ei todista rajapintojen toimintaa. Ko
 - Yhden vielä valitsemattoman vaihtoehdon liian korkea hinta ei estä muiden sallittujen vaihtoehtojen seurantaa. Keskeneräisen varauksen tai maksun rajoituksia ei höllennetä.
 - Tulevaisuudessa avautuva vaihtoehto ei hidasta jo avoimen vaihtoehdon normaalia seurantaa.
 - Uuden maksun onnistuminen vaatii saman varauksen ja siihen liittyvän kuitin. Pelkkä uusi samanhintainen kuitti ei riitä. Puuttuva maksutieto ei todista maksua. Ilman maksupyyntöä löytynyt vahvistettu varaus ilmoitetaan erikseen jo vahvistettuna, ilman väitettä tämän ajon maksusta.
+- Katselmoinnissa tarkennettu: lähetys saa käyttää vain ohjaimen hyväksymää varaustunnusta ja tarkkaa summaa. Tuntematon maksutieto ei osoita maksamattomuutta. Myöhäiset varaushavainnot säilytetään ennen uudelleenyritystä tai kurssin vaihtamista. Kirjoitusaie erotetaan havaitusta lähetyksestä.
+- Julkinen lähde ei osoita kurssivarauksen `receipt_event_id`-kentän ja istunnon `receipt_id`-kentän yhteistä tunnistejoukkoa. Simulaattorin numeerinen yhtäläisyys on vain testisopimus. Oikean kaupan uuden maksun todistetta ei saa muodostaa pelkästä todentamattomasta numeroyhtäläisyydestä.
+- Fallback-jonotuksen olemassa oleva rajattu lisäaika välitetään myös verkkovartijalle. Määräaika ei saa siirtyä eteenpäin pelkän uudelleenkäynnistyksen vuoksi.
 - CI epäonnistuu, jos vaadittuja testejä ohitetaan. Paikallisen ympäristön selainrajoitukset näkyvät raportissa.
 - Julkinen tuotantotarkistus käyttää vain rajattuja GET-pyyntöjä oikeaan alkuperään, ei kirjautumista tai yksityisiä tietoja. Sen läpäisy ei ole kirjautuneen varaus- tai maksuketjun hyväksyntä.
 

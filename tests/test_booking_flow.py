@@ -49,12 +49,24 @@ function cartModal() {
   modal.hidden = false;
   modal.innerHTML = `<input type="checkbox" id="usageTermsCheckbox">
     <input type="checkbox" id="useBalanceCheckbox">`;
-  setTimeout(renderPaymentOptions, 300);
+  const view = {collection: R2.cart, methodsReady: false};
+  R2.app.modal.currentView = view;
+  window.cartRenderOrder = [];
+  function complete(kind) {
+    if (kind === 'balance') view.balance = 10000;
+    if (kind === 'methods') view.methodsReady = true;
+    window.cartRenderOrder.push(kind);
+    renderPaymentOptions(view);
+  }
+  setTimeout(() => complete(window.firstRender), 70);
+  setTimeout(() => complete(window.firstRender === 'methods' ? 'balance' : 'methods'), 450);
 }
-function renderPaymentOptions() {
+function renderPaymentOptions(view) {
   const fastpay = window.useFastPay;
   modal.innerHTML = `<input type="checkbox" id="usageTermsCheckbox">
-    <input type="checkbox" id="useBalanceCheckbox">` + (fastpay
+    <input type="checkbox" id="useBalanceCheckbox">`;
+  if (!view.methodsReady) return;
+  modal.insertAdjacentHTML("beforeend", fastpay
     ? `<div class="btn-group-dropdown-top-left"><button class="dropdown-toggle">Maksutavat</button>
          <a hidden href="#" class="buyCart" payment-type-id="5">FastPay</a></div>`
     : `<a href="#" class="buyWithBalance" payment-type-id="4">Maksa saldolla</a>`);
@@ -67,6 +79,7 @@ function renderPaymentOptions() {
   }
   action.onclick = async event => {
     event.preventDefault();
+    if (window.cartRenderOrder.length !== 2) throw Error("Submitted before both cart renders");
     if (!document.querySelector('#usageTermsCheckbox').checked ||
         document.querySelector('#useBalanceCheckbox').checked === fastpay) throw Error('Terms or balance missing');
     const options = {return_url:location.pathname+'?doPayment=success',
@@ -81,7 +94,9 @@ document.addEventListener('click', () => {
   const action = modal.querySelector('.buyCart');
   if (action) action.hidden = true;
 });
+window.Enkora = {getNexusParameter: name => name === "balance payments enabled"};
 window.R2 = {
+  app:{modal:{currentView:null}},
   session:{isAuthenticated:()=>true}, user:{get:key=>key==='account_id'?10:null}, service_group_id:9,
   eventgroups:{length:1, get:id=>Number(id)===123?{set:row=>window.modelRefreshes++}:null},
   cart:{fetch:async()=>{window.cartRows=await fetch('/webshop/reservations2/apicart').then(r=>r.json());},
@@ -119,9 +134,9 @@ class BookingFlowTests(unittest.TestCase):
         self._exercise_flow(without_payment=True)
 
     def test_delayed_fastpay_dropdown_preserves_terms_before_submit(self):
-        self._exercise_flow(without_payment=False, fastpay=True)
+        self._exercise_flow(without_payment=False, fastpay=True, first_render="methods")
 
-    def _exercise_flow(self, *, without_payment, fastpay=False):
+    def _exercise_flow(self, *, without_payment, fastpay=False, first_render="balance"):
         row = {"reservation_event_group_id": 123, "service_id": 9, "location_id": 2,
                "reservation_group_id": 6, "name": "Leikki-ikäisten jatkouimakoulu",
                "location": "Mäkelänrinne", "start": "2030-01-10 10:00:00",
@@ -130,7 +145,8 @@ class BookingFlowTests(unittest.TestCase):
         moment = datetime.now(UTC)
         opening = moment + timedelta(seconds=6)
         payment_mode = "none" if without_payment else "fastpay" if fastpay else "saldo"
-        spec = BookingSpec(parse_course(row), "Aino Esimerkki", Decimal(80), opening,
+        fixture_origin = "http://127.0.0.1:43210"
+        spec = BookingSpec(parse_course(row, base_url=fixture_origin), "Aino Esimerkki", Decimal(80), opening,
                            opening + timedelta(seconds=40), payment_mode, without_payment=without_payment)
         server: dict[str, Any] = {"cart": [], "own": [], "receipt": {
             "receipt_id": 77, "total_amount": 7600, "is_closed": 1, "is_pay_later": 0}}
@@ -138,9 +154,9 @@ class BookingFlowTests(unittest.TestCase):
         context = self.browser.new_context()
         self.addCleanup(context.close)
         page = context.new_page()
-        page.add_init_script(f"window.useFastPay = {json.dumps(fastpay)};")
+        page.add_init_script(f"window.useFastPay = {json.dumps(fastpay)}; window.firstRender = {json.dumps(first_render)};")
         page.set_default_timeout(3000)
-        guard = _BookingGuard(context, spec)
+        guard = _BookingGuard(context, spec, base_url=fixture_origin)
         guard.allow_login = False
 
         def fulfill(route):
@@ -182,7 +198,7 @@ class BookingFlowTests(unittest.TestCase):
 
         context.route("**/*", routed)
         context.on("response", guard.response)
-        backend = BookingBrowser(spec, context, page, guard)
+        backend = BookingBrowser(spec, context, page, guard, base_url=fixture_origin)
 
         def read(path, *, rpc=False, content=None):
             if path == "user/getcurrentuser":
@@ -209,12 +225,14 @@ class BookingFlowTests(unittest.TestCase):
             result = run_booking(spec, backend, Path(directory) / "state.json",
                                  now=lambda: moment, log=lambda message: None)
             if without_payment:
-                backend.show_unpaid_cart()
+                backend.show_unpaid_cart(result.reservation_id)
                 self.assertTrue(page.locator("#modal #usageTermsCheckbox").is_visible())
         if without_payment:
             self.assertEqual((result.status, result.receipt_id), ("held_unpaid", None))
             self.assertEqual([path for path, _ in writes], ["/webshop/reservations2/apicart"])
         else:
+            self.assertEqual(page.evaluate("window.cartRenderOrder"),
+                             [first_render, "balance" if first_render == "methods" else "methods"])
             self.assertEqual((result.status, result.reservation_id, result.receipt_id), ("confirmed", "456", "78"))
             self.assertEqual([path for path, _ in writes], ["/webshop/reservations2/apicart",
                                                           "/webshop/call/cart/externalpaymentstart"])

@@ -121,6 +121,7 @@ class ScopeGuardTests(unittest.TestCase):
                        {"service_group_id": 8}, {"create_invoice": True},
                        {"return_url": "https://example.org/?doPayment=success"},
                        {"return_url": "//example.org/webshop/reservations2/?doPayment=success"},
+                       {"return_url": "/webshop/reservations2/?doPayment=success&extra=1"},
                        {"return_url": BASE_URL + "/webshop/reservations2-neighbor?doPayment=success"},
                        {"return_url": BASE_URL + "/webshop/reservations2/reservations/9/2/6/-/124?doPayment=success"}):
             payload = options | change
@@ -243,12 +244,14 @@ class ServerEvidenceTests(unittest.TestCase):
     def test_reservation_and_session_receipt_identifiers_are_independent(self):
         own = reservation(4, 1) | {"receipt_event_id": "79"}
         receipt = {"receipt_id": 78, "total_amount": 7600, "is_closed": 1, "is_pay_later": 0}
-        value = self.observe(reservations=[own], receipt=receipt)
+        value = _observation(spec(), 20, course_row(), [], [own], receipt, {"isLocked": False},
+                             base_url="http://127.0.0.1:43210")
         self.assertEqual(value.reservation_receipt_id, "79")
         self.assertEqual(value.receipt_id, "78")
         for invalid in (None, 0, -1, True, "unknown"):
             with self.subTest(invalid=invalid):
-                value = self.observe(reservations=[own | {"receipt_event_id": invalid}], receipt=receipt)
+                value = _observation(spec(), 20, course_row(), [], [own | {"receipt_event_id": invalid}],
+                                     receipt, {"isLocked": False}, base_url="http://127.0.0.1:43210")
                 self.assertIsNone(value.reservation_receipt_id)
 
     def test_foreign_product_for_same_course_and_child_is_not_a_hold(self):
@@ -396,11 +399,11 @@ class ReadOnlyPreflightTests(unittest.TestCase):
     def test_transient_payment_type_refresh_remains_retryable_without_a_send(self):
         selected = replace(spec("fastpay"), payment_type_id=5)
         backend = BookingBrowser(selected, None, None, _BookingGuard(None, selected))
-        backend.snapshot = Mock(return_value=Observation(held=True, cart_empty=False, reservation_id="456",
+        backend.snapshot = Mock(return_value=Observation(held=True, cart_empty=False, reservation_id="456", reservation_paid=False,
                                                           current_price=Decimal(76)))
         backend._payment_types = Mock(side_effect=TransientBookingError("HTTP 503", retry_after=8))
         with self.assertRaises(ActionNotSent) as error:
-            backend.checkout()
+            backend.checkout("456", Decimal(76))
         self.assertEqual(error.exception.retry_after, 8)
         self.assertFalse(backend.guard.actual_sent)
 
@@ -430,7 +433,7 @@ class ReadOnlyPreflightTests(unittest.TestCase):
                                reservation_confirmed=True, current_price=Decimal(76)))
         backend._payment_types = Mock(side_effect=AssertionError("must stop before fetching payment methods"))
         with self.assertRaises(ActionNotSent):
-            backend.checkout()
+            backend.checkout("456", Decimal(76))
         backend._payment_types.assert_not_called()
         self.assertFalse(backend.guard.actual_sent)
 
@@ -460,7 +463,7 @@ class ReadOnlyPreflightTests(unittest.TestCase):
     def test_resuming_existing_purchase_never_requires_spent_balance(self):
         for state in (
             Observation(reservation_confirmed=True, reservation_id="456", current_price=Decimal(76)),
-            Observation(held=True, cart_empty=False, current_price=Decimal(76)),
+            Observation(held=True, cart_empty=False, reservation_id="456", reservation_paid=False, current_price=Decimal(76)),
             Observation(payment_locked=True, current_price=Decimal(76)),
             Observation(reservation_id="456", current_price=Decimal(76)),
         ):
@@ -521,9 +524,9 @@ class FastPaySelectionTests(unittest.TestCase):
 
     def test_checkout_revalidates_brand_even_if_method_id_is_unchanged(self):
         backend = self.backend([self.payment(5, "Tavallinen korttimaksu")], payment_id=5)
-        backend._recent_observation = lambda: Observation(held=True, cart_empty=False, current_price=Decimal(76))
+        backend._recent_observation = lambda: Observation(held=True, cart_empty=False, reservation_id="456", reservation_paid=False, current_price=Decimal(76))
         with self.assertRaises(BookingError):
-            backend.checkout()
+            backend.checkout("456", Decimal(76))
         self.assertFalse(backend.guard.checkout_sent)
 
     def test_fastpay_card_authentication_uses_authorized_provider_flow(self):

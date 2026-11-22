@@ -55,7 +55,7 @@ class Backend:
             self.on_snapshot(self)
         return self.observation
 
-    def add_selected_course(self):
+    def add_selected_course(self, *, deadline):
         if self.pool.active != self.course_id:
             raise AssertionError("Inactive page attempted a mutation")
         self.adds.append(self.pool.clock.now())
@@ -66,10 +66,11 @@ class Backend:
             self.hold()
 
     def hold(self):
-        self.observation = replace(self.observation, held=True, cart_empty=False,
+        self.observation = replace(self.observation, held=True, cart_empty=False, reservation_paid=False,
                                    reservation_id=f"reservation-{self.course_id}")
 
-    def checkout(self):
+    def checkout(self, reservation_id, price, *, deadline, on_dispatched):
+        on_dispatched()
         self.checkouts.append(self.pool.clock.now())
         self.pool.writes.append((self.course_id, "checkout"))
         if self.on_checkout:
@@ -80,11 +81,11 @@ class Backend:
     def confirm(self):
         self.observation = replace(self.observation, held=False, cart_empty=True,
                                    reservation_id=f"reservation-{self.course_id}",
-                                   reservation_confirmed=True, receipt_id=f"receipt-{self.course_id}",
+                                   reservation_confirmed=True, reservation_paid=True, receipt_id=f"receipt-{self.course_id}",
                                    receipt_closed=True, receipt_total=Decimal(90),
                                    reservation_receipt_id=f"receipt-{self.course_id}")
 
-    def join_queue(self):
+    def join_queue(self, *, deadline):
         if self.pool.active != self.course_id:
             raise AssertionError("Inactive page attempted a queue mutation")
         self.queue_calls.append(self.pool.clock.now())
@@ -235,9 +236,9 @@ class MultiTests(unittest.TestCase):
     def test_paid_claim_from_shared_read_survives_an_older_selected_tab_snapshot(self):
         backend = self.pool.backends[1]
         backend.confirm()
-        backend.hold()
+        backend.observation = replace(backend.observation, held=True, cart_empty=False)
         def older_tab(target):
-            target.observation = replace(target.observation, reservation_confirmed=False)
+            target.observation = replace(target.observation, reservation_confirmed=False, reservation_paid=False)
         backend.on_snapshot = older_tab
         self.assertEqual(self.race().status, "deadline")
         self.assertEqual(self.pool.writes, [])
@@ -250,14 +251,14 @@ class MultiTests(unittest.TestCase):
     def test_crash_after_pinning_shared_paid_claim_preserves_its_identity(self):
         backend = self.pool.backends[1]
         backend.confirm()
-        backend.hold()
+        backend.observation = replace(backend.observation, held=True, cart_empty=False)
         def interrupt_after_pin(path, state):
             _save_state(path, state)
             if state.get("pinned_id") is not None:
                 raise KeyboardInterrupt()
         with patch("uhkone.multi._save_state", side_effect=interrupt_after_pin), self.assertRaises(KeyboardInterrupt):
             self.race()
-        backend.observation = replace(backend.observation, reservation_confirmed=False)
+        backend.observation = replace(backend.observation, reservation_confirmed=False, reservation_paid=False)
         self.assertEqual(self.race().status, "deadline")
         self.assertEqual(self.pool.writes, [])
 

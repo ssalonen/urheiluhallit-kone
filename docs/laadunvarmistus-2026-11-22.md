@@ -2,7 +2,7 @@
 
 ## Johtopäätös
 
-Huoli simuloidun kaupan erilaisuudesta oli perusteltu. Paikallinen testikauppa on hyödyllinen varausohjaimen häiriöiden, uudelleenkäynnistyksen ja päällekkäisten pyyntöjen testaamiseen. Sen läpäisy ei osoita, että selainadapteri toimii oikeassa Urheiluhallien kaupassa. Tarkastuksessa löytyi oikean kaupan julkisesta JavaScriptistä konkreettinen pyyntömuoto, jonka vanha adapteri hylkäsi ja jota testikauppa ei käyttänyt.
+Huoli simuloidun kaupan erilaisuudesta oli perusteltu. Paikallinen testikauppa on hyödyllinen varausohjaimen häiriöiden, tallennetusta tilasta jatkamisen ja päällekkäisten pyyntöjen testaamiseen. Sen läpäisy ei osoita, että selainadapteri toimii oikeassa Urheiluhallien kaupassa. Tarkastuksessa löytyi oikean kaupan julkisesta JavaScriptistä konkreettinen pyyntömuoto, jonka vanha adapteri hylkäsi ja jota testikauppa ei käyttänyt.
 
 Myös tilakoneessa oli virheitä: uusi samanhintainen kuitti saattoi kelvata maksun todisteeksi ilman yhteyttä oikeaan varaukseen, ja ristiriitaiset peräkkäiset lukuvastaukset saattoivat johtaa tarpeettomaan maksuyritykseen. Korjaushaara tiukentaa näitä ehtoja ja lisää regressiotestit.
 
@@ -17,7 +17,7 @@ Tarkastuksen lähtökohta oli `main`-commit `e22710cf27535db24f8eb6c19e4a38db66a
 | Yksikkötestit | Kurssien suodatus, hintarajat, tilakone, pysyvä journal, jonotus ja usean kurssin koordinointi | Suuri osa syötteistä oli testien itse rakentamia havaintoja. Ne eivät testanneet oikean kaupan vastauksien tulkintaa. |
 | Paikalliset HTTP-testit | 18 testiä omaa HTTP-testikauppaa ja SQLitea vasten | Oikea HTTP ja pysyvä tietokanta; rajapinnan semantiikan määritti silti oma simulaattori. |
 | Selainfixturet | Kaksi varausketjun testiä, viisi osallistujavalinnan testiä ja yksi staattisen esimerkin testi | Varausfixture sieppasi verkkopyynnöt ja korvasi adapterin lukurajapinnan. Oikean kaupan kirjautunut tila ja palvelin eivät olleet mukana. |
-| Koko paikallinen selainajo | `scripts/smoke_browser.py`: oikea Chromium, paikallinen HTTP-kauppa, jonot, yksi varaus ja maksu sekä uudelleenkäynnistys | Mielekäs paikallinen integraatiotesti, mutta sitä **ei ajettu CI:ssä**. Se käytti samaa omaa testikauppaa. |
+| Koko paikallinen selainajo | `scripts/smoke_browser.py`: oikea Chromium, paikallinen HTTP-kauppa, jonot, yksi varaus ja maksu sekä ajon jatkaminen samassa selainistunnossa | Mielekäs paikallinen integraatiotesti, mutta sitä **ei ajettu CI:ssä**. Se käytti samaa omaa testikauppaa. |
 | Kurssiaineisto | 139 kurssin julkinen aineisto, tallennettu 18.10.2026 | Todellinen julkinen data, mutta ei tämänhetkinen kauppa eikä kirjautuneen tilin vastaus. |
 | Tuotannon varaus ja maksu | Ei löytynyt automaattista kirjautunutta tuotantotestiä | Vihreistä paikallisista testeistä ei voinut päätellä tämän ketjun toimivuutta. |
 
@@ -47,9 +47,13 @@ Näyttö: `tests/test_booking_flow.py`. Näkymän todellinen ajastus ja kaikki k
 
 Vanha ohjain hyväksyi uuden suljetun, oikeansummaiseksi tulkitun kuitin ilman todistetta sen yhteydestä valittuun varaukseen. Toistossa toiseen varaukseen kuuluva samanhintainen kuitti johti tulokseen `confirmed`. Ohjain saattoi myös siirtyä maksun täsmäytykseen maksuttoman korilisäyksen jälkeen, vaikka checkoutia ei ollut lähetetty.
 
-**Korjaus:** uuden maksun vahvistus edellyttää kirjattua maksuyritystä, ennen lähetystä tunnistettua varausta, saman varaustunnuksen säilymistä, varauksen maksutietoa, tyhjentynyttä koria, oikeansummaista suljettua uutta kuittia ja varauksella havaittua viitettä samaan kuittiin. Ilman maksuyritystä löytynyt jo vahvistettu varaus palauttaa `already_confirmed` ilman kuittiväitettä. Puuttuva tai ristiriitainen näyttö ei oikeuta uuteen maksupyyntöön.
+**Korjaus:** uuden maksun vahvistus edellyttää havaittua lähetystä, ennen lähetystä tunnistettua varausta, saman varaustunnuksen säilymistä, varauksen maksutietoa, tyhjentynyttä koria, oikeansummaista suljettua uutta kuittia ja todennettua yhteyttä samaan kuittiin. Ilman havaittua lähetystä löytynyt jo vahvistettu varaus palauttaa `already_confirmed` ilman kuittiväitettä. Pelkkä pysyvä maksuaie ei todista lähetystä. Puuttuva tai ristiriitainen näyttö ei oikeuta uuteen maksupyyntöön.
 
-Adapterin sisäinen `reservation_receipt_id` täytetään kelvollisesta `receipt_event_id`-kentästä. **Tämän kentän saatavuutta ja merkitystä oikean kirjautuneen tilin vastauksessa ei ole varmistettu.** Testikaupan kenttä ei todista tuotannon sopimusta. Jos tuotanto ei anna tarvittavaa yhteyttä, automaatti ei vahvista maksun valmistumista. Tämä voi jättää onnistuneenkin maksun odottamaan manuaalista tarkistusta.
+**Oikean kurssivarauksen ja kuitin yhteistä tunnistetta ei ole varmistettu.** Julkisessa JavaScriptissä kurssien `apiusereventgroups` käyttää `R2.EventGroupReservation`-mallia. Maksukenttiä `receipt_event_id` ja `is_paid` käyttävä julkinen näkymä kuuluu erilliseen `apireservations`-malliin ja rajaa kurssit nimenomaisesti pois (`getUserReservations`). Ostoskorin onnistumisnäkymä lukee kuitin ilman liitosta kurssivaraukseen. Tämä ei osoita kenttien puuttuvan kirjautuneesta kurssivastauksesta, mutta ei myöskään vahvista niiden saatavuutta tai tunnisteiden samaa merkitystä.
+
+Testikauppa antaa varauksen kuittiviitteelle ja kuitille saman SQLite-avaimen. Sitä ei hyväksytä tuotannon sopimuksen todisteeksi. Kuittiviite välitetään maksun todisteeksi vain erikseen rajatun paikallisen testikaupan alkuperästä. Oikean kaupan uuden maksun `confirmed`-tulos jää tarkoituksellisesti pois käytöstä, kunnes kirjautunut integraationäyttö tai toimittajan sopimus osoittaa kuittiyhteyden.
+
+Tämä rajoitus koskee vahvistamista: muu nimenomaisesti maksamaton varaustieto voi silti sallia yhden maksupyynnön lähettämisen. Onnistunutkin maksu voi jäädä automaatilta vahvistamatta ja vaatia manuaalista tarkistusta oikean kaupan omista varauksista ja kuitista. Puuttuva vahvistus ei osoita maksun epäonnistuneen. Maksua ei lähetetä uudelleen tämän epäselvyyden vuoksi. CLI kertoo rajan ennen tuotannon maksupolkua ja vahvistamattomassa lopputuloksessa.
 
 Näyttö: `test_same_price_closed_receipt_without_a_reservation_link_is_pending`, `test_confirmation_after_unpaid_add_never_claims_a_new_payment`, `test_payment_requires_same_reservation_and_attached_receipt_even_after_restart` ja `test_legacy_completed_journal_cannot_reassert_a_misattributed_receipt` tiedostossa `tests/test_booking.py`.
 
@@ -85,15 +89,32 @@ Valitsemattoman kurssin hintarajan ylitys saattoi katkaista koko monen kurssin h
 
 Näyttö: `test_higher_price_on_unselected_course_keeps_other_candidate_available` tiedostossa `tests/test_multi_browser.py` sekä ajoituksen, hinnannousun ja jonopolitiikkojen regressiot tiedostossa `tests/test_multi.py`.
 
+### 8. Riippumattoman katselmoinnin löytämät lähetyshetken aukot
+
+Ensimmäisen korjauskierroksen vihreät testit eivät kattaneet kaikkia viimeisen lukuhetken ja pysyvän tilan välisiä rajoja. Erillinen katselmointi toi seuraavat tapaukset korjausaaltoon. Testit käyttävät tarvittaessa todellista adapteria ja verkkovartijaa yhdessä ohjaimen kanssa; pelkkä valmiiksi rakennettu myönteinen havainto ei riitä.
+
+| Toistettu puute | Korjaus |
+| --- | --- |
+| Ohjain hyväksyi varauksen A, mutta adapterin vanhentunut välimuisti päivitti hyväksynnän varaukseen B, puuttuvaan tunnukseen tai eri summaan. | Checkout saa ohjaimen hyväksymän ei-tyhjän varaustunnuksen ja tarkan summan. Molempien pitää säilyä samoina kaikissa valmistelun tarkistuksissa. |
+| Puuttuva, virheellinen tai lopputilan kanssa ristiriitainen `is_paid` näytti maksamattomalta korilta. | Tuntematon maksutila erotetaan nimenomaisesta maksamattomuudesta. Vain tunnistettu, kelvollinen maksamaton varaus saa edetä maksuun tai maksamattoman korin luovutukseen. |
+| Adapterin viimeisellä lukukerralla löytynyt oma tai maksettu varaus hävisi, kun toiminto palautui lähettämättömänä. | Havainto kulkee virhetuloksen mukana ohjaimelle ja tallennetaan ennen uutta yritystä tai kurssin vaihtamista. Myöhempi vanha vastaus ei pyyhi sitä pois. |
+| Keskeytys pysyvän maksuaikeen ja varsinaisen lähetyksen välissä sai muualla maksetun varauksen näyttämään tämän ajon maksulta. | Maksuaie estää kaksoisyrityksen, mutta havaitulla lähetyksellä on erillinen pysyvä merkintä. Ilman lähetysnäyttöä löytynyt maksettu varaus ilmoitetaan ilman tämän ajon maksuväitettä. |
+| Fallback-jonotus alkoi tarkoituksella alkuperäisen määräajan jälkeen, mutta verkkovartija käytti alkuperäistä rajaa. | Sama rajattu lisäajan päättymishetki kulkee lähetykseen asti ja säilyy uudelleenkäynnistyksessä. Uusi ajo ei avaa liukuvaa lisäaikaa. |
+| Jonon osallistujanäkymän valmistelu ehti vanhentaa hintaa ja varaustietoa; uusintaviive jäi kahteen sekuntiin. | Tila ja hinta tarkistetaan vielä ennen jonopyyntöä. Molemmat jonopolitiikat noudattavat palvelimen ilmoittamaa pidempää odotusaikaa. |
+| Julkinen tarkistin hyväksyi olemassa olevia mutta käyttökelvottomia tuote-, hinta-, aika- tai reittikenttiä. | Tarkistus validoi myös arvot ja selainadapterin hyväksymän kurssireitin. Negatiiviset jäljellä olevien paikkojen määrät raportoidaan erikseen; vähintään yksi käyttökelpoinen edustava rivi vaaditaan. |
+| Saldo-odotuksen ehto ohittui testifixtureissä kokonaan. | Selainfixture sisältää Enkoran saldoasetuksen, todellisen näkymä–kokoelma-suhteen ja maksutapojen sekä saldon molemmat valmistumisjärjestykset. Lopulliset ehdot ja maksutapa tarkistetaan lähetettäessä. |
+
+Keskeiset uudet regressiot ovat tiedostossa `tests/test_mutation_evidence.py`. Julkisen tarkistimen negatiiviset arvotapaukset ovat tiedostossa `tests/test_shop_contract.py` ja erillisten renderöintien selainregressiot tiedostossa `tests/test_booking_flow.py`.
+
 ## Testinäytön parannukset
 
 Tavallinen CI ajaa nyt paikalliset testit valitsimella `--fail-on-skip`. Yksikin ohitus epäonnistuttaa ajon; selaimen puuttuminen ei siten tuota vihreää lopputulosta. Portti tarkistettiin sekä tarkoituksella ohitetulla väliaikaisella testillä että tämän työympäristön kahdeksalla selainohituksella.
 
-`scripts/smoke_browser.py` liitettiin CI:hin. Alkuperäisen usean kurssin jonotus- ja maksuketjun lisäksi se tarkistaa yhden kurssin varsinaisen `open_booking_browser`-adapterin, maksamattoman korin näyttämisen ja uudelleenkäynnistyksen ilman uutta korilisäystä tai maksua. Tämä on kokonainen paikallinen selainajo; se ei aja oikeaa Urheiluhallien ostoa eikä koko komentorivivalikkoa.
+`scripts/smoke_browser.py` liitettiin CI:hin. Alkuperäisen usean kurssin jonotus- ja maksuketjun lisäksi se tarkistaa yhden kurssin varsinaisen `open_booking_browser`-adapterin, maksamattoman korin näyttämisen ja tallennetusta tilasta jatkamisen ilman uutta korilisäystä tai maksua. Molemmat smoken jatkot käyttävät samaa avointa selainistuntoa; ne eivät todista suljetun selaimen istuntoevästeiden tai ostoskorin säilymistä. Tämä on kokonainen paikallinen selainajo; se ei aja oikeaa Urheiluhallien ostoa eikä koko komentorivivalikkoa.
 
 Lisäksi `scripts/check_live_shop.py` lukee erikseen oikean kaupan kolme julkista lähdettä HTTPS GET -pyynnöillä: HTML:n, HTML:n ilmoittaman saman alkuperän varausmoduulin JavaScriptin ja kurssiluettelon. Se tarkistaa tuotannossa käytettävällä `parse_course`-funktiolla kurssien tulkinnan, vaadittujen HTML-elementtien rakenteen ja JavaScriptin rajapintamerkit. Se ei kirjaudu, lue yksityisiä päätepisteitä tai lähetä kirjoittavia pyyntöjä.
 
-Tarkistimelle lisättiin 11 testiä. Negatiiviset tapaukset rikkovat esimerkiksi kurssin avainkentän, osallistujavalinnan rakenteen, maksupainikkeen, JavaScript-lähteen alkuperän ja `R2.cart`-määrittelyn. Keskeisiä tarkistuksia poistamalla varmistettiin erillisissä väliaikaisissa kopioissa, että vastaavat regressiotestit todella havaitsevat poiston.
+Tarkistimen ensimmäiset 11 testiä rikkovat esimerkiksi kurssin avainkentän, osallistujavalinnan rakenteen, maksupainikkeen, JavaScript-lähteen alkuperän ja `R2.cart`-määrittelyn. Keskeisiä tarkistuksia poistamalla varmistettiin erillisissä väliaikaisissa kopioissa, että vastaavat regressiotestit todella havaitsevat poiston. Katselmoinnin jälkeen mukaan lisättiin myös kelvottomat kenttäarvot ja erikseen raportoitava negatiivinen jäljellä olevien paikkojen määrä.
 
 Julkinen tarkistus on omassa käsin käynnistettävässä **Live public shop contract** -työnkulussa. Sitä ei ajastettu. Paikallinen testisarja ei ole riippuvainen tuotantokaupan hetkellisestä saatavuudesta.
 
@@ -101,11 +122,11 @@ Julkinen tarkistus on omassa käsin käynnistettävässä **Live public shop con
 
 Oikean kaupan käyttöliittymä tarkastettiin selaimessa kirjautumatta. Näkymän rakenne, osallistuja- ja ostoskorimallit sekä pyyntöjen muodostus tarkastettiin julkisesta HTML:stä ja JavaScriptistä. Raakoja tuotantovastauksia tai kuvakaappauksia ei tallenneta repositoryyn.
 
-Automaattinen julkinen tarkistus läpäisi **22.11.2026 klo 8.52.14 Suomen aikaa (06.52.14 UTC)**. Se tulkitsi **143 kurssia**.
+Tiukennettu automaattinen julkinen tarkistus läpäisi **22.11.2026 klo 9.15.37 Suomen aikaa (07.15.37 UTC)**. Se tulkitsi **143 kurssia**, joista kaikilla oli ei-negatiivinen jäljellä olevien paikkojen ja jonopaikkojen määrä. Myös ensimmäinen tarkistus klo 8.52 läpäisi; alla ovat tiukennetun tarkistuksen lähteet.
 
 | Lähde | SHA-256 tarkistushetkellä |
 | --- | --- |
-| [Julkinen kauppasivu](https://kauppa.urheiluhallit.fi/webshop/reservations2/) | `6d05b8f574e86e9c2398a237713300d86d8c093b72f991dbdfe0b3ecced57632` |
+| [Julkinen kauppasivu](https://kauppa.urheiluhallit.fi/webshop/reservations2/) | `63ab6f20265591a4303ae38adc16a3c3220ed85f63e901dbb40d30a675168cb1` |
 | [Sivun ilmoittama varausmoduulin JavaScript](https://kauppa.urheiluhallit.fi/webshop/javascript/jsmodule/reservations2/27407640c7bd4974e2eea14d5d7fc06e) | `1e15bbdd38036f6145ec39a3fe21957b03fece9c5df57076134271f044dd2320` |
 | [Julkinen uimakoululuettelo](https://kauppa.urheiluhallit.fi/webshop/reservations2/apieventgroups?service_id=9) | `fb962c2bbe98306631ed772ecb19dfc8d98cc0a7539c1d26e48714b93df856a4` |
 
@@ -113,14 +134,16 @@ Tarkistussummat yksilöivät käytetyn lähdeaineiston. Tarkistin ei vaadi tulev
 
 ## Lopullinen varmennus
 
-Yhdistetyn korjaushaaran paikallinen ajo palautti **345 läpäistyä testiä, 9 ohitettua selaintestiä ja 322 läpäistyä alitestiä**. Lähtötilanteeseen verrattuna mukaan tuli myös viivästetyn FastPay-valikon selainregressio. Ruff, ty, `git diff --cached --check` ja Git-indexin **63 lähdetiedoston** julkisuusraja läpäisivät.
+Katselmoinnin korjausaallon jälkeinen yhdistetty paikallinen ajo palautti **390 läpäistyä testiä, 9 ohitettua selaintestiä ja 323 läpäistyä alitestiä**. Lähtötilanteeseen verrattuna mukaan tuli myös viivästetyn FastPay-valikon selainregressio. Ruff, ty, `git diff --cached --check` ja Git-indexin **64 lähdetiedoston** julkisuusraja läpäisivät.
 
-GitHubin pakollisen selainajon tulos ja riippumaton katselmointi täydennetään tähän niiden valmistuttua. Paikallisen ympäristön selainohituksia ei korvata väitteellä läpäistyistä selaintesteistä.
+Ensimmäinen [GitHubin pakollinen selainajo](https://github.com/ssalonen/urheiluhallit-kone/actions/runs/44996346109) läpäisi **354 testiä ja 322 alitestiä ilman ohituksia**. Molemmat koko paikallisen Chromium-smoken polut läpäisivät. Monen kurssin palvelintilassa oli kaksi jonopyyntöä, yksi korilisäys, yksi checkout, yksi vahvistettu varaus ja yksi simuloitu korttiveloitus. Maksamattoman yhden kurssin polussa oli yksi korilisäys ja nolla checkoutia tai kuittia.
+
+Riippumaton katselmointi löysi tämän jälkeen vielä lähetyshetken sitomiseen, maksutiedon puuttumiseen, myöhäisen varaushavainnon säilyttämiseen, jonotuksen määräaikaan ja julkisen tarkistimen arvoihin liittyviä puutteita. Korjausaalto on toteutettu ja paikallisesti tarkistettu yllä esitetyin tuloksin. Korjausaallon kohdennettu uusintakatselmointi ja lopullinen GitHubin selainajo ovat vielä kesken.
 
 ## Jäljellä olevat rajat
 
 - Oikean kirjautuneen tilin osallistujavalinta, ostoskorin vastausrakenteet, jonotus, maksu ja varaus–kuitti-yhteys vaativat erikseen todennettavan integraation. Julkinen GET-tarkistus ei kata niitä.
-- Maksun varmistukseen vaadittu kuittiviite voi puuttua oikeasta vastauksesta. Tällöin työkalu jättää maksun vahvistamatta ja seuraa samaa yritystä; se ei turvallisesti voi päätellä epäonnistumista ja lähettää maksua uudelleen.
+- Maksun varmistukseen vaadittu kuittiviite voi puuttua oikeasta vastauksesta tai kuulua eri tunnistejoukkoon. Todentamaton numeroyhtäläisyys ei kelpaa tuotannon maksutodisteeksi. Työkalu ei saa päätellä puuttuvasta vahvistuksesta maksun epäonnistuneen ja lähettää maksua uudelleen.
 - Testikauppa on tarkoituksella yksinkertaistettu. Sen ulkoasun yhtenäistäminen ei yksin poistaisi riippumattoman rajapinta- ja selainnäytön tarvetta.
 - `koeajo --monta 1` käyttää edelleen monen kurssin poolia, kun varsinainen yhden kurssin ajo käyttää omaa selainadapteria. Uusi smoke kattaa tämän adapterin ja maksamattoman korin näyttämisen erikseen. Koko ohjatun CLI:n läpikäynti ei kuulu siihen.
 - Vanha yhteinen varaustallenne estää ehdokasjoukon vaihtamisen myös sellaisen päättyneen ajon jälkeen, jossa ei lähetetty yhtään kirjoitusta. Tätä käytettävyyshaittaa ei muutettu tässä maksuturvallisuuden korjauksessa. Epäselviä varaus- tai maksutallenteita ei pidä poistaa uuden yrityksen saamiseksi.

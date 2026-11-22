@@ -142,7 +142,7 @@ def run_single_unpaid_smoke(executable_path: str | None = None) -> dict:
             first = run_booking(spec, backend, state_path, log=lambda message: None)
             if first.status != "held_unpaid" or first.receipt_id is not None:
                 raise AssertionError("Yhden kurssin selainpolku ei pysähtynyt maksamattomaan koriin.")
-            backend.show_unpaid_cart()
+            backend.show_unpaid_cart(first.reservation_id)
             # The real handoff method must render the cart, not merely return a
             # state-machine success. No selector or network response is mocked.
             backend.page.locator("#modal #usageTermsCheckbox").wait_for(state="visible")

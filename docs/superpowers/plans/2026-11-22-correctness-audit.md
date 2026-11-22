@@ -73,3 +73,18 @@
 - [x] Kirjaa jokainen varmistettu löydös, korjaus, sitä todistava testi ja jäljellä oleva raja. Erottele julkinen sopimustarkistus, paikalliset simulaatiot ja todentamaton kirjautunut ketju.
 - [ ] Teetä riippumaton katselmointi koko korjaushaaralle, korjaa olennaiset löydökset ja aja lopulliset portit.
 - [ ] Tarkista koko staged-puu ja julkaistavien tekstien yksityisyys. Tallenna työ korjaushaaraan ja luo katselmoitava luonnos-PR, jos repo-yhteys sallii sen. Älä yhdistä mainiin tämän tarkastuksen osana.
+
+### Katselmoinnin tuottama yhtenäinen korjausaalto
+
+Riippumaton katselmointi commitille `599c8de` (etähaaran sama lähdepuu `8a251ea`) löysi vielä seuraavat varmistettavat ja korjattavat kohdat. Yksi toteuttaja käsittelee ne yhtenä muutoksena; root kokoaa raportin ja julkaisut.
+
+- [x] Sido checkoutin lähetys ohjaimen hyväksymään ei-tyhjään varaustunnukseen ja tarkkaan hintaan; myöhempi havainto ei saa muuttaa hyväksyttyä maksua.
+- [x] Säilytä maksettu, nimenomaisesti maksamaton ja tuntematon maksutieto erillään. Tuntematon tai ristiriitainen tila ei oikeuta checkoutia tai maksamattoman korin väitettä.
+- [x] Säilytä adapterin viimeisellä lukukerralla löytynyt oma varaus tai maksutodiste pysyvästi ennen uutta yritystä tai vaihtoehdon vaihtamista.
+- [x] Välitä jonotuksen fallback-tilan rajattu määräaika varsinaiselle verkkovartijalle; uudelleenkäynnistys ei saa avata uutta liukuvaa kirjoitusikkunaa.
+- [x] Erota kirjoitusaie havaitusta checkout-lähetyksestä. Ennen lähetystä keskeytyneen ajon jälkeen ulkoisesti maksettua varausta ei saa lukea tämän ajon käynnistämäksi maksuksi.
+- [x] Tarkista jonon tila ja hinta vielä osallistujanäkymän valmistelun jälkeen sekä noudata palvelimen uusintaviivettä molemmissa jonopolitiikoissa.
+- [x] Kiristä julkisen kurssitarkistimen tuote-, hinta-, aikataulu- ja reittiarvojen tarkistuksia; pelkkä avaimen olemassaolo ei riitä.
+- [x] Testaa maksutapojen ja saldon erilliset, kummassakin järjestyksessä valmistuvat renderöinnit aidolla selainfixturellä.
+- [x] Rajaa lähetetyn maksupyynnön paluuosoitteen kysely tarkasti ja kuvaa paikallisen smoken jatkaminen/restart täsmällisesti.
+- [ ] Tee yksi kohdennettu korjausaallon uusintakatselmointi ja tarkista lopullisen lähdepuun GitHub-ajo.

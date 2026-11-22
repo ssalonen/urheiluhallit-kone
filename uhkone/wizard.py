@@ -218,6 +218,9 @@ def _review_and_run(conversation: _Conversation, courses: list[Course], args, se
     conversation.say(f"Tavoite: yksi varsinainen kurssipaikka {len(courses)} hyväksytystä vaihtoehdosta.")
     conversation.say(f"Yhden kurssin enimmäishinta: {budget:.2f} €. " +
                      ("Pysähdytään ostoskoriin ennen maksua." if payment == "none" else f"Maksutapa: {payment}."))
+    if payment != "none":
+        from .cli import LIVE_PAYMENT_LIMIT
+        conversation.say(LIVE_PAYMENT_LIMIT)
     conversation.say("Osallistuja: syöttämäsi asiakastililtä valittava lapsi. Nimeä ei kirjoiteta asetustiedostoon.")
     for course in courses:
         starts = opening or course.registration_start

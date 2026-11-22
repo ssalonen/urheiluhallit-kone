@@ -10,7 +10,7 @@ import json
 import re
 import sys
 import time
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
@@ -215,17 +215,25 @@ def _observation(spec: BookingSpec, child_id: int, course_row: Any,
         raise BookingError("Samalle lapselle löytyi useita tämän kurssin varauksia. Automaattinen ostaminen pysähtyi.")
     reservation_id = reservation_receipt_id = None
     confirmed = False
+    paid = None
+    final_status = False
     if matching:
         reservation = matching[0]
         rid = _integer(reservation.get("reservation_id"))
         if rid is None or rid <= 0:
             raise BookingError("Varaustunnuksen tietomuoto muuttui.")
         reservation_id = str(rid)
-        confirmed = (_integer(reservation.get("reservation_status_id")) in {2, 4, 5}
-                     and _flag(reservation.get("is_paid")) is True)
-        linked_receipt = _integer(reservation.get("receipt_event_id"))
-        if linked_receipt is not None and linked_receipt > 0:
-            reservation_receipt_id = str(linked_receipt)
+        final_status = _integer(reservation.get("reservation_status_id")) in {2, 4, 5}
+        paid = _flag(reservation.get("is_paid"))
+        confirmed = final_status and paid is True
+        if final_status and paid is False:
+            paid = None  # A final reservation is not an eligible pending cart line.
+        # The loopback shop explicitly links these IDs. The public production
+        # course API has no verified reservation-to-receipt ID mapping.
+        if is_local_test(base_url):
+            linked_receipt = _integer(reservation.get("receipt_event_id"))
+            if linked_receipt is not None and linked_receipt > 0:
+                reservation_receipt_id = str(linked_receipt)
     queue_entries = [row for row in reservations
                      if _integer(row.get("reservation_event_group_id")) == course.id
                      and _integer(row.get("reservation_account_id")) == child_id
@@ -258,7 +266,7 @@ def _observation(spec: BookingSpec, child_id: int, course_row: Any,
     return Observation(
         available=course.available, current_price=price, held=held,
         reservation_id=reservation_id, reservation_confirmed=confirmed,
-        reservation_receipt_id=reservation_receipt_id,
+        reservation_receipt_id=reservation_receipt_id, reservation_paid=paid, reservation_final=final_status,
         receipt_id=receipt_id, receipt_closed=receipt_closed, receipt_total=receipt_total,
         cart_has_others=others, cart_empty=not cart, payment_locked=_flag(locked["isLocked"]) is True,
         queue_available=course.queue_available, queued=queue_reservation_id is not None,
@@ -290,6 +298,8 @@ class _BookingGuard:
         self.payment_type_id: int | None = None
         self.balance_cents: int | None = None
         self.service_group_id: int | None = None
+        self.deadline = spec.deadline
+        self.on_dispatched: Callable[[], None] | None = None
         self.armed: str | None = None
         self.sent = False
         self.actual_sent = False
@@ -300,14 +310,18 @@ class _BookingGuard:
         self.queue_sent = False
         self.return_paths: set[tuple[str, str]] = set()
 
-    def arm(self, action: str) -> None:
+    def arm(self, action: str, *, deadline: datetime | None = None,
+            on_dispatched: Callable[[], None] | None = None) -> None:
         if (action not in {"add", "checkout", "queue"} or self.armed is not None
                 or (action == "checkout" and self.spec.without_payment)):
             raise BookingError("Varaustoiminnon tila ei ole yksiselitteinen.")
+        self.deadline = deadline or self.spec.deadline
+        self.on_dispatched = on_dispatched
         self.armed, self.sent, self.blocked_write = action, False, False
 
     def disarm(self) -> None:
         self.armed = None
+        self.on_dispatched = None
 
     def _add_matches(self, data: Any) -> bool:
         if not isinstance(data, dict) or self.child_id is None or self.product_id is None or self.price is None:
@@ -343,7 +357,7 @@ class _BookingGuard:
         allowed_paths = ("/webshop/reservations2", urlsplit(self.spec.course.url).path.rstrip("/"))
         if (same_origin(url, self.base_url)
                 and any(parsed.path in {path, path + "/"} for path in allowed_paths)
-                and parse_qs(parsed.query, keep_blank_values=True).get("doPayment") == [state]):
+                and parsed.query == f"doPayment={state}"):
             return parsed.path
         return None
 
@@ -381,7 +395,7 @@ class _BookingGuard:
                      == " ".join(self.spec.child_name.casefold().split())))
 
     def permits_write(self, url: str, method: str, body: str | None) -> bool:
-        if self.sent or method.upper() != "POST" or datetime.now(UTC) >= self.spec.deadline:
+        if self.sent or method.upper() != "POST" or datetime.now(UTC) >= self.deadline:
             return False
         if not same_origin(url, self.base_url):
             return False
@@ -462,6 +476,8 @@ class _BookingGuard:
                     assert path is not None  # Validated before granting this request.
                     self.return_paths.add((path, state))
             route.continue_()
+            if self.armed == "checkout" and self.on_dispatched is not None:
+                self.on_dispatched()
         elif self._provider_request(request):
             route.continue_()
         else:
@@ -700,8 +716,8 @@ class BookingBrowser:
         return button
 
     def _check_add_state(self, state: Observation) -> None:
-        if state.reservation_id is not None:
-            raise ActionNotSent("Lapsella on jo keskeneräinen varaus tälle kurssille.")
+        if state.reservation_id is not None or state.held or state.reservation_confirmed:
+            raise ActionNotSent("Lapsella on jo varaus tälle kurssille.", observation=state)
         if state.cart_has_others or not state.cart_empty or state.payment_locked:
             raise ActionNotSent("Ostoskorin tila ei salli uuden varauksen lähettämistä.")
         if not state.available:
@@ -709,13 +725,11 @@ class BookingBrowser:
         if state.current_price is None or state.current_price > self.spec.max_price:
             raise ActionNotSent("Kurssin hintaa ei voitu vahvistaa hyväksytyn hintarajan sisällä.")
 
-    def add_selected_course(self) -> None:
+    def add_selected_course(self, *, deadline: datetime | None = None) -> None:
         self.guard.sent, self.guard.blocked_write = False, False
         failure = None
         try:
             state = self._recent_observation()
-            if state.held or state.reservation_confirmed:
-                return
             self._check_add_state(state)
             self.guard.price = state.current_price
             product = _course_product(self._course)
@@ -732,7 +746,7 @@ class BookingBrowser:
             if (fresh.current_price != state.current_price
                     or _integer(_course_product(self._course).get("fare_product_id")) != approved_product):
                 raise ActionNotSent("Kurssin myyntituote tai hinta muuttui ennen varausta.")
-            self.guard.arm("add")
+            self.guard.arm("add", deadline=deadline)
             self._last_observation = None
             with self.page.expect_response(lambda response: response.url == self.base_url + "/webshop/reservations2/apicart"
                                            and response.request.method == "POST", timeout=20_000):
@@ -741,7 +755,17 @@ class BookingBrowser:
             failure = exc
         self._finish_action(failure)
 
-    def join_queue(self) -> None:
+    def _check_queue_state(self, state: Observation) -> None:
+        if (state.held or state.reservation_id is not None or state.reservation_confirmed
+                or state.cart_has_others or not state.cart_empty or state.payment_locked
+                or self.guard.checkout_sent):
+            raise ActionNotSent("Kurssivaraus tai maksu on jo olemassa tai sen tila on kesken. Jonopyyntöä ei lähetetty.", observation=state)
+        if state.queued or state.available or not state.queue_available:
+            raise ActionNotSent("Kurssi ei ole nyt avoinna jonoon liittymiselle.")
+        if state.current_price is None or state.current_price > self.spec.max_price:
+            raise ActionNotSent("Kurssin hintaa ei voitu vahvistaa hyväksytyn hintarajan sisällä.")
+
+    def join_queue(self, *, deadline: datetime | None = None) -> None:
         """Join one identified child's waitlist without cart or payment writes."""
         if self.guard.actual_sent:
             raise ActionNotSent("Varsinainen varaus tai maksu on jo voitu lähettää. Uutta jonopyyntöä ei lähetetä.")
@@ -756,18 +780,15 @@ class BookingBrowser:
             raise ActionNotSent("Jonopyyntöä ei lähetetty: alustava tilan lukeminen epäonnistui.") from exc
         if state.queued:
             return
-        if (state.held or state.reservation_id is not None or state.reservation_confirmed
-                or state.cart_has_others or not state.cart_empty or state.payment_locked
-                or self.guard.checkout_sent):
-            raise ActionNotSent("Kurssivaraus tai maksu on jo olemassa tai sen tila on kesken. Jonopyyntöä ei lähetetty.")
-        if state.available or not state.queue_available:
-            raise ActionNotSent("Kurssi ei ole nyt avoinna jonoon liittymiselle.")
-        if state.current_price is None or state.current_price > self.spec.max_price:
-            raise ActionNotSent("Kurssin hintaa ei voitu vahvistaa hyväksytyn hintarajan sisällä.")
+        self._check_queue_state(state)
         failure = None
         try:
             button = self._participant_action(queue=True)
-            self.guard.arm("queue")
+            fresh = self.snapshot()
+            self._check_queue_state(fresh)
+            if fresh.current_price != state.current_price:
+                raise ActionNotSent("Jonokurssin hinta muuttui osallistujan valinnan aikana.")
+            self.guard.arm("queue", deadline=deadline)
             self._last_observation = None
             with self.page.expect_response(lambda response: response.url == self.base_url + "/webshop/reservations2/apiusereventgroups"
                                            and response.request.method == "POST", timeout=20_000):
@@ -776,19 +797,19 @@ class BookingBrowser:
             failure = exc
         self._finish_action(failure)
 
-    def checkout(self) -> None:
+    def checkout(self, reservation_id: str, price: Decimal, *, deadline: datetime | None = None,
+                 on_dispatched: Callable[[], None] | None = None) -> None:
         if self.spec.without_payment:
             raise BookingError("Maksu on estetty tämän ajon asetuksissa.")
         self.guard.sent, self.guard.blocked_write = False, False
         failure = None
         try:
             state = self._recent_observation()
-            if (not state.held or state.cart_has_others or state.cart_empty or state.payment_locked
-                    or state.reservation_confirmed or self.guard.checkout_sent
-                    or state.current_price is None or state.current_price > self.spec.max_price):
-                raise ActionNotSent("Täsmällistä maksukelpoista kurssivarausta ei voitu vahvistaa tai maksu on jo aloitettu.")
+            if (not state.unpaid_hold or not reservation_id or state.reservation_id != reservation_id
+                    or state.current_price != price or price > self.spec.max_price or self.guard.checkout_sent):
+                raise ActionNotSent("Hyväksyttyä maksamatonta varausta ja hintaa ei voitu vahvistaa.", observation=state)
             if self.payment_type_id is None:
-                self._select_payment(state.current_price)
+                self._select_payment(price)
             types = [row for row in self._payment_types()
                      if _integer(row.get("payment_type_id")) == self.payment_type_id
                      and _eligible_payment(row, self.spec.payment_mode)]
@@ -797,9 +818,9 @@ class BookingBrowser:
             balance_cents = 0
             if self.spec.payment_mode == "saldo":
                 balance = self._read("cart/checkcurrentuserbalance", rpc=True, content=[])
-                if not isinstance(balance, dict) or _money(balance.get("balance")) < state.current_price:
+                if not isinstance(balance, dict) or _money(balance.get("balance")) < price:
                     raise BookingError("Saldo ei riitä kurssin maksamiseen. Varausta ei makseta toisella maksutavalla.")
-                balance_cents = int(state.current_price * 100)
+                balance_cents = int(price * 100)
             if not same_origin(self.page.url, self.base_url):
                 raise BookingError("Selain on jo ulkoisessa maksupalvelussa. Uutta maksua ei aloiteta.")
             self.page.evaluate("() => R2.cart.fetch({reset:true}).then(() => R2.vent.trigger('cart:open'))")
@@ -823,16 +844,6 @@ class BookingBrowser:
                 balance_box.check()
             elif balance_box.count() and balance_box.is_checked():
                 balance_box.uncheck()
-            fresh = self.snapshot()
-            if (not fresh.held or fresh.reservation_confirmed or fresh.payment_locked
-                    or fresh.current_price != state.current_price or fresh.reservation_id != state.reservation_id):
-                raise ActionNotSent("Ostoskorin tai varauksen tila muuttui ennen maksua.")
-            # Re-rendered UI data must still represent the same exact one line.
-            ui_cart = self.page.evaluate("() => R2.cart.toJSON()")
-            if (not isinstance(ui_cart, list) or len(ui_cart) != 1
-                    or not _cart_match(ui_cart[0], self.spec.course, self.child_id)
-                    or _money(ui_cart[0].get("bundle_price") if ui_cart[0].get("bundle_price") is not None else ui_cart[0].get("price")) != state.current_price):
-                raise BookingError("Selaimen ostoskori ei vastaa vahvistettua lapsen kurssivarausta.")
             self.page.locator("#modal #usageTermsCheckbox").check()
             if not action.is_visible():
                 dropdown = self.page.locator("#modal .btn-group-dropdown-top-left .dropdown-toggle")
@@ -841,10 +852,19 @@ class BookingBrowser:
             if (not action.is_visible() or not action.is_enabled()
                     or action.evaluate("e => e.hasAttribute('disabled') || e.classList.contains('disabled')")):
                 raise BookingError("Valitun maksutavan painike ei ole käytettävissä.")
-            self.guard.price, self.guard.payment_type_id = state.current_price, self.payment_type_id
+            fresh = self.snapshot()
+            if not fresh.unpaid_hold or fresh.current_price != price or fresh.reservation_id != reservation_id:
+                raise ActionNotSent("Ostoskorin tai varauksen tila muuttui ennen maksua.", observation=fresh)
+            # Re-rendered UI data must still represent the same exact one line.
+            ui_cart = self.page.evaluate("() => R2.cart.toJSON()")
+            if (not isinstance(ui_cart, list) or len(ui_cart) != 1
+                    or not _cart_match(ui_cart[0], self.spec.course, self.child_id)
+                    or _money(ui_cart[0].get("bundle_price") if ui_cart[0].get("bundle_price") is not None else ui_cart[0].get("price")) != price):
+                raise BookingError("Selaimen ostoskori ei vastaa vahvistettua lapsen kurssivarausta.")
+            self.guard.price, self.guard.payment_type_id = price, self.payment_type_id
             self.guard.balance_cents = balance_cents
             self.guard.service_group_id = _integer(self.page.evaluate("() => R2.service_group_id"))
-            self.guard.arm("checkout")
+            self.guard.arm("checkout", deadline=deadline, on_dispatched=on_dispatched)
             self._last_observation = None
             with self.page.expect_response(lambda response: response.url == self.base_url + "/webshop/call/cart/externalpaymentstart"
                                            and response.request.method == "POST", timeout=20_000):
@@ -855,13 +875,12 @@ class BookingBrowser:
             failure = exc
         self._finish_action(failure)
 
-    def show_unpaid_cart(self) -> None:
+    def show_unpaid_cart(self, reservation_id: str | None) -> None:
         """Show the verified cart while the write guard still blocks payment."""
         if not self.spec.without_payment:
             raise BookingError("Maksamatonta ostoskoria voi näyttää vain ilman maksua -ajossa.")
         state = self.snapshot()
-        if (not state.held or state.cart_has_others or state.cart_empty or state.payment_locked
-                or self.guard.checkout_sent):
+        if not state.unpaid_hold or state.reservation_id != reservation_id or self.guard.checkout_sent:
             raise BookingError("Maksamatonta kurssiriviä ei voi enää vahvistaa ostoskorista.")
         self.page.evaluate("() => R2.cart.fetch({reset:true}).then(() => R2.vent.trigger('cart:open'))")
         ui_cart = self.page.evaluate("() => R2.cart.toJSON()")
@@ -869,6 +888,9 @@ class BookingBrowser:
                 or not _cart_match(ui_cart[0], self.spec.course, self.child_id)
                 or _money(ui_cart[0].get("bundle_price") if ui_cart[0].get("bundle_price") is not None else ui_cart[0].get("price")) != state.current_price):
             raise BookingError("Selaimen ostoskori ei vastaa vahvistettua maksamatonta kurssivarausta.")
+        final = self.snapshot()
+        if not final.unpaid_hold or final.reservation_id != reservation_id or final.current_price != state.current_price:
+            raise BookingError("Maksamattoman varauksen tila muuttui ostoskorin näyttämisen aikana.")
 
     def wait_for_close(self) -> None:
         """Keep the visible cart and its no-payment guard active for review."""

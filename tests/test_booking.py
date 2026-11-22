@@ -59,7 +59,7 @@ class Backend:
         self.snapshots.append((self.clock.now(), self.observation))
         return self.observation
 
-    def add_selected_course(self):
+    def add_selected_course(self, *, deadline):
         self.adds.append(self.clock.now())
         if self.on_add:
             self.on_add(self)
@@ -67,19 +67,26 @@ class Backend:
             self.hold()
 
     def hold(self):
-        self.observation = replace(self.observation, held=True, cart_empty=False, reservation_id="reservation-123")
+        self.observation = replace(self.observation, held=True, cart_empty=False, reservation_paid=False, reservation_id="reservation-123")
 
-    def checkout(self):
+    def checkout(self, reservation_id, price, *, deadline, on_dispatched):
         self.checkouts.append(self.clock.now())
-        if self.on_checkout:
-            self.on_checkout(self)
-        else:
-            self.confirm()
+        try:
+            if self.on_checkout:
+                self.on_checkout(self)
+            else:
+                self.confirm()
+        except ActionNotSent:
+            raise
+        except BaseException:
+            on_dispatched()  # The scripted interruption follows a fake send.
+            raise
+        on_dispatched()
 
     def confirm(self):
         self.observation = replace(
             self.observation, held=False, cart_empty=True, reservation_id="reservation-123",
-            reservation_confirmed=True, receipt_id="new-receipt", receipt_closed=True,
+            reservation_confirmed=True, reservation_paid=True, receipt_id="new-receipt", receipt_closed=True,
             receipt_total=Decimal(90), reservation_receipt_id="new-receipt",
         )
 
@@ -286,7 +293,7 @@ class BookingTests(unittest.TestCase):
         # An exact confirmed booking plus the OLD closed receipt is insufficient.
         self.backend.observation = replace(
             self.backend.observation, held=False, cart_empty=True,
-            reservation_confirmed=True, reservation_id="reservation-123",
+            reservation_confirmed=True, reservation_paid=True, reservation_id="reservation-123",
         )
 
         def snapshot(backend):
@@ -342,7 +349,7 @@ class BookingTests(unittest.TestCase):
 
     def test_preexisting_exact_confirmed_reservation_has_separate_status_without_payment_claim(self):
         self.backend.observation = replace(
-            self.backend.observation, reservation_confirmed=True, reservation_id="existing",
+            self.backend.observation, reservation_confirmed=True, reservation_paid=True, reservation_id="existing",
             current_price=None,
         )
         result = self.run_booking()
@@ -353,7 +360,7 @@ class BookingTests(unittest.TestCase):
     def test_same_price_closed_receipt_without_a_reservation_link_is_pending(self):
         def unlinked_receipt(target):
             target.observation = replace(target.observation, held=False, cart_empty=True,
-                                         reservation_confirmed=True, receipt_closed=True,
+                                         reservation_confirmed=True, reservation_paid=True, receipt_closed=True,
                                          receipt_total=Decimal(90), receipt_id="unrelated")
         self.backend.on_checkout = unlinked_receipt
         result = self.run_booking()

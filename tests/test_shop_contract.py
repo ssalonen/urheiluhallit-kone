@@ -116,3 +116,23 @@ def test_public_contract_accepts_supported_course_templates_and_javascript():
         "https://kauppa.urheiluhallit.fi/webshop/javascript/jsmodule/reservations2/next-version"
     )
     check_shop_javascript(SHOP_JS)
+
+
+@pytest.mark.parametrize("change", [
+    {"service_id": None}, {"location_id": None}, {"reservation_group_id": None},
+    {"fare_products": [{"fare_product_id": None, "price": 7600}]},
+    {"fare_products": [{"fare_product_id": 321, "price": "bad"}]},
+    {"weekdays": [{"weekdays": [7], "times": "10:00-10:30"}]},
+    {"weekdays": [{"weekdays": [3], "times": "25:00-26:00"}]},
+    {"weekdays": []}, {"fare_products": []},
+])
+def test_unusable_booking_values_fail_the_catalogue_contract(change):
+    with pytest.raises(ContractError):
+        check_catalogue([COURSE | change])
+
+
+def test_signed_overbooking_count_is_separate_from_a_representative_booking_row():
+    full = COURSE | {"free_queue": -2, "reservation_event_group_id": 124}
+    assert check_catalogue([COURSE, full]) == 1
+    with pytest.raises(ContractError):
+        check_catalogue([full])
