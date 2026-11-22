@@ -140,7 +140,7 @@ def parser() -> argparse.ArgumentParser:
         booking_command.set_defaults(jono=None)
         booking_command.add_argument("--jono-aikaraja", type=int, default=60, help=argparse.SUPPRESS)
     panel = commands.add_parser("paneeli", parents=[common], help="Paikallinen maksuton web-varauspaneeli")
-    panel.add_argument("--portti", type=int, default=0, help="Paikallisen web-paneelin portti; 0 valitsee vapaan")
+    panel.add_argument("--portti", type=int, default=8765, help="Paikallinen portti (oletus 8765 säilyttää localStorage-asetukset)")
     panel.add_argument("--selain", help="Chrome/Chromium-ohjelman polku")
     login = commands.add_parser("kirjaudu", parents=[common], help="Kirjaudu paikalliseen selainprofiiliin")
     login.add_argument("--selain", help="Chrome/Chromium-ohjelman polku")
