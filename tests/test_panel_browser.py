@@ -6,6 +6,7 @@ the local TestShop simulator and must never open a production merchant URL.
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor
 import queue
 import shutil
 import threading
@@ -315,7 +316,6 @@ def test_start_button_remains_disabled_while_booking_worker_is_running(chromium,
 
 def test_preflight_button_runs_auth_and_course_reads_without_writes(tmp_path):
     """Read current testshop account/cart/courses in actual Chromium."""
-    from concurrent.futures import ThreadPoolExecutor
     from uhkone.preflight import run_readonly_preflight
 
     with TestShop([course_row()], opens_in=10) as shop:
