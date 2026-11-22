@@ -9,6 +9,7 @@ import json
 import secrets
 import threading
 import webbrowser
+from collections.abc import Callable
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -212,8 +213,10 @@ def _run(state: PanelState, directory: Path, executable: str | None):
             state.stop_requested = False
 
 
-def serve_panel(directory: Path, *, port: int = 0, executable: str | None = None,
-                open_browser: bool = True):
+def serve_panel(directory: Path, *, port: int = 8765, executable: str | None = None,
+                open_browser: bool = True, runner: Callable[[PanelState, Path, str | None], None] | None = None,
+                on_listening: Callable[[str], None] | None = None,
+                stop_event: threading.Event | None = None):
     state = PanelState()
     csrf = secrets.token_urlsafe(32)
 
@@ -277,7 +280,7 @@ def serve_panel(directory: Path, *, port: int = 0, executable: str | None = None
                             state.stop_requested = False
                             state.paused = False
                             state.phase = "valmistellaan"
-                            threading.Thread(target=_run, args=(state, directory, executable),
+                            threading.Thread(target=runner or _run, args=(state, directory, executable),
                                              daemon=True, name="uhkone-panel-booking").start()
                         elif action in {"pause", "resume", "stop"}:
                             if not state.running:
@@ -300,10 +303,17 @@ def serve_panel(directory: Path, *, port: int = 0, executable: str | None = None
         server.daemon_threads = True
         url = f"http://127.0.0.1:{server.server_port}/"
         print("Paikallinen varauspaneeli:", url, "\nEi maksuja. Sulje Ctrl+C.")
+        if on_listening is not None:
+            on_listening(url)
         if open_browser:
             webbrowser.open(url)
         try:
-            server.serve_forever(poll_interval=0.25)
+            if stop_event is None:
+                server.serve_forever(poll_interval=0.25)
+            else:
+                server.timeout = 0.2
+                while not stop_event.is_set():
+                    server.handle_request()
         except KeyboardInterrupt:
             with state.lock:
                 state.stop_requested = True
