@@ -139,6 +139,9 @@ def parser() -> argparse.ArgumentParser:
         queue_choice.add_argument("--ei-jono", dest="jono", action="store_false", help="Tavoittele vain varsinaista kurssipaikkaa")
         booking_command.set_defaults(jono=None)
         booking_command.add_argument("--jono-aikaraja", type=int, default=60, help=argparse.SUPPRESS)
+    panel = commands.add_parser("paneeli", parents=[common], help="Paikallinen maksuton web-varauspaneeli")
+    panel.add_argument("--portti", type=int, default=0, help="Paikallisen web-paneelin portti; 0 valitsee vapaan")
+    panel.add_argument("--selain", help="Chrome/Chromium-ohjelman polku")
     login = commands.add_parser("kirjaudu", parents=[common], help="Kirjaudu paikalliseen selainprofiiliin")
     login.add_argument("--selain", help="Chrome/Chromium-ohjelman polku")
     probe = commands.add_parser("istuntotesti", parents=[common], help="Vertaa kahden kirjautuneen selainprofiilin ostoskoria lukemalla")
@@ -319,12 +322,19 @@ def _check_terminal(args) -> None:
         raise ConfigError("Vaiheittainen hyväksyntä tarvitsee vuorovaikutteisen päätteen.")
 
 
-def controlled_race(specs, pool, directory: Path, args):
+def controlled_race(specs, pool, directory: Path, args, dashboard=None):
     """Keep all browser work on the main thread and expose only public status."""
     from .console import TerminalSession
     from .multi import run_race
     courses = {spec.course.id: spec.course for spec in specs}
     wait = pool.wait
+    if dashboard is not None:
+        return run_race(
+            specs, pool, directory, allow_queue=False,
+            queue_timeout=args.jono_aikaraja, queue_policy="eager",
+            log=lambda _msg: None, progress=dashboard.progress,
+            checkpoint=lambda: dashboard.checkpoint(wait),
+        )
     with TerminalSession(ask_before_actions=getattr(args, "kysy_toiminnot", False)) as terminal:
         previous: dict[int, tuple] = {}
 
@@ -352,7 +362,7 @@ def controlled_race(specs, pool, directory: Path, args):
         )
 
 
-def run_reservation(args, filters: SearchFilters, directory: Path, client) -> int:
+def run_reservation(args, filters: SearchFilters, directory: Path, client, dashboard=None) -> int:
     from .booking import BookingSpec
     from .booking_browser import open_booking_browser
     from .origin import PRODUCTION_URL
@@ -393,6 +403,10 @@ def run_reservation(args, filters: SearchFilters, directory: Path, client) -> in
                                 opens_at=opens, deadline=max(opens, now) + timedelta(minutes=args.kesto),
                                 payment_mode="none" if args.ilman_maksua else args.maksutapa,
                                 payment_type_id=args.maksutunnus, without_payment=args.ilman_maksua))
+    if dashboard is not None:
+        if not args.ilman_maksua or args.jono:
+            raise ConfigError("Web-paneeli sallii vain maksuttoman varauksen ilman jonotusta.")
+        dashboard.course_info(selected)
     print_courses(selected, details=True)
     print(f"Tavoitteena yksi kurssi {len(specs)} vaihtoehdosta. Enimmäishinta {args.enintaan} €. "
           + ("Pysähdytään maksamattomaan ostoskoriin." if args.ilman_maksua else f"Maksutapa: {args.maksutapa}."), flush=True)
@@ -405,7 +419,7 @@ def run_reservation(args, filters: SearchFilters, directory: Path, client) -> in
     print("Avaan näkyvän selaimen. Kirjaudu tarvittaessa itse. Pidä sama selainprofiili käytössä myös jatkaessasi keskeytynyttä ajoa.", flush=True)
 
     def report(pool):
-        result = controlled_race(specs, pool, directory, args)
+        result = controlled_race(specs, pool, directory, args, dashboard=dashboard)
         queues = getattr(result, "queue_reservations", ())
         pending = getattr(result, "queue_pending_ids", ())
         if queues:
@@ -629,6 +643,12 @@ def main(argv: list[str] | None = None) -> int:
             path = args.tiedosto or DEFAULT_SEED
             document = update_seed(path)
             print(f"Tallennettu {len(document['courses'])} julkista kurssia: {path}")
+            return 0
+        if args.command == "paneeli":
+            if not 0 <= args.portti <= 65535:
+                raise ConfigError("Web-paneelin portti ei kelpaa.")
+            from .panel import serve_panel
+            serve_panel(directory, port=args.portti, executable=args.selain)
             return 0
         if args.command == "kirjaudu":
             from .browser import login
