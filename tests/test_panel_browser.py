@@ -41,9 +41,10 @@ def chromium():
 
 
 class PanelServer:
-    def __init__(self, directory: Path, runner=None, port=0, child_loader=None):
+    def __init__(self, directory: Path, runner=None, port=0, child_loader=None, preflight_loader=None):
         self.directory, self.runner, self.port = directory, runner, port
         self.child_loader = child_loader
+        self.preflight_loader = preflight_loader
         self.stop = threading.Event()
         self.url: str = ""
         self.thread: threading.Thread | None = None
@@ -55,7 +56,8 @@ class PanelServer:
         def serving():
             try:
                 serve_panel(self.directory, port=self.port, open_browser=False,
-                            runner=self.runner, child_loader=self.child_loader, stop_event=self.stop,
+                            runner=self.runner, child_loader=self.child_loader,
+                            preflight_loader=self.preflight_loader, stop_event=self.stop,
                             on_listening=addresses.put)
             except BaseException as exc:  # noqa: BLE001 - Propagate worker failures to tests.
                 self.failures.put(exc)
@@ -309,3 +311,59 @@ def test_start_button_remains_disabled_while_booking_worker_is_running(chromium,
             assert page.request.get(host.url + "api/status").json()["running"]
         finally:
             release.set()
+
+
+def test_preflight_button_runs_auth_and_course_reads_without_writes(tmp_path):
+    """Read current testshop account/cart/courses in actual Chromium."""
+    from concurrent.futures import ThreadPoolExecutor
+    from uhkone.preflight import run_readonly_preflight
+
+    with TestShop([course_row()], opens_in=10) as shop:
+        before = shop.stats()
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            result = executor.submit(
+                run_readonly_preflight, tmp_path / "preflight-profile", None,
+                ids=[shop.course_id], child="Testilapsi",
+                max_price="76", base_url=shop.base_url, headless=True,
+            ).result(timeout=45)
+        after = shop.stats()
+        assert result["ready"]
+        assert result["cart_empty"]
+        assert result["courses"][0]["id"] == shop.course_id
+        assert after["writes"] == before["writes"] == 0
+        assert after["cart_posts"] == after["queue_posts"] == after["checkout_posts"] == 0
+
+
+def test_preflight_http_blocks_booking_and_does_not_expose_private_child(chromium, tmp_path):
+    entered = threading.Event()
+    release = threading.Event()
+
+    def preflight(_dir, _exe, ids, child, price):
+        assert ids == [110980, 110962, 110970]
+        assert child == "Testilapsi"
+        assert price == "76"
+        entered.set()
+        assert release.wait(timeout=10)
+        return {"ready": True, "issues": [], "cart_empty": True, "courses": [],
+                "checked_at": "2026-11-22T20:00:00+02:00"}
+
+    with PanelServer(tmp_path, preflight_loader=preflight) as host, chromium.new_context() as context:
+        page = context.new_page()
+        page.goto(host.url)
+        page.locator("#child").fill("Testilapsi")
+        try:
+            page.locator("#preflight").click()
+            assert entered.wait(timeout=5)
+            status = page.request.get(host.url + "api/status").json()
+            assert status["preflight_loading"] is True
+            assert status["running"] is False
+            assert "Testilapsi" not in json.dumps(status, ensure_ascii=False)
+            denied = page.evaluate("""async () => {
+                try { await req('/api/start', {}); return false; }
+                catch (_) { return true; }
+            }""")
+            assert denied
+        finally:
+            release.set()
+        expect(page.locator("#preflight-result")).to_contain_text("valmis")
+        assert not page.request.get(host.url + "api/status").json()["preflight_loading"]
