@@ -191,7 +191,7 @@ class ReservationCliTests(unittest.TestCase):
         self.assertIn("aikaisempi", stderr)
         self.open_browser.assert_not_called()
 
-    def test_multiple_targets_are_ranked_and_share_one_coordinator(self):
+    def test_multiple_targets_preserve_input_priority_and_share_one_coordinator(self):
         kallio = replace(self.course, id=124, location="Kallio")
         self.client.get_course.side_effect = [kallio, self.course]
         self.args = ["varaa-yksi", "124", "123", "124", "--lapsi", "Testilapsi",
@@ -200,7 +200,8 @@ class ReservationCliTests(unittest.TestCase):
         self.assertEqual(code, 0, stderr)
         self.assertEqual([call.args[0] for call in self.client.get_course.call_args_list], [124, 123])
         specs, pool, _ = self.run_booking.call_args.args
-        self.assertEqual([spec.course.id for spec in specs], [123, 124])
+        self.assertEqual([spec.course.id for spec in specs], [124, 123])
+        self.assertIn("antamassasi etusijajärjestyksessä", stdout)
         self.assertEqual(pool, self.open_pool.return_value.__enter__.return_value)
         self.open_browser.assert_not_called()
         self.assertIn("yksi kurssi 2", stdout)
