@@ -213,3 +213,36 @@ def test_logged_in_simulator_children_are_read_only(chromium, tmp_path):
         assert after["cart_posts"] == 0
         assert after["checkout_posts"] == 0
         assert after["queue_posts"] == 0
+
+
+def test_child_lookup_blocks_competing_booking_start(chromium, tmp_path):
+    entered = threading.Event()
+    release = threading.Event()
+
+    def slow_lookup(_directory, _executable):
+        entered.set()
+        if not release.wait(timeout=10):
+            raise AssertionError("Alitilin testihaku aikakatkaistiin")
+        return ["Testilapsi"]
+
+    with PanelServer(tmp_path, child_loader=slow_lookup) as host, chromium.new_context() as context:
+        page = context.new_page()
+        page.goto(host.url)
+        page.locator("#child").fill("Testilapsi")
+        page.locator("#save").click()
+        expect(page.locator("#message")).to_contain_text("tallennettu")
+        try:
+            page.locator("#children").click()
+            assert entered.wait(timeout=5)
+            status = page.request.get(host.url + "api/status").json()
+            assert status["children_loading"] is True
+            denied = page.evaluate("""async () => {
+                try { await req('/api/start', {}); return false; }
+                catch (_) { return true; }
+            }""")
+            assert denied
+            assert not page.request.get(host.url + "api/status").json()["running"]
+        finally:
+            release.set()
+        expect(page.locator("#child-select option")).to_have_count(2)
+        assert not page.request.get(host.url + "api/status").json()["children_loading"]
