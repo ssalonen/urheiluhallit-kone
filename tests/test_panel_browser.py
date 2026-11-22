@@ -203,8 +203,10 @@ def test_logged_in_simulator_children_are_read_only(chromium, tmp_path):
     with TestShop([course_row()], opens_in=0) as shop:
         assert urlsplit(shop.base_url).hostname == "127.0.0.1"
         before = shop.stats()
-        names = load_linked_children(tmp_path / "test-child-profile", base_url=shop.base_url,
-                                     headless=True)
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            names = executor.submit(load_linked_children, tmp_path / "test-child-profile",
+                                    base_url=shop.base_url, headless=True).result(timeout=40)
         after = shop.stats()
         assert names == ["Testilapsi"]
         assert before["writes"] == after["writes"]
