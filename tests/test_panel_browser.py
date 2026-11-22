@@ -303,6 +303,8 @@ def test_start_button_remains_disabled_while_booking_worker_is_running(chromium,
         try:
             page.locator("#start").click()
             assert started.wait(timeout=5)
+            expect(page.locator("#message")).to_contain_text("Ajo käynnistetty")
+            page.wait_for_timeout(150)
             expect(page.locator("#start")).to_be_disabled()
             assert page.request.get(host.url + "api/status").json()["running"]
         finally:
