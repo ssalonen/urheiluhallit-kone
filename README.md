@@ -15,6 +15,27 @@ Ohjelma ei ole Urheiluhallien tai Enkoran virallinen tuote. **Repon automaatioll
 Interaktiivinen esimerkkiajo: [avaa HTML](docs/esimerkkiajo.html) (lataa tiedosto ja avaa selaimessa). Esimerkki toimii paikallisesti kuvitteellisilla kursseilla ja osallistujalla.
 Esimerkin ohjauspaneelissa voi valita myös pysähtymisen maksamattomaan ostoskoriin. HTML on itsenäinen havainnollistus eikä käynnistä komentoriviohjelmaa tai tee verkkopyyntöjä.
 
+## Paikallinen web-varauspaneeli (maksuton)
+
+Paneelin **Hae alitilit kirjautuneesta kaupasta** -painike avaa Urheiluhallien oman kirjautuneen selainprofiilin tarvittaessa kirjautumista varten. Se lukee vain `user/getcurrentuser`-vastauksen `linked_accounts`-tilit ja esittää niiden nimet valintalistassa. Valinta siirtää nimen kenttään; paina **Tallenna asetukset**, jolloin valittu nimi säilyy tämän selaimen `localStorage`-muistissa. Alitilien `account_id`-tunnuksia ei palauteta web-paneeliin. Jos nimet ovat epäselviä tai päällekkäisiä, paneeli ei tee valintaa automaattisesti. Varausadapteri tarkistaa valitun lapsen tilitunnuksen vielä ennen varauspyyntöä. Alitilejä voi hakea vain, kun varausajo ei ole käynnissä. Haku ei lähetä varaus-, jono- eikä maksupyyntöjä.
+
+
+Käynnistä omalla tietokoneella, jolla Chromium voidaan avata:
+
+```sh
+uhkone paneeli
+```
+
+Komento avaa vain tietokoneella näkyvän osoitteen `http://127.0.0.1:PORTTI/` (oletuksena portti 8765). Paneelissa näkyvät antamasi kurssit etusijajärjestyksessä, jokaisen tilatiedot, kurssin JSON-vastauksesta luettu ilmoittautumisen avautumisaika sekä Suomen nykyinen kellonaika. Kurssitunnuksia voi järjestellä uudelleen, enimmäishintaa muuttaa ja lapsen nimen antaa ennen käynnistystä. Kurssitietoja tarkistetaan **vain antamillesi tunnuksille**, eikä ohjelma etsi muita ehdokkaita. Kurssien tunnukset, etusijajärjestys, hintaraja **ja lapsen nimi** tallennetaan tämän selaimen `localStorage`-muistiin osoitteelle `http://127.0.0.1:8765`. Nimi ei päädy GitHubiin, palvelimen asetus- tai lokitiedostoihin eikä web-tilavastauksiin. Selain säilyttää tallennetun nimen selväkielisenä paikallisessa profiilissaan; käytä vain omaa luotettua selainprofiilia ja poista selaimen sivustotiedot, jos et enää halua säilyttää nimeä. Käynnistä paneeli samalla portilla myös seuraavalla kerralla. Tarkista lapsitili ennen ajoa oikeasta kaupasta.
+
+Valitse **Käynnistä ennen klo 7.00**; ohjelma avaa oman näkyvän Chromium-profiilinsa ja odottaa kunkin valitun kurssin `public_reservation_start`-arvoa, esimerkiksi 24.11.2026 klo 07.00 Suomen aikaa. Paikallinen paneeli näyttää saatavuustietoja ja sallii tauon, jatkamisen ja pysäytyksen. Ohjelman maksuton varaus pysähtyy maksamattomaan ostoskoriin; **web-paneelissa ei ole maksutoimintoa eikä jonoon liittymistä**. Tarkista ostoskori oikeassa selainikkunassa. Maksamattoman korin paikka voi vanhentua. Paneeli ei voi muuttaa jo lähetettyä varausta tai peruuttaa sitä. Älä sulje ohjelmaa ennen selvitystä, jos varauspyyntö on voinut lähteä.
+
+Paneelin **Esitarkista ennen varausta** -painike tekee erillisen, maksuttoman ja vain lukevan testin kirjautuneella Chromium-profiililla. Se lukee valittujen kurssien tiedot ja `public_reservation_start`-avausajat, varmistaa annetun lapsen löytyvän yksiselitteisesti `linked_accounts`-tileistä ja tarkistaa ostoskorin sekä omat varaukset. Jos korissa on jotakin, samalle lapselle löytyy aiempi valitun kurssin varaus tai kurssin hinta ylittää rajauksen, tarkistus antaa varoituksen. Väärän kurssin tunnus, epäselvä vastaus tai vanhentunut kirjautuminen pysäyttävät tarkistuksen turvallisesti. Esitarkistus **ei lähetä yhtään varaus-, jono- tai maksupyyntöä**, eikä sen onnistuminen takaa paikan saatavuutta avaushetkellä. Tarkista tulos hyvissä ajoin ennen ilmoittautumista; älä tee sitäkään toisen varausajon aikana. Oikean kaupan kirjautunut esitarkistus on suoritettava omalla koneella, eikä simulaattori korvaa sitä.
+
+Paneelissa on **Manuaalinen varatie**, joka näyttää vain validoitujen ja käyttäjän hyväksymien kurssien julkiset kauppalinkit. Linkit näkyvät vain, kun varausajo on pysäytetty. **Tarkista ensin alkuperäisestä Chromium-profiilista, ettei ostoskoriin ole jo tehty varausta tai ettei varaus ole epävarma.** Eri selainprofiilin ostoskori ei välttämättä näy manuaalisesti avatussa sivussa. Linkki ei käynnistä ostamista eikä poista aiempaa varausta. Paneeli näyttää erikseen ruuhkan, yhteysongelman, kirjautumisen uusimistarpeen ja epävarman varauksen; last_checked kertoo edellisen onnistuneen saatavuushavainnon ajan. Kriittinen varausvaihe pysähtyy epävarmassa tilanteessa, jotta pyyntöä ei lähetetä vahingossa kahdesti.
+
+Paneeli kuuntelee vain `127.0.0.1`-osoitteessa, tarkistaa muokkauspyyntöjen alkuperän ja käyttää kertakäynnistykselle luotua CSRF-tunnusta. Älä välitä paneeliporttia internetiin tai jaa sen osoitetta. Tämä on ensimmäinen tuotantoselainintegraation käyttöliittymä; oikealla lapsitilillä tehtyä varausta ei ole vielä todennettu.
+
 ## Käyttöönotto
 
 Tarvitset Python 3.11:n tai uudemman sekä graafisen työpöytäympäristön.

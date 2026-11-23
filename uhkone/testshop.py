@@ -23,7 +23,7 @@ from urllib.parse import parse_qs, urlsplit
 
 SCENARIOS = frozenset({"normaali", "ruuhka", "varaus-vastaus-katoaa", "maksu-vastaus-katoaa", "viimeinen-paikka", "taynna",
                        "fastpay-kortti-puuttuu", "fastpay-hylatty", "ensisijainen-taynna",
-                       "jono", "jono-vastaus-katoaa", "jono-taynna"})
+                       "jono", "jono-vastaus-katoaa", "jono-taynna", "avausruuhka"})
 PREFIX = "/webshop/reservations2/"
 SESSION_COOKIE = "uhkone_test_session"
 _ASSETS = {
@@ -137,7 +137,8 @@ class TestShop:
                                  (course_id, json.dumps(row, ensure_ascii=False), capacity, price, product_id, queue_capacity))
             self.course_id = _int(courses[0]["reservation_event_group_id"])
             for key, value in {"balance": "100000", "opens_at": self.opens_at.isoformat(), "scenario": scenario,
-                               "course_gets": "0", "lost_add": "0", "lost_payment": "0", "lost_queue": "0"}.items():
+                               "course_gets": "0", "lost_add": "0", "lost_payment": "0", "lost_queue": "0",
+                               "opening_429s": "0", "first_cart_at": ""}.items():
                 self._db.execute("INSERT OR IGNORE INTO meta VALUES(?,?)", (key, value))
             if self._meta("scenario") != scenario:
                 raise ValueError("Tallennetun testitietokannan skenaariota ei voi vaihtaa")
@@ -333,6 +334,10 @@ class TestShop:
                     self._set("course_gets", count)
                     if self.scenario == "ruuhka" and count <= 2:
                         raise _APIError("Simuloitu ruuhka", 503, retry_after=1)
+                    if (self.scenario == "avausruuhka" and datetime.now(UTC) >= self.opens_at
+                            and int(self._meta("opening_429s")) < 2):
+                        self._set("opening_429s", int(self._meta("opening_429s")) + 1)
+                        raise _APIError("Simuloitu ilmoittautumisruuhka", 429, retry_after=1)
                     if match[1]:
                         stored = self._db.execute("SELECT * FROM courses WHERE id=?", (int(match[1]),)).fetchone()
                         if stored is None:
@@ -363,6 +368,8 @@ class TestShop:
             raise _APIError("Tuntematon testirajapinta", 404)
 
     def _add(self, data, *, session_id):
+        if not self._meta("first_cart_at"):
+            self._set("first_cart_at", datetime.now(UTC).isoformat())
         self._db.execute("INSERT INTO requests(kind) VALUES('cart')")
         try:
             if (not isinstance(data, dict) or set(data) - {"account", "fare_product_id", "reservation_event_group_id", "quantity", "price", "title", "campaign_code", "tags"}
@@ -537,6 +544,8 @@ class TestShop:
             return {"testshop": True, "scenario": self.scenario, "course_id": self.course_id,
                 "base_url": self.base_url if self._server else None, "opens_at": self.opens_at.isoformat(),
                 "cart_posts": counts.get("cart", 0), "add_posts": counts.get("cart", 0),
+                "first_cart_at": self._meta("first_cart_at"),
+                "opening_429s": int(self._meta("opening_429s")),
                 "delete_posts": counts.get("delete", 0),
                 "queue_posts": counts.get("queue", 0), "queued": sum(row["reservation_status_id"] in (1, 3) for row in own),
                 "queue_capacity": self._db.execute("SELECT sum(queue_capacity) FROM courses").fetchone()[0],
